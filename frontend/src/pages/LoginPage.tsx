@@ -1,5 +1,5 @@
-import { useState, type FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect, type FormEvent } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { api } from '../lib/api';
 import { useAuthStore } from '../stores/useAuthStore';
 import { db } from '../lib/db';
@@ -15,7 +15,15 @@ export default function LoginPage() {
   const [showPass, setShowPass] = useState(false);
 
   const navigate = useNavigate();
+  const location = useLocation();
   const { setToken, setUser } = useAuthStore();
+
+  useEffect(() => {
+    const quick = (location.state as any)?.quickRole;
+    if (quick === 'TEACHER' || quick === 'STUDENT' || quick === 'ADMIN') {
+      handleSelectRole(quick);
+    }
+  }, [location.state]);
 
   // Quick switch role & prefill demo credentials
   function handleSelectRole(role: 'TEACHER' | 'STUDENT' | 'ADMIN') {
@@ -65,7 +73,7 @@ export default function LoginPage() {
       if (role === 'ADMIN' || role === 'HOD') navigate('/admin');
       else if (role === 'TEACHER') navigate('/teacher');
       else if (role === 'STUDENT' || role === 'PARENT') navigate('/student');
-      else navigate('/');
+      else navigate('/dashboard');
     } catch (err: unknown) {
       const e = err as { response?: { data?: { error?: { code?: string; message?: string } } } };
       if (e.response?.data?.error?.code === 'INVALID_CREDENTIALS') {
@@ -102,6 +110,28 @@ export default function LoginPage() {
           padding: '2rem 1.75rem',
         }}
       >
+        {/* Back to Home Link */}
+        <div style={{ marginBottom: '1rem' }}>
+          <button
+            type="button"
+            onClick={() => navigate('/')}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'var(--color-primary)',
+              fontSize: '0.85rem',
+              fontWeight: 700,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              padding: 0,
+            }}
+          >
+            ← Back to Homepage
+          </button>
+        </div>
+
         {/* Title (from Screen 1 in reference) */}
         <div style={{ marginBottom: '1.5rem' }}>
           <h1

@@ -8,6 +8,7 @@ import { useRegisterSW } from 'virtual:pwa-register/react';
 import './index.css';
 
 // Lazy-load pages for code splitting
+const HomePage = lazy(() => import('./pages/HomePage'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const TeacherDashboard = lazy(() => import('./pages/teacher/TeacherDashboard'));
 const StudentDashboard = lazy(() => import('./pages/student/StudentDashboard'));
@@ -20,7 +21,7 @@ function ProtectedRoute({ children, roles }: { children: React.ReactNode; roles?
 
   if (isLocked) return <Navigate to="/locked" replace />;
   if (!accessToken || !user) return <Navigate to="/login" replace />;
-  if (roles && !roles.includes(user.role)) return <Navigate to="/" replace />;
+  if (roles && !roles.includes(user.role)) return <Navigate to="/dashboard" replace />;
 
   return <>{children}</>;
 }
@@ -115,8 +116,9 @@ export default function App() {
               }
             />
 
-            {/* Redirect root based on role */}
-            <Route path="/" element={<RoleRedirect />} />
+            {/* Landing page & role redirect */}
+            <Route path="/" element={<HomePage />} />
+            <Route path="/dashboard" element={<RoleRedirect />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
