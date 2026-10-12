@@ -411,21 +411,18 @@ AttendAI/
 ## 🚀 Getting Started & Local Setup
 
 ### ⚡ One-Click Windows Quick Start (Easiest)
-If you are on Windows, you can use the pre-configured `.bat` batch scripts in the project root:
+If you are on Windows, simply double-click the **`start.bat`** file in the project root:
 
-1. **Initial Setup (First time only):**
-   Double-click `setup.bat` (or run `.\setup.bat`):
-   - Starts PostgreSQL & Redis containers in Docker
-   - Generates Prisma Client & runs database migrations
-   - Seeds the database with Admin, 3 Teachers, 50 Students, and Timetable
-2. **Launch Application:**
-   Double-click `start-dev.bat` (or run `.\start-dev.bat`):
-   - Ensures Docker containers are running
-   - Launches Backend API on `http://localhost:4000` in its own window
-   - Launches Frontend PWA on `http://localhost:5173` in its own window
-   - Automatically opens your default web browser to the app
-3. **Stop Application:**
-   Double-click `stop.bat` to cleanly stop Docker containers when you are done.
+```cmd
+start.bat
+```
+
+**What `start.bat` does in a single click:**
+1. Starts PostgreSQL 16 & Redis 7 background containers via Docker Compose.
+2. Initializes and checks the Prisma Client.
+3. Launches the Backend API (`http://localhost:4000`) in its own terminal window.
+4. Launches the Frontend PWA (`http://localhost:5173`) in its own terminal window.
+5. Automatically opens your default web browser directly to `http://localhost:5173`.
 
 ---
 
