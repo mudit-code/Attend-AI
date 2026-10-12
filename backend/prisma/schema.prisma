@@ -51,6 +51,7 @@ model User {
   notifications Notification[]
   auditLogs    AuditLog[]
   refreshTokens RefreshToken[]
+  institutionalFeedbacks InstitutionalFeedback[]
 
   @@map("users")
 }
@@ -145,6 +146,7 @@ model Teacher {
   department   Department @relation(fields: [departmentId], references: [id])
   subjects     TeacherSubject[]
   sessions     AttendanceSession[]
+  leaveRequests TeacherLeaveRequest[]
 
   @@map("teachers")
 }
@@ -163,6 +165,11 @@ model Student {
   leaveRequests     LeaveRequest[]
   correctionRequests CorrectionRequest[]
   attendanceSummaries AttendanceSummary[]
+  internalMarks      InternalMark[]
+  clearanceStatus    ClearanceStatus?
+  libraryRecords     LibraryRecord[]
+  grievanceTickets   GrievanceTicket[]
+  driveRegistrations DriveRegistration[]
 
   @@map("students")
 }
@@ -213,6 +220,7 @@ model TimetableSlot {
   period         Int          // 1-8
   startTime      String       // "09:00"
   endTime        String       // "09:55"
+  roomNo         String?      // e.g. "302", "Lab-A"
   academicYearId Int
 
   section        Section      @relation(fields: [sectionId], references: [id])
@@ -481,3 +489,258 @@ model AuditLog {
   @@index([entity, entityId])
   @@map("audit_logs")
 }
+
+// =============================================
+// INTERNAL MARKS (Sessionals / Assignments)
+// =============================================
+model InternalMark {
+  id         Int      @id @default(autoincrement())
+  studentId  Int
+  subjectId  Int
+  markType   MarkType
+  marks      Float
+  maxMarks   Float    @default(25)
+  enteredBy  Int      // teacher userId
+  status     String   @default("DRAFT")  // DRAFT | APPROVED
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  student    Student  @relation(fields: [studentId], references: [id])
+
+  @@unique([studentId, subjectId, markType])
+  @@index([studentId])
+  @@map("internal_marks")
+}
+
+enum MarkType {
+  ASSIGNMENT_1
+  ASSIGNMENT_2
+  SESSIONAL_1
+  SESSIONAL_2
+  VIVA
+  PRACTICAL
+}
+
+// =============================================
+// NOTICES (Official Notice Board)
+// =============================================
+model Notice {
+  id         Int            @id @default(autoincrement())
+  title      String
+  body       String
+  category   NoticeCategory
+  targetRole String?        // null = all, or "STUDENT" | "TEACHER"
+  pdfUrl     String?
+  postedBy   Int            // userId
+  isActive   Boolean        @default(true)
+  expiresAt  DateTime?
+  createdAt  DateTime       @default(now())
+
+  @@index([isActive, createdAt])
+  @@map("notices")
+}
+
+enum NoticeCategory {
+  EXAM
+  FEE
+  HOLIDAY
+  EVENT
+  DISCIPLINE
+  GENERAL
+}
+
+// =============================================
+// CLEARANCE STATUS (No-Dues)
+// =============================================
+model ClearanceStatus {
+  id           Int      @id @default(autoincrement())
+  studentId    Int      @unique
+  semester     String   // e.g. "ODD-2026"
+  academic     Boolean  @default(false)
+  accounts     Boolean  @default(false)
+  library      Boolean  @default(false)
+  discipline   Boolean  @default(false)
+  examUnlocked Boolean  @default(false)
+  updatedAt    DateTime @updatedAt
+
+  student      Student  @relation(fields: [studentId], references: [id])
+
+  @@map("clearance_status")
+}
+
+// =============================================
+// LIBRARY RECORDS
+// =============================================
+model LibraryRecord {
+  id          Int       @id @default(autoincrement())
+  studentId   Int
+  bookTitle   String
+  bookCode    String
+  issuedAt    DateTime
+  dueDate     DateTime
+  returnedAt  DateTime?
+  finePerDay  Float     @default(2.0)
+  finePaid    Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+
+  student     Student   @relation(fields: [studentId], references: [id])
+
+  @@index([studentId])
+  @@map("library_records")
+}
+
+// =============================================
+// GRIEVANCE TICKETS
+// =============================================
+model GrievanceTicket {
+  id          String          @id @default(uuid())
+  studentId   Int
+  title       String
+  description String
+  category    GrievanceCategory
+  isAnonymous Boolean         @default(false)
+  status      TicketStatus    @default(OPEN)
+  assignedTo  Int?
+  resolution  String?
+  resolvedAt  DateTime?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  student     Student         @relation(fields: [studentId], references: [id])
+
+  @@index([status])
+  @@map("grievance_tickets")
+}
+
+enum GrievanceCategory {
+  ATTENDANCE
+  MARKS
+  BEHAVIOR
+  FACILITIES
+  OTHER
+}
+
+enum TicketStatus {
+  OPEN
+  IN_REVIEW
+  RESOLVED
+  CLOSED
+}
+
+// =============================================
+// PLACEMENT DRIVES
+// =============================================
+model PlacementDrive {
+  id                   Int       @id @default(autoincrement())
+  companyName          String
+  driveDate            DateTime
+  minAttendance        Float     @default(75)
+  minCgpa              Float?
+  eligibleBranches     String[]
+  description          String?
+  registrationDeadline DateTime?
+  createdAt            DateTime  @default(now())
+
+  registrations DriveRegistration[]
+
+  @@map("placement_drives")
+}
+
+model DriveRegistration {
+  id           Int            @id @default(autoincrement())
+  driveId      Int
+  studentId    Int
+  isEligible   Boolean
+  registeredAt DateTime       @default(now())
+
+  drive        PlacementDrive @relation(fields: [driveId], references: [id])
+  student      Student        @relation(fields: [studentId], references: [id])
+
+  @@unique([driveId, studentId])
+  @@map("drive_registrations")
+}
+
+// =============================================
+// TEACHER LEAVE & INSTITUTIONAL FEEDBACK
+// =============================================
+model TeacherLeaveRequest {
+  id           String      @id @default(uuid())
+  teacherId    Int
+  fromDate     DateTime    @db.Date
+  toDate       DateTime    @db.Date
+  type         String      @default("CASUAL") // CASUAL, MEDICAL, DUTY
+  reason       String
+  documentUrl  String?
+  status       LeaveStatus @default(PENDING)
+  decidedBy    Int?
+  decisionNote String?
+  decidedAt    DateTime?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  teacher      Teacher     @relation(fields: [teacherId], references: [id])
+
+  @@map("teacher_leave_requests")
+}
+
+model InstitutionalFeedback {
+  id        String   @id @default(uuid())
+  userId    Int
+  role      Role
+  category  String   @default("GENERAL") // ACADEMIC, CURRICULUM, FACILITIES, GENERAL
+  subject   String
+  message   String
+  reply     String?
+  replyDate DateTime?
+  status    String   @default("OPEN") // OPEN, RESOLVED
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@map("institutional_feedback")
+}
+
+// =============================================
+// EXPANDED ERP: EMAIL LOGS & CAMPUS HEALTHCARE
+// =============================================
+model DefaulterEmailLog {
+  id                Int      @id @default(autoincrement())
+  recipientEmail    String
+  recipientName     String
+  rollNo            String
+  subjectCode       String
+  subjectName       String
+  attendancePercent Float
+  classesAttended   Int
+  totalClasses      Int
+  senderName        String
+  status            String   @default("SENT") // SENT, QUEUED, FAILED
+  createdAt         DateTime @default(now())
+
+  @@map("defaulter_email_logs")
+}
+
+model DispensaryVisit {
+  id                  Int      @id @default(autoincrement())
+  studentRollNo       String
+  studentName         String
+  doctorName          String
+  diagnosis           String
+  medicinesPrescribed String
+  visitDate           DateTime @default(now())
+
+  @@map("dispensary_visits")
+}
+
+model MedicineInventory {
+  id               Int      @id @default(autoincrement())
+  name             String   @unique
+  quantity         Int
+  unit             String   @default("Tablets")
+  usageDirections  String
+  reorderThreshold Int      @default(20)
+
+  @@map("medicine_inventory")
+}
+

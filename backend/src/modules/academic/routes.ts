@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import { authenticate } from '../../middlewares/auth';
+import { authenticate, AuthRequest } from '../../middlewares/auth';
 import { requireRole } from '../../middlewares/role';
 import { validate } from '../../middlewares/validate';
 import {
@@ -188,4 +188,32 @@ router.post(
   }
 );
 
+// ─── Today's Timetable (Student) ─────────────────────────────────
+router.get(
+  '/timetable/today',
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const data = await academicService.getTodayTimetable(req as AuthRequest);
+      res.json({ data });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+// ─── Today's Timetable (Teacher) ─────────────────────────────────
+router.get(
+  '/timetable/teacher/today',
+  requireRole('TEACHER', 'HOD'),
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const data = await academicService.getTeacherTodayTimetable(req as AuthRequest);
+      res.json({ data });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
 export default router;
+

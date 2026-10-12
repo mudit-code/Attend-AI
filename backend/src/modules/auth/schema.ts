@@ -22,3 +22,29 @@ export const otpVerifySchema = z.object({
 export type LoginInput = z.infer<typeof loginSchema>;
 export type OtpSendInput = z.infer<typeof otpSendSchema>;
 export type OtpVerifyInput = z.infer<typeof otpVerifySchema>;
+
+export const registerSchema = z.object({
+  name: z.string().min(2),
+  email: z.string().email(),
+  password: z.string().min(6),
+  role: z.enum(['STUDENT', 'TEACHER', 'ADMIN']),
+  rollNo: z.string().optional(),
+  sectionId: z.number().int().optional(),
+  employeeCode: z.string().optional(),
+  departmentId: z.number().int().optional(),
+  adminCode: z.string().optional(),
+});
+
+export const oauthSchema = z.object({
+  provider: z.enum(['google', 'microsoft', 'github']),
+  role: z.enum(['STUDENT', 'TEACHER', 'ADMIN']),
+  email: z.string().email(),
+  name: z.string().min(1),
+  avatar: z.string().optional(),
+  rollNo: z.string().optional(),
+  employeeCode: z.string().optional(),
+});
+
+export type RegisterInput = z.infer<typeof registerSchema>;
+export type OAuthInput = z.infer<typeof oauthSchema>;
+

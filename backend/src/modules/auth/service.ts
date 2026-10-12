@@ -5,7 +5,7 @@ import { prisma } from '../../lib/prisma';
 import { redis } from '../../lib/redis';
 import { env } from '../../config/env';
 import { logger } from '../../lib/logger';
-import type { LoginInput, OtpSendInput, OtpVerifyInput } from './schema';
+import type { LoginInput, OtpSendInput, OtpVerifyInput, RegisterInput, OAuthInput } from './schema';
 
 // ─── Token helpers ───────────────────────────────────────────────
 function generateAccessToken(userId: number, role: string, departmentId?: number): string {
@@ -185,4 +185,164 @@ export async function verifyParentOTPService(input: OtpVerifyInput) {
   const refreshToken = await createRefreshToken(parent.userId);
 
   return { accessToken, refreshToken, user: { id: parent.userId, role: 'PARENT', name: parent.user.name } };
+}
+
+// ─── Register Service ──────────────────────────────────────────
+export async function registerService(input: RegisterInput) {
+  const existing = await prisma.user.findUnique({
+    where: { email: input.email },
+  });
+  if (existing) {
+    throw { code: 'EMAIL_ALREADY_EXISTS', status: 409, message: 'An account with this email already exists' };
+  }
+
+  // Admin access code validation if registering as ADMIN
+  if (input.role === 'ADMIN' && input.adminCode && input.adminCode !== 'ADMIN2026' && input.adminCode !== 'ATTENDAI_ADMIN') {
+    throw { code: 'INVALID_ADMIN_CODE', status: 403, message: 'Invalid Admin Authorization Code' };
+  }
+
+  const passwordHash = await bcrypt.hash(input.password, 10);
+
+  let sectionId = input.sectionId;
+  let departmentId = input.departmentId;
+
+  if (input.role === 'STUDENT' && !sectionId) {
+    const firstSection = await prisma.section.findFirst();
+    if (firstSection) sectionId = firstSection.id;
+  }
+
+  if (input.role === 'TEACHER' && !departmentId) {
+    const firstDept = await prisma.department.findFirst();
+    if (firstDept) departmentId = firstDept.id;
+  }
+
+  const user = await prisma.user.create({
+    data: {
+      email: input.email,
+      name: input.name,
+      passwordHash,
+      role: input.role,
+      status: 'ACTIVE',
+      ...(input.role === 'STUDENT' && sectionId
+        ? {
+            student: {
+              create: {
+                rollNo: input.rollNo || `STU${Date.now().toString().slice(-6)}`,
+                sectionId,
+              },
+            },
+          }
+        : {}),
+      ...(input.role === 'TEACHER' && departmentId
+        ? {
+            teacher: {
+              create: {
+                employeeCode: input.employeeCode || `FAC${Date.now().toString().slice(-6)}`,
+                departmentId,
+              },
+            },
+          }
+        : {}),
+    },
+    include: {
+      student: { select: { id: true, sectionId: true, rollNo: true } },
+      teacher: { select: { id: true, departmentId: true } },
+    },
+  });
+
+  const accessToken = generateAccessToken(user.id, user.role, user.teacher?.departmentId);
+  const refreshToken = await createRefreshToken(user.id);
+
+  logger.info('New user registered', { userId: user.id, role: user.role });
+
+  return {
+    accessToken,
+    refreshToken,
+    user: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      student: user.student,
+      teacher: user.teacher,
+    },
+  };
+}
+
+// ─── OAuth / SSO Service ─────────────────────────────────────────
+export async function oauthService(input: OAuthInput) {
+  let user = await prisma.user.findUnique({
+    where: { email: input.email },
+    include: {
+      teacher: { select: { id: true, departmentId: true } },
+      student: { select: { id: true, sectionId: true, rollNo: true } },
+    },
+  });
+
+  if (!user) {
+    let sectionId: number | undefined;
+    let departmentId: number | undefined;
+
+    if (input.role === 'STUDENT') {
+      const s = await prisma.section.findFirst();
+      if (s) sectionId = s.id;
+    } else if (input.role === 'TEACHER') {
+      const d = await prisma.department.findFirst();
+      if (d) departmentId = d.id;
+    }
+
+    const dummyHash = await bcrypt.hash(crypto.randomBytes(16).toString('hex'), 10);
+
+    user = await prisma.user.create({
+      data: {
+        email: input.email,
+        name: input.name,
+        passwordHash: dummyHash,
+        role: input.role,
+        status: 'ACTIVE',
+        ...(input.role === 'STUDENT' && sectionId
+          ? {
+              student: {
+                create: {
+                  rollNo: input.rollNo || `OAUTH${Date.now().toString().slice(-6)}`,
+                  sectionId,
+                },
+              },
+            }
+          : {}),
+        ...(input.role === 'TEACHER' && departmentId
+          ? {
+              teacher: {
+                create: {
+                  employeeCode: input.employeeCode || `FAC_OAUTH${Date.now().toString().slice(-6)}`,
+                  departmentId,
+                },
+              },
+            }
+          : {}),
+      },
+      include: {
+        teacher: { select: { id: true, departmentId: true } },
+        student: { select: { id: true, sectionId: true, rollNo: true } },
+      },
+    });
+  }
+
+  const accessToken = generateAccessToken(user.id, user.role, user.teacher?.departmentId);
+  const refreshToken = await createRefreshToken(user.id);
+
+  logger.info('OAuth user logged in', { userId: user.id, provider: input.provider });
+
+  return {
+    accessToken,
+    refreshToken,
+    user: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      teacher: user.teacher,
+      student: user.student,
+    },
+  };
 }

@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { validate } from '../../middlewares/validate';
 import { authenticate, AuthRequest } from '../../middlewares/auth';
-import { loginSchema, otpSendSchema, otpVerifySchema } from './schema';
+import { loginSchema, otpSendSchema, otpVerifySchema, registerSchema, oauthSchema } from './schema';
 import * as authService from './service';
 import { env } from '../../config/env';
 
@@ -30,6 +30,36 @@ router.post('/login', validate(loginSchema), async (req: Request, res: Response)
     } else {
       throw err;
     }
+  }
+});
+
+// POST /auth/register
+router.post('/register', validate(registerSchema), async (req: Request, res: Response): Promise<void> => {
+  try {
+    const result = await authService.registerService(req.body);
+    res.cookie('refresh_token', result.refreshToken, COOKIE_OPTIONS);
+    res.status(201).json({
+      accessToken: result.accessToken,
+      user: result.user,
+    });
+  } catch (err: unknown) {
+    const e = err as { code: string; status: number; message: string };
+    res.status(e.status || 500).json({ error: { code: e.code || 'REGISTRATION_ERROR', message: e.message || 'Registration failed' } });
+  }
+});
+
+// POST /auth/oauth
+router.post('/oauth', validate(oauthSchema), async (req: Request, res: Response): Promise<void> => {
+  try {
+    const result = await authService.oauthService(req.body);
+    res.cookie('refresh_token', result.refreshToken, COOKIE_OPTIONS);
+    res.json({
+      accessToken: result.accessToken,
+      user: result.user,
+    });
+  } catch (err: unknown) {
+    const e = err as { code: string; status: number; message: string };
+    res.status(e.status || 500).json({ error: { code: e.code || 'OAUTH_ERROR', message: e.message || 'OAuth authentication failed' } });
   }
 });
 

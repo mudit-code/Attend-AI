@@ -15,6 +15,17 @@ import leaveRouter from './modules/leave/routes';
 import correctionRouter from './modules/correction/routes';
 import reportsRouter from './modules/reports/routes';
 import adminRouter from './modules/admin/routes';
+import marksRouter from './modules/marks/routes';
+import noticesRouter from './modules/notices/routes';
+import clearanceRouter from './modules/clearance/routes';
+import libraryRouter from './modules/library/routes';
+import grievanceRouter from './modules/grievance/routes';
+import placementRouter from './modules/placement/routes';
+import teacherLeaveRouter from './modules/leaves/routes';
+import feedbackRouter from './modules/feedback/routes';
+import communicationRouter from './modules/communication/routes';
+import dispensaryRouter from './modules/dispensary/routes';
+
 
 const app = express();
 
@@ -82,6 +93,17 @@ app.use('/api/v1/leaves', leaveRouter);
 app.use('/api/v1/correction-requests', correctionRouter);
 app.use('/api/v1/reports', reportsRouter);
 app.use('/api/v1/admin', adminRouter);
+// ─── New Feature Routes ───────────────────────────────────────────
+app.use('/api/v1/marks', marksRouter);
+app.use('/api/v1/notices', noticesRouter);
+app.use('/api/v1/clearance', clearanceRouter);
+app.use('/api/v1/library', libraryRouter);
+app.use('/api/v1/grievances', grievanceRouter);
+app.use('/api/v1/placement', placementRouter);
+app.use('/api/v1/teacher-leaves', teacherLeaveRouter);
+app.use('/api/v1/feedback', feedbackRouter);
+app.use('/api/v1/communication', communicationRouter);
+app.use('/api/v1/dispensary', dispensaryRouter);
 
 // 404 handler
 app.use((_req, res) => {

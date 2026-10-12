@@ -2,7 +2,9 @@ import { Router, Response, NextFunction } from 'express';
 import { authenticate, AuthRequest } from '../../middlewares/auth';
 import { requireRole } from '../../middlewares/role';
 import * as reportsService from './service';
+import * as recoveryService from './recoveryService';
 import { prisma } from '../../lib/prisma';
+
 
 const router = Router();
 
@@ -115,4 +117,24 @@ router.get(
   }
 );
 
+// ─── Recovery / Bunk Calculator (Student) ─────────────────────────
+router.get(
+  '/recovery-stats',
+  requireRole('STUDENT'),
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const student = await prisma.student.findUnique({ where: { userId: req.user!.id } });
+      if (!student) {
+        res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Student profile not found' } });
+        return;
+      }
+      const data = await recoveryService.getRecoveryStats(student.id);
+      res.json({ data });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
 export default router;
+

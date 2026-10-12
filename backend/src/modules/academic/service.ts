@@ -1,4 +1,5 @@
 import { prisma } from '../../lib/prisma';
+import type { AuthRequest } from '../../middlewares/auth';
 import type {
   DepartmentInput,
   CourseInput,
@@ -8,6 +9,7 @@ import type {
   TimetableSlotInput,
   HolidayInput,
 } from './schema';
+
 
 // ─── Departments ──────────────────────────────────────────────────
 export async function getDepartments() {
@@ -143,3 +145,121 @@ export async function createHoliday(data: HolidayInput) {
     create: data,
   });
 }
+
+// ─── Period Time Helper ───────────────────────────────────────────
+function getCurrentPeriodInfo(slots: { startTime: string; endTime: string; period: number }[]) {
+  const now = new Date();
+  // Convert to IST (UTC+5:30)
+  const istOffset = 5.5 * 60 * 60 * 1000;
+  const istNow = new Date(now.getTime() + istOffset);
+  const currentHHMM = istNow.toISOString().slice(11, 16); // "HH:MM"
+
+  let currentPeriod: number | null = null;
+  let nextPeriod: number | null = null;
+
+  const sorted = [...slots].sort((a, b) => a.period - b.period);
+
+  for (const slot of sorted) {
+    if (currentHHMM >= slot.startTime && currentHHMM <= slot.endTime) {
+      currentPeriod = slot.period;
+    } else if (currentHHMM < slot.startTime && nextPeriod === null) {
+      nextPeriod = slot.period;
+    }
+  }
+
+  return { currentPeriod, nextPeriod, currentTime: currentHHMM };
+}
+
+// ─── Today's Timetable for Student ──────────────────────────────
+export async function getTodayTimetable(req: AuthRequest) {
+  const user = req.user!;
+  let sectionId: number;
+
+  if (user.role === 'STUDENT') {
+    const student = await prisma.student.findUnique({ where: { userId: user.id } });
+    if (!student) throw { code: 'NOT_FOUND', status: 404, message: 'Student not found' };
+    sectionId = student.sectionId;
+  } else {
+    throw { code: 'FORBIDDEN', status: 403, message: 'Only students can access this endpoint' };
+  }
+
+  const now = new Date();
+  // JS getDay(): 0=Sun, 1=Mon...6=Sat. Map to 1=Mon...7=Sun
+  const jsDay = now.getDay();
+  const dayOfWeek = jsDay === 0 ? 7 : jsDay;
+
+  const slots = await prisma.timetableSlot.findMany({
+    where: { sectionId, dayOfWeek },
+    include: {
+      section: true,
+    },
+    orderBy: { period: 'asc' },
+  });
+
+  // Fetch subject and teacher details per slot (TimetableSlot doesn't have relations for subject/teacher in include by default)
+  const slotsWithDetails = await Promise.all(
+    slots.map(async (slot) => {
+      const [subject, teacher] = await Promise.all([
+        prisma.subject.findUnique({ where: { id: slot.subjectId } }),
+        prisma.teacher.findUnique({ where: { id: slot.teacherId }, include: { user: { select: { name: true } } } }),
+      ]);
+      return {
+        period: slot.period,
+        startTime: slot.startTime,
+        endTime: slot.endTime,
+        roomNo: slot.roomNo,
+        subject: subject ? { id: subject.id, name: subject.name, code: subject.code } : null,
+        teacher: teacher ? { id: teacher.id, name: teacher.user.name } : null,
+      };
+    })
+  );
+
+  const { currentPeriod, nextPeriod, currentTime } = getCurrentPeriodInfo(slotsWithDetails.map(s => ({ startTime: s.startTime, endTime: s.endTime, period: s.period })));
+
+  return {
+    dayOfWeek,
+    currentTime,
+    currentPeriod,
+    nextPeriod,
+    slots: slotsWithDetails,
+  };
+}
+
+// ─── Today's Timetable for Teacher ──────────────────────────────
+export async function getTeacherTodayTimetable(req: AuthRequest) {
+  const user = req.user!;
+  const teacher = await prisma.teacher.findUnique({ where: { userId: user.id } });
+  if (!teacher) throw { code: 'NOT_FOUND', status: 404, message: 'Teacher not found' };
+
+  const now = new Date();
+  const jsDay = now.getDay();
+  const dayOfWeek = jsDay === 0 ? 7 : jsDay;
+
+  const slots = await prisma.timetableSlot.findMany({
+    where: { teacherId: teacher.id, dayOfWeek },
+    include: { section: true },
+    orderBy: { period: 'asc' },
+  });
+
+  const slotsWithDetails = await Promise.all(
+    slots.map(async (slot) => {
+      const subject = await prisma.subject.findUnique({ where: { id: slot.subjectId } });
+      return {
+        period: slot.period,
+        startTime: slot.startTime,
+        endTime: slot.endTime,
+        roomNo: slot.roomNo,
+        subject: subject ? { id: subject.id, name: subject.name, code: subject.code } : null,
+        section: { id: slot.section.id, name: slot.section.name },
+        sectionId: slot.sectionId,
+      };
+    })
+  );
+
+  const { currentPeriod, nextPeriod, currentTime } = getCurrentPeriodInfo(
+    slotsWithDetails.map(s => ({ startTime: s.startTime, endTime: s.endTime, period: s.period }))
+  );
+
+  return { dayOfWeek, currentTime, currentPeriod, nextPeriod, teacherId: teacher.id, slots: slotsWithDetails };
+}
+
