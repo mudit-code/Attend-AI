@@ -6,6 +6,7 @@ import { db } from '../../lib/db';
 import { runSync } from '../../lib/syncEngine';
 import { useNavigate } from 'react-router-dom';
 import SyncBadge from '../../components/SyncBadge';
+import RealtimeInsightCard from '../../components/RealtimeInsightCard';
 
 interface StudentItem {
   id: number;
@@ -334,10 +335,28 @@ export default function TeacherDashboard() {
           zIndex: 100,
         }}
       >
-        <div className="flex items-center gap-1">
-          <span style={{ fontSize: '1.25rem' }}>📋</span>
-          <span style={{ fontWeight: 700, fontSize: '1.05rem' }}>AttendAI</span>
-          <span className="badge" style={{ background: 'rgba(108,99,255,0.15)', color: 'var(--color-primary)' }}>
+        <div className="flex items-center gap-2">
+          <div
+            style={{
+              width: 34,
+              height: 34,
+              borderRadius: '10px',
+              background: 'var(--color-primary)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#FFFFFF',
+              fontWeight: 800,
+              fontSize: '1rem',
+              boxShadow: '0 4px 12px var(--color-primary-glow)',
+            }}
+          >
+            ▲
+          </div>
+          <span style={{ fontWeight: 800, fontSize: '1.25rem', color: 'var(--color-text)' }}>
+            Dashboard
+          </span>
+          <span className="badge" style={{ background: '#FFF0EE', color: 'var(--color-primary)' }}>
             {user?.name || 'Teacher'}
           </span>
         </div>
@@ -405,6 +424,9 @@ export default function TeacherDashboard() {
       {/* Main Content */}
       <main style={{ flex: 1, padding: '1.5rem 1rem' }}>
         <div className="container container--wide">
+          {/* Realtime Insight & Calendar Widget (Screen 3) */}
+          <RealtimeInsightCard />
+
           {/* ─────────────────────────────────────────────────────────────
               TAB 1: MARK ATTENDANCE
           ───────────────────────────────────────────────────────────── */}

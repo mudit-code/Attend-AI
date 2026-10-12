@@ -4,16 +4,33 @@ import { api } from '../lib/api';
 import { useAuthStore } from '../stores/useAuthStore';
 import { db } from '../lib/db';
 import { runSync } from '../lib/syncEngine';
+import heroImage from '../assets/attendance_3d_hero.jpg';
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [selectedRole, setSelectedRole] = useState<'TEACHER' | 'STUDENT' | 'ADMIN'>('TEACHER');
+  const [email, setEmail] = useState('teacher1@attendai.com');
+  const [password, setPassword] = useState('Teacher@123');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPass, setShowPass] = useState(false);
 
   const navigate = useNavigate();
   const { setToken, setUser } = useAuthStore();
+
+  // Quick switch role & prefill demo credentials
+  function handleSelectRole(role: 'TEACHER' | 'STUDENT' | 'ADMIN') {
+    setSelectedRole(role);
+    if (role === 'TEACHER') {
+      setEmail('teacher1@attendai.com');
+      setPassword('Teacher@123');
+    } else if (role === 'STUDENT') {
+      setEmail('student1@attendai.com');
+      setPassword('Student@123');
+    } else if (role === 'ADMIN') {
+      setEmail('admin@attendai.com');
+      setPassword('Admin@123');
+    }
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -23,7 +40,7 @@ export default function LoginPage() {
     try {
       const { data } = await api.post('/auth/login', { email, password });
 
-      // Store token in memory (Zustand) — NOT localStorage
+      // Store token in memory (Zustand)
       setToken(data.accessToken);
       setUser(data.user);
 
@@ -35,10 +52,9 @@ export default function LoginPage() {
         role: data.user.role,
       });
 
-      // Request persistent storage (prevent browser eviction)
+      // Request persistent storage
       if ('storage' in navigator && 'persist' in navigator.storage) {
-        const granted = await navigator.storage.persist();
-        if (!granted) console.warn('Persistent storage not granted');
+        await navigator.storage.persist().catch(() => {});
       }
 
       // Trigger bootstrap sync
@@ -46,19 +62,16 @@ export default function LoginPage() {
 
       // Navigate by role
       const role = data.user.role;
-      if (role === 'ADMIN') navigate('/admin');
+      if (role === 'ADMIN' || role === 'HOD') navigate('/admin');
       else if (role === 'TEACHER') navigate('/teacher');
-      else if (role === 'STUDENT') navigate('/student');
-      else if (role === 'HOD') navigate('/hod');
-      else if (role === 'PARENT') navigate('/parent');
+      else if (role === 'STUDENT' || role === 'PARENT') navigate('/student');
       else navigate('/');
-
     } catch (err: unknown) {
-      const e = err as { response?: { data?: { error?: { code?: string } } } };
+      const e = err as { response?: { data?: { error?: { code?: string; message?: string } } } };
       if (e.response?.data?.error?.code === 'INVALID_CREDENTIALS') {
-        setError('Invalid email or password');
+        setError('Invalid username or password');
       } else {
-        setError('Login failed. Please try again.');
+        setError(e.response?.data?.error?.message || 'Login failed. Please try again.');
       }
     } finally {
       setLoading(false);
@@ -69,129 +82,239 @@ export default function LoginPage() {
     <main
       className="page"
       style={{
-        background: 'radial-gradient(ellipse at 50% 0%, rgba(108,99,255,0.15) 0%, var(--color-bg) 70%)',
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: '1.5rem',
         minHeight: '100dvh',
+        background: 'linear-gradient(180deg, #FFEBE8 0%, #FFF3F1 260px, #FFF9F8 100%)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '1.25rem 1rem',
       }}
     >
-      <div className="container">
-        {/* Logo & Title */}
-        <div className="flex flex-col items-center" style={{ marginBottom: '2rem', textAlign: 'center' }}>
-          <div
+      <div
+        className="card"
+        style={{
+          width: '100%',
+          maxWidth: 440,
+          background: '#FFFFFF',
+          borderRadius: '24px',
+          boxShadow: '0 12px 40px rgba(230, 60, 45, 0.08)',
+          border: '1px solid rgba(255, 60, 50, 0.08)',
+          padding: '2rem 1.75rem',
+        }}
+      >
+        {/* Title (from Screen 1 in reference) */}
+        <div style={{ marginBottom: '1.5rem' }}>
+          <h1
             style={{
-              width: 64, height: 64, borderRadius: 20,
-              background: 'linear-gradient(135deg, #6C63FF, #9C8FFF)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: '2rem', marginBottom: '1rem',
-              boxShadow: '0 8px 32px rgba(108,99,255,0.4)',
+              fontSize: '1.65rem',
+              fontWeight: 800,
+              lineHeight: 1.25,
+              color: 'var(--color-text)',
+              letterSpacing: '-0.3px',
+              marginBottom: '0.25rem',
             }}
           >
-            📋
-          </div>
-          <h1 style={{ marginBottom: '0.25rem' }}>AttendAI</h1>
-          <p className="text-muted text-sm">College Attendance Management</p>
+            Sign In to Web<br />Attendance Management<br />System
+          </h1>
+          <p className="text-xs text-muted" style={{ fontWeight: 600 }}>
+            College Attendance Management System
+          </p>
         </div>
 
-        {/* Login Card */}
-        <div className="card card--glass">
-          <h2 style={{ marginBottom: '0.25rem' }}>Welcome back</h2>
-          <p className="text-sm text-muted" style={{ marginBottom: '1.75rem' }}>
-            Sign in to continue
-          </p>
+        {/* 3D Illustration Graphic (Screens 1 & 2 in reference) */}
+        <div
+          style={{
+            width: '100%',
+            height: 190,
+            borderRadius: '18px',
+            overflow: 'hidden',
+            marginBottom: '1.5rem',
+            background: '#FFF0EE',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: 'inset 0 0 20px rgba(255, 60, 40, 0.05)',
+          }}
+        >
+          <img
+            src={heroImage}
+            alt="3D College Attendance"
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+            }}
+          />
+        </div>
 
-          {error && (
-            <div className="alert alert--error" style={{ marginBottom: '1.25rem' }}>
-              <span>⚠️</span>
-              <span>{error}</span>
-            </div>
-          )}
+        {/* Role Selection (Screen 2 in reference) */}
+        <div style={{ marginBottom: '1.25rem' }}>
+          <label
+            style={{
+              display: 'block',
+              fontSize: '0.95rem',
+              fontWeight: 800,
+              color: 'var(--color-text)',
+              marginBottom: '0.625rem',
+            }}
+          >
+            Select Your Role
+          </label>
+          <div
+            style={{
+              display: 'flex',
+              gap: '0.75rem',
+              alignItems: 'center',
+            }}
+          >
+            {(['TEACHER', 'STUDENT', 'ADMIN'] as const).map((role) => {
+              const active = selectedRole === role;
+              return (
+                <button
+                  key={role}
+                  type="button"
+                  onClick={() => handleSelectRole(role)}
+                  style={{
+                    flex: 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.4rem',
+                    padding: '0.625rem 0.5rem',
+                    borderRadius: '999px',
+                    border: active ? '2px solid var(--color-primary)' : '1.5px solid #FFDCD7',
+                    background: active ? '#FFF0EE' : '#FFFFFF',
+                    color: active ? 'var(--color-primary)' : 'var(--color-text-muted)',
+                    fontSize: '0.85rem',
+                    fontWeight: active ? 800 : 600,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                  }}
+                >
+                  <span
+                    style={{
+                      width: 14,
+                      height: 14,
+                      borderRadius: '50%',
+                      border: active ? '4px solid var(--color-primary)' : '1.5px solid #A58B87',
+                      background: '#FFFFFF',
+                      display: 'inline-block',
+                    }}
+                  />
+                  {role.charAt(0) + role.slice(1).toLowerCase()}
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-            <div className="form-group">
-              <label className="form-label" htmlFor="email">Email address</label>
+        {/* Error Alert */}
+        {error && (
+          <div className="alert alert--error" style={{ marginBottom: '1rem' }}>
+            <span>⚠️</span>
+            <span>{error}</span>
+          </div>
+        )}
+
+        {/* Form Inputs (Screens 2 in reference) */}
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          {/* Username / Email */}
+          <div>
+            <div style={{ position: 'relative' }}>
               <input
                 id="email"
                 type="email"
-                className="form-input"
-                placeholder="you@college.edu"
+                className="input"
+                placeholder="Enter Username"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 autoComplete="email"
                 disabled={loading}
+                style={{ paddingRight: '2.75rem' }}
               />
+              <span
+                style={{
+                  position: 'absolute',
+                  right: '1.1rem',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  color: 'var(--color-primary)',
+                  fontSize: '1.15rem',
+                  pointerEvents: 'none',
+                }}
+              >
+                ✉️
+              </span>
             </div>
+          </div>
 
-            <div className="form-group">
-              <label className="form-label" htmlFor="password">Password</label>
-              <div style={{ position: 'relative' }}>
-                <input
-                  id="password"
-                  type={showPass ? 'text' : 'password'}
-                  className="form-input"
-                  placeholder="Enter your password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  autoComplete="current-password"
-                  disabled={loading}
-                  style={{ paddingRight: '3rem' }}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPass(!showPass)}
-                  style={{
-                    position: 'absolute', right: '0.75rem', top: '50%',
-                    transform: 'translateY(-50%)', background: 'none', border: 'none',
-                    cursor: 'pointer', color: 'var(--color-text-muted)', fontSize: '1.1rem',
-                    padding: '0.25rem', lineHeight: 1,
-                  }}
-                  aria-label={showPass ? 'Hide password' : 'Show password'}
-                >
-                  {showPass ? '🙈' : '👁️'}
-                </button>
-              </div>
+          {/* Password */}
+          <div>
+            <div style={{ position: 'relative' }}>
+              <input
+                id="password"
+                type={showPass ? 'text' : 'password'}
+                className="input"
+                placeholder="Enter Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                autoComplete="current-password"
+                disabled={loading}
+                style={{ paddingRight: '2.75rem' }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPass(!showPass)}
+                style={{
+                  position: 'absolute',
+                  right: '1rem',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: 'var(--color-primary)',
+                  fontSize: '1.15rem',
+                  padding: '0.25rem',
+                  lineHeight: 1,
+                }}
+                aria-label={showPass ? 'Hide password' : 'Show password'}
+              >
+                🔒
+              </button>
             </div>
+          </div>
 
-            <button
-              type="submit"
-              className="btn btn--primary btn--block"
-              disabled={loading}
-              id="login-submit-btn"
-            >
-              {loading ? (
-                <><div className="spinner" style={{ width: 18, height: 18 }} /> Signing in...</>
-              ) : (
-                'Sign In →'
-              )}
-            </button>
-          </form>
-
-          {/* Demo credentials */}
-          <div
+          {/* Sign In Button (Screens 1 & 2 in reference) */}
+          <button
+            type="submit"
+            className="btn btn--primary btn--block"
+            disabled={loading}
+            id="login-submit-btn"
             style={{
-              marginTop: '1.5rem', padding: '0.875rem',
-              background: 'var(--color-surface-2)', borderRadius: 'var(--radius-md)',
-              fontSize: '0.8125rem', color: 'var(--color-text-muted)',
+              marginTop: '0.5rem',
+              height: 52,
+              fontSize: '1.05rem',
+              fontWeight: 800,
+              boxShadow: '0 8px 24px var(--color-primary-glow)',
             }}
           >
-            <p className="font-semibold" style={{ color: 'var(--color-text)', marginBottom: '0.5rem' }}>
-              🧪 Dev Credentials
-            </p>
-            <p>Admin: <code style={{ color: 'var(--color-primary)' }}>admin@attendai.com</code> / Admin@123</p>
-            <p>Teacher: <code style={{ color: 'var(--color-primary)' }}>teacher1@attendai.com</code> / Teacher@123</p>
-            <p>Student: <code style={{ color: 'var(--color-primary)' }}>student1@attendai.com</code> / Student@123</p>
-          </div>
-        </div>
+            {loading ? (
+              <>
+                <div className="spinner" style={{ width: 18, height: 18, borderTopColor: '#fff' }} />
+                Signing In...
+              </>
+            ) : (
+              'Sign In'
+            )}
+          </button>
+        </form>
 
-        {/* Offline note */}
-        <p
-          className="text-xs text-muted"
-          style={{ textAlign: 'center', marginTop: '1.25rem' }}
-        >
-          🔒 Offline-first · Works without internet after first login
+        {/* Offline notice */}
+        <p className="text-xs text-muted" style={{ textAlign: 'center', marginTop: '1.25rem' }}>
+          🔒 Offline-first PWA · Works without internet after login
         </p>
       </div>
     </main>

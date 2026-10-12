@@ -42,7 +42,7 @@ export default function LockScreen() {
     <main
       className="page"
       style={{
-        background: 'radial-gradient(ellipse at 50% 0%, rgba(108,99,255,0.1) 0%, var(--color-bg) 70%)',
+        background: 'linear-gradient(180deg, #FFEBE8 0%, #FFF3F1 260px, #FFF9F8 100%)',
         justifyContent: 'center',
         alignItems: 'center',
         padding: '1.5rem',

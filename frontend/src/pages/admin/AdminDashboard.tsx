@@ -193,10 +193,28 @@ export default function AdminDashboard() {
           zIndex: 100,
         }}
       >
-        <div className="flex items-center gap-1">
-          <span style={{ fontSize: '1.25rem' }}>⚙️</span>
-          <span style={{ fontWeight: 700, fontSize: '1.05rem' }}>AttendAI</span>
-          <span className="badge" style={{ background: 'rgba(245,158,11,0.15)', color: 'var(--color-warning)' }}>
+        <div className="flex items-center gap-2">
+          <div
+            style={{
+              width: 34,
+              height: 34,
+              borderRadius: '10px',
+              background: 'var(--color-primary)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#FFFFFF',
+              fontWeight: 800,
+              fontSize: '1rem',
+              boxShadow: '0 4px 12px var(--color-primary-glow)',
+            }}
+          >
+            ▲
+          </div>
+          <span style={{ fontWeight: 800, fontSize: '1.25rem', color: 'var(--color-text)' }}>
+            Dashboard
+          </span>
+          <span className="badge" style={{ background: '#FFF0EE', color: 'var(--color-primary)' }}>
             {user?.name || 'Admin'}
           </span>
         </div>
