@@ -410,6 +410,27 @@ AttendAI/
 
 ## 🚀 Getting Started & Local Setup
 
+### ⚡ One-Click Windows Quick Start (Easiest)
+If you are on Windows, you can use the pre-configured `.bat` batch scripts in the project root:
+
+1. **Initial Setup (First time only):**
+   Double-click `setup.bat` (or run `.\setup.bat`):
+   - Starts PostgreSQL & Redis containers in Docker
+   - Generates Prisma Client & runs database migrations
+   - Seeds the database with Admin, 3 Teachers, 50 Students, and Timetable
+2. **Launch Application:**
+   Double-click `start-dev.bat` (or run `.\start-dev.bat`):
+   - Ensures Docker containers are running
+   - Launches Backend API on `http://localhost:4000` in its own window
+   - Launches Frontend PWA on `http://localhost:5173` in its own window
+   - Automatically opens your default web browser to the app
+3. **Stop Application:**
+   Double-click `stop.bat` to cleanly stop Docker containers when you are done.
+
+---
+
+### 🛠️ Manual CLI Setup
+
 ### 1. Prerequisites
 - **Node.js** (v20 or newer): `node -v`
 - **npm** (v10 or newer): `npm -v`
