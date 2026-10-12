@@ -1,9 +1,10 @@
-import { useEffect, lazy, Suspense } from 'react';
+import { useEffect, useState, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './stores/useAuthStore';
 import { initSyncListeners } from './lib/syncEngine';
 import { useIdleTimeout } from './hooks/useIdleTimeout';
 import { useRegisterSW } from 'virtual:pwa-register/react';
+import LoadingScreen from './components/LoadingScreen';
 import './index.css';
 
 // Lazy-load pages for code splitting
@@ -27,11 +28,7 @@ function ProtectedRoute({ children, roles }: { children: React.ReactNode; roles?
 
 // ─── Loading fallback ─────────────────────────────────────────────
 function PageLoader() {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100dvh' }}>
-      <div className="spinner" style={{ width: 32, height: 32 }} />
-    </div>
-  );
+  return <LoadingScreen message="Loading page..." />;
 }
 
 // ─── App Shell ────────────────────────────────────────────────────
@@ -43,17 +40,30 @@ function AppShell({ children }: { children: React.ReactNode }) {
 
 // ─── Root App ────────────────────────────────────────────────────
 export default function App() {
+  const [initialLoading, setInitialLoading] = useState(true);
+
   // Silent background PWA registration
   useRegisterSW({
     immediate: true,
     onOfflineReady() { console.log('App ready for offline use'); },
   });
 
-  // Initialize sync listeners
+  // Initialize sync listeners & smooth initial loading effect on refresh
   useEffect(() => {
     const cleanup = initSyncListeners();
-    return cleanup;
+    const timer = setTimeout(() => {
+      setInitialLoading(false);
+    }, 450);
+
+    return () => {
+      cleanup();
+      clearTimeout(timer);
+    };
   }, []);
+
+  if (initialLoading) {
+    return <LoadingScreen message="Starting AttendAI..." />;
+  }
 
   return (
     <BrowserRouter>

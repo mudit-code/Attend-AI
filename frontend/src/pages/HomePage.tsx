@@ -1,6 +1,5 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/useAuthStore';
-import SyncBadge from '../components/SyncBadge';
 import heroImage from '../assets/attendance_3d_hero.jpg';
 
 export default function HomePage() {
@@ -91,33 +90,52 @@ export default function HomePage() {
 
           {/* Nav links on desktop */}
           <div className="flex items-center gap-2">
-            <SyncBadge />
+            <nav style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', marginRight: '0.5rem' }}>
+              <a
+                href="#features"
+                style={{
+                  fontSize: '0.875rem',
+                  fontWeight: 700,
+                  color: 'var(--color-text-muted)',
+                  textDecoration: 'none',
+                }}
+              >
+                Features
+              </a>
+              <a
+                href="#demo-roles"
+                style={{
+                  fontSize: '0.875rem',
+                  fontWeight: 700,
+                  color: 'var(--color-text-muted)',
+                  textDecoration: 'none',
+                }}
+              >
+                Demo Roles
+              </a>
+            </nav>
 
             {user ? (
               <button
                 className="btn btn--primary btn--sm"
                 onClick={() => navigate(getDashboardRoute())}
-                style={{ fontWeight: 800 }}
+                style={{ fontWeight: 800, borderRadius: '999px', padding: '0.5rem 1.25rem' }}
               >
-                Go to Dashboard ({user.name.split(' ')[0]}) →
+                Dashboard ({user.name.split(' ')[0]}) →
               </button>
             ) : (
-              <div className="flex items-center gap-1">
-                <button
-                  className="btn btn--ghost btn--sm"
-                  onClick={() => navigate('/login')}
-                  style={{ fontWeight: 700 }}
-                >
-                  Sign In
-                </button>
-                <button
-                  className="btn btn--primary btn--sm"
-                  onClick={() => navigate('/login')}
-                  style={{ fontWeight: 800 }}
-                >
-                  Launch App 🚀
-                </button>
-              </div>
+              <button
+                className="btn btn--primary btn--sm"
+                onClick={() => navigate('/login')}
+                style={{
+                  fontWeight: 800,
+                  borderRadius: '999px',
+                  padding: '0.55rem 1.35rem',
+                  boxShadow: '0 4px 14px var(--color-primary-glow)',
+                }}
+              >
+                Launch App 🚀
+              </button>
             )}
           </div>
         </div>
@@ -535,7 +553,7 @@ export default function HomePage() {
       </section>
 
       {/* ─── One-Click Demo Role Accounts ─────────────────────────── */}
-      <section style={{ padding: '2rem 1rem 4rem 1rem', background: '#FFFFFF', borderTop: '1px solid var(--color-border)' }}>
+      <section id="demo-roles" style={{ padding: '2rem 1rem 4rem 1rem', background: '#FFFFFF', borderTop: '1px solid var(--color-border)' }}>
         <div className="container container--wide">
           <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
             <span
