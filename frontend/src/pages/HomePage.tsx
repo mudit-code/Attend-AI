@@ -92,7 +92,7 @@ export default function HomePage() {
           <div className="flex items-center gap-2">
             <nav style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', marginRight: '0.5rem' }}>
               <a
-                href="#demo-roles"
+                href="#overview"
                 style={{
                   fontSize: '0.875rem',
                   fontWeight: 700,
@@ -100,10 +100,10 @@ export default function HomePage() {
                   textDecoration: 'none',
                 }}
               >
-                Demo Roles
+                Overview
               </a>
               <a
-                href="#overview"
+                href="#demo-roles"
                 style={{
                   fontSize: '0.875rem',
                   fontWeight: 700,
@@ -111,7 +111,7 @@ export default function HomePage() {
                   textDecoration: 'none',
                 }}
               >
-                Overview
+                Demo Roles
               </a>
               <a
                 href="#features"
@@ -151,153 +151,6 @@ export default function HomePage() {
           </div>
         </div>
       </header>
-
-      {/* ─── One-Click Demo Role Accounts (Sabse Upar) ─────────────── */}
-      <section
-        id="demo-roles"
-        style={{
-          padding: '2.5rem 1rem 3rem 1rem',
-          background: 'linear-gradient(180deg, #FFFFFF 0%, #FFF8F6 100%)',
-          borderBottom: '1px solid var(--color-border)',
-        }}
-      >
-        <div className="container container--wide">
-          <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
-            <span
-              style={{
-                fontSize: '0.8125rem',
-                fontWeight: 800,
-                color: 'var(--color-primary)',
-                textTransform: 'uppercase',
-                letterSpacing: '1px',
-              }}
-            >
-              Interactive Experience
-            </span>
-            <h2 style={{ fontSize: '2rem', fontWeight: 800, marginTop: '0.25rem', color: 'var(--color-text)' }}>
-              Test Drive AttendAI by Role
-            </h2>
-            <p className="text-muted" style={{ maxWidth: 520, margin: '0.5rem auto 0 auto' }}>
-              Click any demo account below to immediately explore that user experience:
-            </p>
-          </div>
-
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-              gap: '1.5rem',
-            }}
-          >
-            {/* Teacher Card */}
-            <div
-              className="card"
-              style={{
-                border: '2px solid #FFDCD7',
-                background: '#FFF9F8',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-              }}
-            >
-              <div>
-                <div className="flex items-center gap-1" style={{ marginBottom: '0.75rem' }}>
-                  <span style={{ fontSize: '1.75rem' }}>👨‍🏫</span>
-                  <div>
-                    <h3 style={{ margin: 0 }}>Faculty / Teacher</h3>
-                    <p className="text-xs text-muted">Classroom Attendance & QR</p>
-                  </div>
-                </div>
-                <p className="text-sm" style={{ marginBottom: '1.25rem' }}>
-                  3-tap attendance marking, live 10-second rotating QR generator, student roster management, and leave approvals.
-                </p>
-                <div style={{ background: '#FFFFFF', padding: '0.75rem', borderRadius: '12px', fontSize: '0.8rem', border: '1px solid #FFDCD7', marginBottom: '1.25rem' }}>
-                  <p><strong>Login:</strong> teacher1@attendai.com</p>
-                  <p><strong>Pass:</strong> Teacher@123</p>
-                </div>
-              </div>
-              <button
-                className="btn btn--primary btn--block btn--sm"
-                onClick={() => handleQuickDemo('TEACHER')}
-              >
-                Log in as Teacher →
-              </button>
-            </div>
-
-            {/* Student Card */}
-            <div
-              className="card"
-              style={{
-                border: '2px solid #A7F3D0',
-                background: '#F6FDF9',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-              }}
-            >
-              <div>
-                <div className="flex items-center gap-1" style={{ marginBottom: '0.75rem' }}>
-                  <span style={{ fontSize: '1.75rem' }}>🎓</span>
-                  <div>
-                    <h3 style={{ margin: 0 }}>Student</h3>
-                    <p className="text-xs text-muted">Attendance Meter & QR Scan</p>
-                  </div>
-                </div>
-                <p className="text-sm" style={{ marginBottom: '1.25rem' }}>
-                  Overall percentage meter, 75% defaulter threshold warning, 8-char live QR scanner, history, and leave apply.
-                </p>
-                <div style={{ background: '#FFFFFF', padding: '0.75rem', borderRadius: '12px', fontSize: '0.8rem', border: '1px solid #A7F3D0', marginBottom: '1.25rem' }}>
-                  <p><strong>Login:</strong> student1@attendai.com</p>
-                  <p><strong>Pass:</strong> Student@123</p>
-                </div>
-              </div>
-              <button
-                className="btn btn--primary btn--block btn--sm"
-                style={{ background: '#059669' }}
-                onClick={() => handleQuickDemo('STUDENT')}
-              >
-                Log in as Student →
-              </button>
-            </div>
-
-            {/* Admin Card */}
-            <div
-              className="card"
-              style={{
-                border: '2px solid #FDE68A',
-                background: '#FFFDF6',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-              }}
-            >
-              <div>
-                <div className="flex items-center gap-1" style={{ marginBottom: '0.75rem' }}>
-                  <span style={{ fontSize: '1.75rem' }}>⚙️</span>
-                  <div>
-                    <h3 style={{ margin: 0 }}>Administrator / HOD</h3>
-                    <p className="text-xs text-muted">College Governance & Rules</p>
-                  </div>
-                </div>
-                <p className="text-sm" style={{ marginBottom: '1.25rem' }}>
-                  Live college stats, academic department setup, CSV student bulk upload, policy threshold rules, and audit trail.
-                </p>
-                <div style={{ background: '#FFFFFF', padding: '0.75rem', borderRadius: '12px', fontSize: '0.8rem', border: '1px solid #FDE68A', marginBottom: '1.25rem' }}>
-                  <p><strong>Login:</strong> admin@attendai.com</p>
-                  <p><strong>Pass:</strong> Admin@123</p>
-                </div>
-              </div>
-              <button
-                className="btn btn--primary btn--block btn--sm"
-                style={{ background: '#D97706' }}
-                onClick={() => handleQuickDemo('ADMIN')}
-              >
-                Log in as Admin →
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* ─── Hero Section ──────────────────────────────────────────── */}
       <section id="overview" style={{ padding: '3.5rem 1rem 2.5rem 1rem' }}>
@@ -522,6 +375,154 @@ export default function HomePage() {
                 Automated Defaulter Audit
               </p>
               <p className="text-xs text-muted">Instant shortage calculations</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ─── One-Click Demo Role Accounts (After Hero & Metrics) ───── */}
+      <section
+        id="demo-roles"
+        style={{
+          padding: '2.5rem 1rem 3.5rem 1rem',
+          background: '#FFFFFF',
+          borderTop: '1px solid var(--color-border)',
+          borderBottom: '1px solid var(--color-border)',
+        }}
+      >
+        <div className="container container--wide">
+          <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
+            <span
+              style={{
+                fontSize: '0.8125rem',
+                fontWeight: 800,
+                color: 'var(--color-primary)',
+                textTransform: 'uppercase',
+                letterSpacing: '1px',
+              }}
+            >
+              Interactive Experience
+            </span>
+            <h2 style={{ fontSize: '2rem', fontWeight: 800, marginTop: '0.25rem', color: 'var(--color-text)' }}>
+              Test Drive AttendAI by Role
+            </h2>
+            <p className="text-muted" style={{ maxWidth: 520, margin: '0.5rem auto 0 auto' }}>
+              Click any demo account below to immediately explore that user experience:
+            </p>
+          </div>
+
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+              gap: '1.5rem',
+            }}
+          >
+            {/* Teacher Card */}
+            <div
+              className="card"
+              style={{
+                border: '2px solid #FFDCD7',
+                background: '#FFF9F8',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+              }}
+            >
+              <div>
+                <div className="flex items-center gap-1" style={{ marginBottom: '0.75rem' }}>
+                  <span style={{ fontSize: '1.75rem' }}>👨‍🏫</span>
+                  <div>
+                    <h3 style={{ margin: 0 }}>Faculty / Teacher</h3>
+                    <p className="text-xs text-muted">Classroom Attendance & QR</p>
+                  </div>
+                </div>
+                <p className="text-sm" style={{ marginBottom: '1.25rem' }}>
+                  3-tap attendance marking, live 10-second rotating QR generator, student roster management, and leave approvals.
+                </p>
+                <div style={{ background: '#FFFFFF', padding: '0.75rem', borderRadius: '12px', fontSize: '0.8rem', border: '1px solid #FFDCD7', marginBottom: '1.25rem' }}>
+                  <p><strong>Login:</strong> teacher1@attendai.com</p>
+                  <p><strong>Pass:</strong> Teacher@123</p>
+                </div>
+              </div>
+              <button
+                className="btn btn--primary btn--block btn--sm"
+                onClick={() => handleQuickDemo('TEACHER')}
+              >
+                Log in as Teacher →
+              </button>
+            </div>
+
+            {/* Student Card */}
+            <div
+              className="card"
+              style={{
+                border: '2px solid #A7F3D0',
+                background: '#F6FDF9',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+              }}
+            >
+              <div>
+                <div className="flex items-center gap-1" style={{ marginBottom: '0.75rem' }}>
+                  <span style={{ fontSize: '1.75rem' }}>🎓</span>
+                  <div>
+                    <h3 style={{ margin: 0 }}>Student</h3>
+                    <p className="text-xs text-muted">Attendance Meter & QR Scan</p>
+                  </div>
+                </div>
+                <p className="text-sm" style={{ marginBottom: '1.25rem' }}>
+                  Overall percentage meter, 75% defaulter threshold warning, 8-char live QR scanner, history, and leave apply.
+                </p>
+                <div style={{ background: '#FFFFFF', padding: '0.75rem', borderRadius: '12px', fontSize: '0.8rem', border: '1px solid #A7F3D0', marginBottom: '1.25rem' }}>
+                  <p><strong>Login:</strong> student1@attendai.com</p>
+                  <p><strong>Pass:</strong> Student@123</p>
+                </div>
+              </div>
+              <button
+                className="btn btn--primary btn--block btn--sm"
+                style={{ background: '#059669' }}
+                onClick={() => handleQuickDemo('STUDENT')}
+              >
+                Log in as Student →
+              </button>
+            </div>
+
+            {/* Admin Card */}
+            <div
+              className="card"
+              style={{
+                border: '2px solid #FDE68A',
+                background: '#FFFDF6',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+              }}
+            >
+              <div>
+                <div className="flex items-center gap-1" style={{ marginBottom: '0.75rem' }}>
+                  <span style={{ fontSize: '1.75rem' }}>⚙️</span>
+                  <div>
+                    <h3 style={{ margin: 0 }}>Administrator / HOD</h3>
+                    <p className="text-xs text-muted">College Governance & Rules</p>
+                  </div>
+                </div>
+                <p className="text-sm" style={{ marginBottom: '1.25rem' }}>
+                  Live college stats, academic department setup, CSV student bulk upload, policy threshold rules, and audit trail.
+                </p>
+                <div style={{ background: '#FFFFFF', padding: '0.75rem', borderRadius: '12px', fontSize: '0.8rem', border: '1px solid #FDE68A', marginBottom: '1.25rem' }}>
+                  <p><strong>Login:</strong> admin@attendai.com</p>
+                  <p><strong>Pass:</strong> Admin@123</p>
+                </div>
+              </div>
+              <button
+                className="btn btn--primary btn--block btn--sm"
+                style={{ background: '#D97706' }}
+                onClick={() => handleQuickDemo('ADMIN')}
+              >
+                Log in as Admin →
+              </button>
             </div>
           </div>
         </div>
