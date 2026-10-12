@@ -1,9 +1,8 @@
-import { useEffect, useState, lazy, Suspense } from 'react';
+import { useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './stores/useAuthStore';
 import { initSyncListeners } from './lib/syncEngine';
 import { useIdleTimeout } from './hooks/useIdleTimeout';
-import UpdateBanner from './components/UpdateBanner';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 import './index.css';
 
@@ -44,11 +43,9 @@ function AppShell({ children }: { children: React.ReactNode }) {
 
 // ─── Root App ────────────────────────────────────────────────────
 export default function App() {
-  const [showUpdate, setShowUpdate] = useState(false);
-
-  // PWA update registration
-  const { needRefresh, updateServiceWorker } = useRegisterSW({
-    onNeedRefresh() { setShowUpdate(true); },
+  // Silent background PWA registration
+  useRegisterSW({
+    immediate: true,
     onOfflineReady() { console.log('App ready for offline use'); },
   });
 
@@ -57,11 +54,6 @@ export default function App() {
     const cleanup = initSyncListeners();
     return cleanup;
   }, []);
-
-  const handleUpdate = () => {
-    void updateServiceWorker(true);
-    window.location.reload();
-  };
 
   return (
     <BrowserRouter>
@@ -122,11 +114,6 @@ export default function App() {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
-
-        {/* PWA update banner */}
-        {(showUpdate || needRefresh) && (
-          <UpdateBanner onRefresh={handleUpdate} />
-        )}
       </AppShell>
     </BrowserRouter>
   );

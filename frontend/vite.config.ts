@@ -6,7 +6,7 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'prompt', // We control update banner manually
+      registerType: 'autoUpdate', // Automatic background update, no intrusive banner
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
       manifest: {
         name: 'AttendAI - College Attendance',

@@ -205,29 +205,10 @@ p  { color: var(--color-text-muted); }
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* ─── Update Banner ──────────────────────────────────────────────── */
+/* ─── Update Banner (Hidden) ─────────────────────────────────────── */
 .update-banner {
-  position: fixed;
-  bottom: 1rem;
-  left: 1rem;
-  right: 1rem;
-  max-width: 480px;
-  margin: 0 auto;
-  background: var(--color-primary);
-  color: white;
-  padding: 0.875rem 1.25rem;
-  border-radius: var(--radius-pill);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  box-shadow: 0 10px 32px var(--color-primary-glow);
-  animation: slideUp 0.3s ease;
-  z-index: 9999;
-  font-size: 0.9rem;
-  font-weight: 600;
+  display: none !important;
 }
-@keyframes slideUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
 /* ─── Realtime Insight & Calendar Widgets (Screen 3) ─────────────── */
 .realtime-widget {
