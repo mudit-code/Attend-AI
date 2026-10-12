@@ -1,0 +1,483 @@
+// AttendAI — Prisma Schema
+// PostgreSQL database with 24 tables
+// Run: npx prisma migrate dev --name init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// =============================================
+// ACADEMIC YEAR
+// =============================================
+model AcademicYear {
+  id        Int       @id @default(autoincrement())
+  label     String    // e.g. "2026-27"
+  startDate DateTime
+  endDate   DateTime
+  isCurrent Boolean   @default(false)
+  createdAt DateTime  @default(now())
+
+  departments  Department[]
+  courses      Course[]
+  sections     Section[]
+  timetableSlots TimetableSlot[]
+
+  @@map("academic_years")
+}
+
+// =============================================
+// USERS
+// =============================================
+model User {
+  id           Int      @id @default(autoincrement())
+  email        String   @unique
+  phone        String?  @unique
+  passwordHash String
+  role         Role
+  name         String
+  status       UserStatus @default(ACTIVE)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  teacher      Teacher?
+  student      Student?
+  parent       Parent?
+  devices      Device[]
+  notifications Notification[]
+  auditLogs    AuditLog[]
+  refreshTokens RefreshToken[]
+
+  @@map("users")
+}
+
+enum Role {
+  ADMIN
+  TEACHER
+  STUDENT
+  PARENT
+  HOD
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    Int
+  tokenHash String   @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("refresh_tokens")
+}
+
+// =============================================
+// DEPARTMENT, COURSE, SECTION
+// =============================================
+model Department {
+  id             Int          @id @default(autoincrement())
+  name           String
+  code           String       @unique
+  academicYearId Int
+  hodId          Int?         // teacher id
+
+  academicYear   AcademicYear @relation(fields: [academicYearId], references: [id])
+  courses        Course[]
+  teachers       Teacher[]
+
+  @@map("departments")
+}
+
+model Course {
+  id             Int          @id @default(autoincrement())
+  name           String
+  code           String       @unique
+  durationYears  Int          @default(3)
+  departmentId   Int
+  academicYearId Int
+
+  department     Department   @relation(fields: [departmentId], references: [id])
+  academicYear   AcademicYear @relation(fields: [academicYearId], references: [id])
+  sections       Section[]
+
+  @@map("courses")
+}
+
+model Section {
+  id             Int          @id @default(autoincrement())
+  name           String       // e.g. "3rd Year A"
+  year           Int          // 1, 2, 3 etc.
+  courseId       Int
+  academicYearId Int
+
+  course         Course       @relation(fields: [courseId], references: [id])
+  academicYear   AcademicYear @relation(fields: [academicYearId], references: [id])
+  students       Student[]
+  timetableSlots TimetableSlot[]
+  teacherSubjects TeacherSubject[]
+  attendanceSessions AttendanceSession[]
+
+  @@map("sections")
+}
+
+// =============================================
+// TEACHER & STUDENT
+// =============================================
+model Teacher {
+  id           Int        @id @default(autoincrement())
+  userId       Int        @unique
+  employeeCode String     @unique
+  departmentId Int
+  isClassTeacher Boolean  @default(false)
+  classTeacherSectionId Int?
+
+  user         User       @relation(fields: [userId], references: [id])
+  department   Department @relation(fields: [departmentId], references: [id])
+  subjects     TeacherSubject[]
+  sessions     AttendanceSession[]
+
+  @@map("teachers")
+}
+
+model Student {
+  id         Int     @id @default(autoincrement())
+  userId     Int     @unique
+  rollNo     String  @unique
+  sectionId  Int
+  parentId   Int?
+
+  user       User    @relation(fields: [userId], references: [id])
+  section    Section @relation(fields: [sectionId], references: [id])
+  parent     Parent? @relation(fields: [parentId], references: [id])
+  attendanceRecords AttendanceRecord[]
+  leaveRequests     LeaveRequest[]
+  correctionRequests CorrectionRequest[]
+  attendanceSummaries AttendanceSummary[]
+
+  @@map("students")
+}
+
+model Parent {
+  id     Int     @id @default(autoincrement())
+  userId Int     @unique
+  user   User    @relation(fields: [userId], references: [id])
+  children Student[]
+
+  @@map("parents")
+}
+
+// =============================================
+// SUBJECT & TIMETABLE
+// =============================================
+model Subject {
+  id   Int    @id @default(autoincrement())
+  name String
+  code String @unique
+
+  teacherSubjects TeacherSubject[]
+  attendanceSessions AttendanceSession[]
+
+  @@map("subjects")
+}
+
+model TeacherSubject {
+  id        Int @id @default(autoincrement())
+  teacherId Int
+  subjectId Int
+  sectionId Int
+
+  teacher   Teacher @relation(fields: [teacherId], references: [id])
+  subject   Subject @relation(fields: [subjectId], references: [id])
+  section   Section @relation(fields: [sectionId], references: [id])
+
+  @@unique([teacherId, subjectId, sectionId])
+  @@map("teacher_subjects")
+}
+
+model TimetableSlot {
+  id             Int          @id @default(autoincrement())
+  sectionId      Int
+  subjectId      Int
+  teacherId      Int
+  dayOfWeek      Int          // 1=Mon, 7=Sun
+  period         Int          // 1-8
+  startTime      String       // "09:00"
+  endTime        String       // "09:55"
+  academicYearId Int
+
+  section        Section      @relation(fields: [sectionId], references: [id])
+  academicYear   AcademicYear @relation(fields: [academicYearId], references: [id])
+
+  @@unique([sectionId, dayOfWeek, period, academicYearId])
+  @@map("timetable_slots")
+}
+
+model Holiday {
+  id   Int      @id @default(autoincrement())
+  date DateTime @unique
+  name String
+  type String   // "national" | "college" | "exam"
+
+  @@map("holidays")
+}
+
+// =============================================
+// ATTENDANCE
+// =============================================
+model AttendanceSession {
+  id          String   @id @default(uuid())
+  teacherId   Int
+  sectionId   Int
+  subjectId   Int
+  date        DateTime @db.Date
+  period      Int
+  locked      Boolean  @default(false)
+  lockedAt    DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  teacher     Teacher  @relation(fields: [teacherId], references: [id])
+  section     Section  @relation(fields: [sectionId], references: [id])
+  subject     Subject  @relation(fields: [subjectId], references: [id])
+  records     AttendanceRecord[]
+  conflicts   AttendanceConflict[] @relation("SessionConflicts")
+  conflictsWith AttendanceConflict[] @relation("OtherSessionConflicts")
+  correctionRequests CorrectionRequest[]
+
+  @@unique([sectionId, subjectId, date, period])
+  @@index([sectionId, date])
+  @@index([teacherId, date])
+  @@map("attendance_sessions")
+}
+
+model AttendanceRecord {
+  id          String          @id @default(uuid())
+  sessionId   String
+  studentId   Int
+  status      AttendanceStatus
+  method      MarkingMethod   @default(MANUAL)
+  clientTs    DateTime        // timestamp from device
+  receivedAt  DateTime        @default(now())
+  changeSeq   BigInt?         // change_log reference
+
+  session     AttendanceSession @relation(fields: [sessionId], references: [id])
+  student     Student           @relation(fields: [studentId], references: [id])
+
+  @@unique([sessionId, studentId])
+  @@index([studentId, sessionId])
+  @@map("attendance_records")
+}
+
+enum AttendanceStatus {
+  P   // Present
+  A   // Absent
+  L   // Late
+  LV  // Leave
+  OD  // On Duty
+}
+
+enum MarkingMethod {
+  MANUAL
+  QR
+  FACE
+}
+
+model AttendanceConflict {
+  id            Int      @id @default(autoincrement())
+  sessionId     String
+  otherSessionId String
+  status        String   @default("pending") // pending | resolved
+  resolvedBy    Int?
+  resolvedAt    DateTime?
+  notes         String?
+
+  session       AttendanceSession @relation("SessionConflicts", fields: [sessionId], references: [id])
+  otherSession  AttendanceSession @relation("OtherSessionConflicts", fields: [otherSessionId], references: [id])
+
+  @@map("attendance_conflicts")
+}
+
+// Nightly summary table — fast dashboard queries
+model AttendanceSummary {
+  id          Int      @id @default(autoincrement())
+  studentId   Int
+  subjectId   Int
+  month       Int      // 1-12
+  year        Int
+  totalClasses Int     @default(0)
+  present      Int     @default(0)
+  absent       Int     @default(0)
+  late         Int     @default(0)
+  leave        Int     @default(0)
+  onDuty       Int     @default(0)
+  percentage   Float   @default(0)
+  updatedAt    DateTime @updatedAt
+
+  student     Student  @relation(fields: [studentId], references: [id])
+
+  @@unique([studentId, subjectId, month, year])
+  @@map("attendance_summary")
+}
+
+// =============================================
+// ATTENDANCE RULES (admin configurable)
+// =============================================
+model AttendanceRule {
+  id                   Int     @id @default(autoincrement())
+  minPercent           Float   @default(75)
+  lateGraceMinutes     Int     @default(10)
+  editWindowHours      Int     @default(24)
+  countLeaveAsPresent  Boolean @default(false)
+  updatedAt            DateTime @updatedAt
+
+  @@map("attendance_rules")
+}
+
+// =============================================
+// LEAVE
+// =============================================
+model LeaveRequest {
+  id          String      @id @default(uuid())
+  studentId   Int
+  fromDate    DateTime    @db.Date
+  toDate      DateTime    @db.Date
+  type        LeaveType
+  reason      String
+  documentUrl String?
+  status      LeaveStatus @default(PENDING)
+  decidedBy   Int?
+  decisionNote String?
+  decidedAt   DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  student     Student     @relation(fields: [studentId], references: [id])
+
+  @@map("leave_requests")
+}
+
+enum LeaveType {
+  MEDICAL
+  PERSONAL
+  EVENT
+  OD
+}
+
+enum LeaveStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+// =============================================
+// CORRECTION REQUEST (student requests fix)
+// =============================================
+model CorrectionRequest {
+  id              String            @id @default(uuid())
+  studentId       Int
+  sessionId       String
+  requestedStatus AttendanceStatus
+  reason          String
+  documentUrl     String?
+  status          CorrectionStatus  @default(PENDING)
+  decidedBy       Int?
+  decisionNote    String?
+  decidedAt       DateTime?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  student         Student           @relation(fields: [studentId], references: [id])
+  session         AttendanceSession @relation(fields: [sessionId], references: [id])
+
+  @@unique([studentId, sessionId])  // max 1 pending per session
+  @@map("correction_requests")
+}
+
+enum CorrectionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// =============================================
+// SYNC
+// =============================================
+model ChangeLog {
+  changeSeq   BigInt  @id @default(autoincrement())
+  entity      String  // "student" | "leave" | "timetable" | "attendance"
+  entityId    String
+  op          String  // "upsert" | "delete"
+  sectionId   Int?
+  createdAt   DateTime @default(now())
+
+  @@index([sectionId, changeSeq])
+  @@map("change_log")
+}
+
+// =============================================
+// DEVICES (QR binding + push tokens)
+// =============================================
+model Device {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  deviceId    String   @unique  // client-generated fingerprint
+  pushToken   String?
+  platform    String?  // "android" | "ios" | "web"
+  lastSyncAt  DateTime?
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id])
+
+  @@map("devices")
+}
+
+// =============================================
+// NOTIFICATIONS
+// =============================================
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  channel   String   // "sms" | "push" | "email" | "inapp"
+  type      String   // "low_attendance" | "leave_decision" | "absent" | "correction"
+  payload   Json
+  status    String   @default("pending")  // pending | sent | failed
+  attempts  Int      @default(0)
+  sentAt    DateTime?
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([userId, status])
+  @@map("notifications")
+}
+
+// =============================================
+// AUDIT LOG (append-only, never edit/delete)
+// =============================================
+model AuditLog {
+  id        BigInt   @id @default(autoincrement())
+  userId    Int
+  action    String   // "mark_attendance" | "edit_record" | "unlock" | "approve_leave"
+  entity    String   // "attendance_session" | "leave_request" | "correction_request"
+  entityId  String
+  oldValue  Json?
+  newValue  Json?
+  ip        String?
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([entity, entityId])
+  @@map("audit_logs")
+}

@@ -1,0 +1,902 @@
+import { useState, useEffect } from 'react';
+import { useAuthStore } from '../../stores/useAuthStore';
+import { useSyncStore } from '../../stores/useSyncStore';
+import { api } from '../../lib/api';
+import { db } from '../../lib/db';
+import { runSync } from '../../lib/syncEngine';
+import { useNavigate } from 'react-router-dom';
+import SyncBadge from '../../components/SyncBadge';
+
+interface StudentItem {
+  id: number;
+  rollNo: string;
+  name: string;
+  status: 'P' | 'A' | 'L' | 'LV' | 'OD';
+}
+
+interface SectionItem {
+  id: number;
+  name: string;
+}
+
+interface SubjectItem {
+  id: number;
+  name: string;
+  code: string;
+}
+
+export default function TeacherDashboard() {
+  const user = useAuthStore((s) => s.user);
+  const logout = useAuthStore((s) => s.logout);
+  const { isOnline, pendingCount, isSyncing } = useSyncStore();
+  const navigate = useNavigate();
+
+  const [activeTab, setActiveTab] = useState<'mark' | 'qr' | 'approvals' | 'reports'>('mark');
+
+  // Academic data
+  const [sections, setSections] = useState<SectionItem[]>([]);
+  const [subjects, setSubjects] = useState<SubjectItem[]>([]);
+  const [selectedSection, setSelectedSection] = useState<number | null>(null);
+  const [selectedSubject, setSelectedSubject] = useState<number | null>(null);
+  const [period, setPeriod] = useState(1);
+  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
+
+  // Attendance roster
+  const [students, setStudents] = useState<StudentItem[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+
+  // QR Session
+  const [qrSessionId, setQrSessionId] = useState<string | null>(null);
+  const [qrToken, setQrToken] = useState<string>('');
+  const [qrSecondsLeft, setQrSecondsLeft] = useState<number>(10);
+  const [qrActive, setQrActive] = useState(false);
+
+  // Approvals
+  const [leaves, setLeaves] = useState<any[]>([]);
+  const [corrections, setCorrections] = useState<any[]>([]);
+  const [loadingApprovals, setLoadingApprovals] = useState(false);
+
+  // Reports
+  const [classReport, setClassReport] = useState<any | null>(null);
+  const [defaulters, setDefaulters] = useState<any[]>([]);
+  const [loadingReport, setLoadingReport] = useState(false);
+
+  // Initial load: fetch bootstrap data
+  useEffect(() => {
+    loadInitialData();
+  }, []);
+
+  async function loadInitialData() {
+    try {
+      if (isOnline) {
+        const res = await api.get('/sync/bootstrap');
+        const data = res.data.data;
+        if (data.sections?.length > 0) {
+          setSections(data.sections);
+          setSelectedSection(data.sections[0].id);
+        }
+        if (data.subjects?.length > 0) {
+          setSubjects(data.subjects);
+          setSelectedSubject(data.subjects[0].id);
+        }
+      } else {
+        // Load from IndexedDB
+        const localSections = await db.sections.toArray();
+        const localSubjects = await db.subjects.toArray();
+        if (localSections.length > 0) {
+          setSections(localSections);
+          setSelectedSection(localSections[0].id);
+        }
+        if (localSubjects.length > 0) {
+          setSubjects(localSubjects);
+          setSelectedSubject(localSubjects[0].id);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load initial teacher data', err);
+    }
+  }
+
+  // When selectedSection changes, load students
+  useEffect(() => {
+    if (selectedSection) {
+      loadStudentsForSection(selectedSection);
+    }
+  }, [selectedSection]);
+
+  async function loadStudentsForSection(sectionId: number) {
+    try {
+      let stList: any[] = [];
+      if (isOnline) {
+        const res = await api.get(`/users/students?sectionId=${sectionId}`);
+        stList = res.data.data;
+      } else {
+        stList = await db.students.where('sectionId').equals(sectionId).toArray();
+      }
+
+      setStudents(
+        stList.map((s) => ({
+          id: s.id,
+          rollNo: s.rollNo,
+          name: s.user?.name || s.name || `Student ${s.rollNo}`,
+          status: 'P', // Default to Present
+        }))
+      );
+    } catch (err) {
+      console.error('Failed to load students', err);
+    }
+  }
+
+  // Fast bulk status changes
+  function markAll(status: 'P' | 'A') {
+    setStudents((prev) => prev.map((s) => ({ ...s, status })));
+  }
+
+  function toggleStudentStatus(studentId: number, nextStatus: 'P' | 'A' | 'L' | 'LV' | 'OD') {
+    setStudents((prev) =>
+      prev.map((s) => (s.id === studentId ? { ...s, status: nextStatus } : s))
+    );
+  }
+
+  // Save Attendance (Offline-First)
+  async function handleSaveAttendance() {
+    if (!selectedSection || !selectedSubject) {
+      alert('Please select both a section and a subject');
+      return;
+    }
+
+    setSaving(true);
+    setSaveMessage(null);
+
+    try {
+      const recordsToSave = students.map((s) => ({
+        studentId: s.id,
+        status: s.status,
+        method: 'MANUAL',
+        clientTs: new Date().toISOString(),
+      }));
+
+      if (isOnline) {
+        // 1. Create or get session on server
+        const sessionRes = await api.post('/attendance/sessions', {
+          sectionId: selectedSection,
+          subjectId: selectedSubject,
+          date,
+          period,
+        });
+        const sessionId = sessionRes.data.data.id;
+
+        // 2. Mark records on server
+        await api.post(`/attendance/sessions/${sessionId}/records`, {
+          records: recordsToSave,
+        });
+
+        setSaveMessage('✓ Attendance saved and synced to server!');
+      } else {
+        const outboxItems = students.map((s) => ({
+          id: crypto.randomUUID(),
+          type: 'attendance_record' as const,
+          payload: {
+            sectionId: selectedSection,
+            subjectId: selectedSubject,
+            date,
+            period,
+            studentId: s.id,
+            status: s.status,
+            method: 'MANUAL',
+            clientTs: new Date().toISOString(),
+          },
+          status: 'pending' as const,
+          attempts: 0,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }));
+
+        await db.outbox.bulkAdd(outboxItems);
+        useSyncStore.getState().incrementPending();
+
+        setSaveMessage('⚡ Saved locally! Will auto-sync when internet reconnects.');
+      }
+    } catch (err: any) {
+      console.error('Failed to save attendance', err);
+      setSaveMessage('⚠️ Error saving attendance. Please try again.');
+    } finally {
+      setSaving(false);
+      setTimeout(() => setSaveMessage(null), 5000);
+    }
+  }
+
+  // Live QR Attendance logic
+  async function handleStartQr() {
+    if (!selectedSection || !selectedSubject) {
+      alert('Please select a section and a subject first');
+      return;
+    }
+
+    try {
+      const sessionRes = await api.post('/attendance/sessions', {
+        sectionId: selectedSection,
+        subjectId: selectedSubject,
+        date,
+        period,
+      });
+      const sId = sessionRes.data.data.id;
+      setQrSessionId(sId);
+      setQrActive(true);
+    } catch (err) {
+      console.error('Failed to start QR session', err);
+      alert('Failed to start QR session');
+    }
+  }
+
+  useEffect(() => {
+    let interval: any;
+    if (qrActive && qrSessionId) {
+      const fetchToken = async () => {
+        try {
+          const res = await api.get(`/qr/token/${qrSessionId}`);
+          setQrToken(res.data.data.token);
+          setQrSecondsLeft(res.data.data.secondsRemaining);
+        } catch (err) {
+          console.error('Token fetch error', err);
+        }
+      };
+
+      fetchToken();
+      interval = setInterval(fetchToken, 2000);
+    }
+    return () => clearInterval(interval);
+  }, [qrActive, qrSessionId]);
+
+  // Approvals logic
+  async function loadApprovals() {
+    setLoadingApprovals(true);
+    try {
+      const [lRes, cRes] = await Promise.all([
+        api.get('/leaves?status=PENDING'),
+        api.get('/correction-requests?status=PENDING'),
+      ]);
+      setLeaves(lRes.data.data);
+      setCorrections(cRes.data.data);
+    } catch (err) {
+      console.error('Failed to load approvals', err);
+    } finally {
+      setLoadingApprovals(false);
+    }
+  }
+
+  async function handleLeaveDecision(leaveId: string, decision: 'APPROVED' | 'REJECTED') {
+    try {
+      await api.patch(`/leaves/${leaveId}/decision`, { decision, note: `${decision} by teacher` });
+      setLeaves((prev) => prev.filter((l) => l.id !== leaveId));
+    } catch (err) {
+      alert('Failed to update leave');
+    }
+  }
+
+  async function handleCorrectionDecision(corrId: string, decision: 'APPROVED' | 'REJECTED') {
+    try {
+      await api.patch(`/correction-requests/${corrId}/decision`, { decision, note: `${decision} by teacher` });
+      setCorrections((prev) => prev.filter((c) => c.id !== corrId));
+    } catch (err) {
+      alert('Failed to update correction');
+    }
+  }
+
+  // Reports logic
+  async function loadReports() {
+    if (!selectedSection) return;
+    setLoadingReport(true);
+    try {
+      const [repRes, defRes] = await Promise.all([
+        api.get(`/reports/class?sectionId=${selectedSection}`),
+        api.get(`/reports/defaulters?sectionId=${selectedSection}`),
+      ]);
+      setClassReport(repRes.data.data);
+      setDefaulters(defRes.data.data.defaulters);
+    } catch (err) {
+      console.error('Failed to load reports', err);
+    } finally {
+      setLoadingReport(false);
+    }
+  }
+
+  async function handleExportCSV() {
+    if (!selectedSection) return;
+    window.open(`/api/v1/reports/export?sectionId=${selectedSection}`, '_blank');
+  }
+
+  async function handleLogout() {
+    try { await api.post('/auth/logout'); } catch { /* ignore */ }
+    logout();
+    navigate('/login');
+  }
+
+  // Counts
+  const presentCount = students.filter((s) => s.status === 'P').length;
+  const absentCount = students.filter((s) => s.status === 'A').length;
+  const lateCount = students.filter((s) => s.status === 'L').length;
+
+  return (
+    <div className="page">
+      {/* Header */}
+      <header
+        style={{
+          background: 'var(--color-surface)',
+          borderBottom: '1px solid var(--color-border)',
+          padding: '0.875rem 1rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          position: 'sticky',
+          top: 0,
+          zIndex: 100,
+        }}
+      >
+        <div className="flex items-center gap-1">
+          <span style={{ fontSize: '1.25rem' }}>📋</span>
+          <span style={{ fontWeight: 700, fontSize: '1.05rem' }}>AttendAI</span>
+          <span className="badge" style={{ background: 'rgba(108,99,255,0.15)', color: 'var(--color-primary)' }}>
+            {user?.name || 'Teacher'}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <SyncBadge />
+          {pendingCount > 0 && isOnline && (
+            <button
+              className="btn btn--primary btn--sm"
+              onClick={() => runSync()}
+              disabled={isSyncing}
+            >
+              {isSyncing ? 'Syncing...' : 'Sync Now'}
+            </button>
+          )}
+          <button className="btn btn--ghost btn--sm" onClick={handleLogout}>
+            Logout
+          </button>
+        </div>
+      </header>
+
+      {/* Tab Navigation */}
+      <nav
+        style={{
+          display: 'flex',
+          gap: '0.5rem',
+          padding: '0.75rem 1rem',
+          background: 'var(--color-surface-2)',
+          borderBottom: '1px solid var(--color-border)',
+          overflowX: 'auto',
+        }}
+      >
+        <button
+          className={`btn btn--sm ${activeTab === 'mark' ? 'btn--primary' : 'btn--ghost'}`}
+          onClick={() => setActiveTab('mark')}
+        >
+          ✏️ Mark Attendance
+        </button>
+        <button
+          className={`btn btn--sm ${activeTab === 'qr' ? 'btn--primary' : 'btn--ghost'}`}
+          onClick={() => setActiveTab('qr')}
+        >
+          📱 Live QR Code
+        </button>
+        <button
+          className={`btn btn--sm ${activeTab === 'approvals' ? 'btn--primary' : 'btn--ghost'}`}
+          onClick={() => {
+            setActiveTab('approvals');
+            loadApprovals();
+          }}
+        >
+          📑 Approvals ({leaves.length + corrections.length})
+        </button>
+        <button
+          className={`btn btn--sm ${activeTab === 'reports' ? 'btn--primary' : 'btn--ghost'}`}
+          onClick={() => {
+            setActiveTab('reports');
+            loadReports();
+          }}
+        >
+          📊 Class Reports
+        </button>
+      </nav>
+
+      {/* Main Content */}
+      <main style={{ flex: 1, padding: '1.5rem 1rem' }}>
+        <div className="container container--wide">
+          {/* ─────────────────────────────────────────────────────────────
+              TAB 1: MARK ATTENDANCE
+          ───────────────────────────────────────────────────────────── */}
+          {activeTab === 'mark' && (
+            <div>
+              {/* Class & Date Controls */}
+              <div
+                className="card"
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                  gap: '1rem',
+                  marginBottom: '1.5rem',
+                }}
+              >
+                <div>
+                  <label className="text-xs text-muted" style={{ display: 'block', marginBottom: '0.25rem' }}>
+                    Select Section
+                  </label>
+                  <select
+                    className="input"
+                    value={selectedSection || ''}
+                    onChange={(e) => setSelectedSection(Number(e.target.value))}
+                  >
+                    {sections.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs text-muted" style={{ display: 'block', marginBottom: '0.25rem' }}>
+                    Select Subject
+                  </label>
+                  <select
+                    className="input"
+                    value={selectedSubject || ''}
+                    onChange={(e) => setSelectedSubject(Number(e.target.value))}
+                  >
+                    {subjects.map((sub) => (
+                      <option key={sub.id} value={sub.id}>
+                        {sub.name} ({sub.code})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs text-muted" style={{ display: 'block', marginBottom: '0.25rem' }}>
+                    Period (Slot)
+                  </label>
+                  <select className="input" value={period} onChange={(e) => setPeriod(Number(e.target.value))}>
+                    {[1, 2, 3, 4, 5, 6, 7, 8].map((p) => (
+                      <option key={p} value={p}>
+                        Period {p}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs text-muted" style={{ display: 'block', marginBottom: '0.25rem' }}>
+                    Date
+                  </label>
+                  <input
+                    type="date"
+                    className="input"
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {/* Roster Header & Quick Actions */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '1rem',
+                  marginBottom: '1rem',
+                }}
+              >
+                <div className="flex items-center gap-2">
+                  <h3>Student Roster ({students.length})</h3>
+                  <span className="badge badge--online">{presentCount} Present</span>
+                  <span className="badge badge--offline">{absentCount} Absent</span>
+                  {lateCount > 0 && <span className="badge badge--pending">{lateCount} Late</span>}
+                </div>
+
+                <div className="flex items-center gap-1">
+                  <button className="btn btn--ghost btn--sm" onClick={() => markAll('P')}>
+                    ✓ All Present
+                  </button>
+                  <button className="btn btn--ghost btn--sm" onClick={() => markAll('A')}>
+                    ✗ All Absent
+                  </button>
+                  <button
+                    className="btn btn--primary"
+                    onClick={handleSaveAttendance}
+                    disabled={saving || students.length === 0}
+                  >
+                    {saving ? 'Saving...' : '💾 Save Attendance'}
+                  </button>
+                </div>
+              </div>
+
+              {saveMessage && (
+                <div
+                  className="card"
+                  style={{
+                    marginBottom: '1rem',
+                    background: saveMessage.includes('Error')
+                      ? 'rgba(239, 68, 68, 0.15)'
+                      : 'rgba(16, 185, 129, 0.15)',
+                    border: `1px solid ${
+                      saveMessage.includes('Error') ? 'var(--color-danger)' : 'var(--color-success)'
+                    }`,
+                    fontWeight: 600,
+                  }}
+                >
+                  {saveMessage}
+                </div>
+              )}
+
+              {/* Student Cards List */}
+              <div style={{ display: 'grid', gap: '0.5rem' }}>
+                {students.map((st) => (
+                  <div
+                    key={st.id}
+                    className="card"
+                    style={{
+                      padding: '0.875rem 1rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      flexWrap: 'wrap',
+                      gap: '0.5rem',
+                      background:
+                        st.status === 'P'
+                          ? 'rgba(16, 185, 129, 0.05)'
+                          : st.status === 'A'
+                          ? 'rgba(239, 68, 68, 0.05)'
+                          : 'var(--color-surface)',
+                    }}
+                  >
+                    <div>
+                      <span className="badge" style={{ marginRight: '0.5rem' }}>
+                        {st.rollNo}
+                      </span>
+                      <span className="font-semibold">{st.name}</span>
+                    </div>
+
+                    {/* 3-tap buttons: P, A, L, OD */}
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        className={`btn btn--sm ${st.status === 'P' ? 'btn--primary' : 'btn--ghost'}`}
+                        style={st.status === 'P' ? { background: 'var(--color-success)' } : {}}
+                        onClick={() => toggleStudentStatus(st.id, 'P')}
+                      >
+                        P
+                      </button>
+                      <button
+                        type="button"
+                        className={`btn btn--sm ${st.status === 'A' ? 'btn--primary' : 'btn--ghost'}`}
+                        style={st.status === 'A' ? { background: 'var(--color-danger)' } : {}}
+                        onClick={() => toggleStudentStatus(st.id, 'A')}
+                      >
+                        A
+                      </button>
+                      <button
+                        type="button"
+                        className={`btn btn--sm ${st.status === 'L' ? 'btn--primary' : 'btn--ghost'}`}
+                        style={st.status === 'L' ? { background: 'var(--color-warning)' } : {}}
+                        onClick={() => toggleStudentStatus(st.id, 'L')}
+                      >
+                        Late
+                      </button>
+                      <button
+                        type="button"
+                        className={`btn btn--sm ${st.status === 'OD' ? 'btn--primary' : 'btn--ghost'}`}
+                        style={st.status === 'OD' ? { background: 'var(--color-primary)' } : {}}
+                        onClick={() => toggleStudentStatus(st.id, 'OD')}
+                      >
+                        OD
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ─────────────────────────────────────────────────────────────
+              TAB 2: LIVE ROTATING QR CODE
+          ───────────────────────────────────────────────────────────── */}
+          {activeTab === 'qr' && (
+            <div style={{ maxWidth: 600, margin: '0 auto', textAlign: 'center' }}>
+              <div className="card">
+                <h2 style={{ marginBottom: '0.5rem' }}>📱 Rotating QR Attendance</h2>
+                <p className="text-sm text-muted" style={{ marginBottom: '1.5rem' }}>
+                  Students scan this QR with their AttendAI app. Rotates every 10 seconds to eliminate proxy attendance.
+                </p>
+
+                {!qrActive ? (
+                  <button className="btn btn--primary" onClick={handleStartQr}>
+                    Start QR Session for Period {period}
+                  </button>
+                ) : (
+                  <div>
+                    {/* Live Token Box */}
+                    <div
+                      style={{
+                        padding: '2rem',
+                        margin: '1.5rem auto',
+                        background: '#ffffff',
+                        color: '#000000',
+                        borderRadius: '16px',
+                        display: 'inline-block',
+                        boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+                      }}
+                    >
+                      <div style={{ fontSize: '3.5rem', fontWeight: 900, letterSpacing: '4px' }}>
+                        {qrToken || '------'}
+                      </div>
+                      <p style={{ color: '#666', fontSize: '0.875rem', marginTop: '0.5rem' }}>
+                        Or enter this 8-character code
+                      </p>
+                    </div>
+
+                    {/* Countdown Progress Bar */}
+                    <div style={{ width: '80%', margin: '0 auto 1.5rem auto' }}>
+                      <div
+                        style={{
+                          height: 8,
+                          background: 'var(--color-surface-2)',
+                          borderRadius: 4,
+                          overflow: 'hidden',
+                        }}
+                      >
+                        <div
+                          style={{
+                            height: '100%',
+                            width: `${(qrSecondsLeft / 10) * 100}%`,
+                            background: qrSecondsLeft < 3 ? 'var(--color-danger)' : 'var(--color-primary)',
+                            transition: 'width 1s linear',
+                          }}
+                        />
+                      </div>
+                      <p className="text-xs text-muted" style={{ marginTop: '0.375rem' }}>
+                        Rotates in {qrSecondsLeft}s
+                      </p>
+                    </div>
+
+                    <button
+                      className="btn btn--ghost btn--sm"
+                      onClick={() => setQrActive(false)}
+                    >
+                      Stop QR Session
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ─────────────────────────────────────────────────────────────
+              TAB 3: LEAVE & CORRECTION APPROVALS
+          ───────────────────────────────────────────────────────────── */}
+          {activeTab === 'approvals' && (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <h2>Pending Approvals</h2>
+                <button className="btn btn--ghost btn--sm" onClick={loadApprovals} disabled={loadingApprovals}>
+                  ⟳ Refresh
+                </button>
+              </div>
+
+              {/* Leaves Section */}
+              <h3 style={{ marginTop: '1.5rem', marginBottom: '0.75rem' }}>
+                🏖️ Leave Applications ({leaves.length})
+              </h3>
+              {leaves.length === 0 ? (
+                <p className="text-sm text-muted">No pending leave applications.</p>
+              ) : (
+                <div style={{ display: 'grid', gap: '0.75rem' }}>
+                  {leaves.map((l) => (
+                    <div key={l.id} className="card">
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <div>
+                          <p className="font-semibold">
+                            {l.student?.user?.name} ({l.student?.rollNo})
+                          </p>
+                          <p className="text-xs text-muted">
+                            {new Date(l.fromDate).toLocaleDateString()} — {new Date(l.toDate).toLocaleDateString()}
+                          </p>
+                          <p className="text-sm" style={{ marginTop: '0.5rem' }}>
+                            <strong>Type:</strong> {l.type} | <strong>Reason:</strong> {l.reason}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <button
+                            className="btn btn--primary btn--sm"
+                            style={{ background: 'var(--color-success)' }}
+                            onClick={() => handleLeaveDecision(l.id, 'APPROVED')}
+                          >
+                            Approve
+                          </button>
+                          <button
+                            className="btn btn--ghost btn--sm"
+                            style={{ color: 'var(--color-danger)' }}
+                            onClick={() => handleLeaveDecision(l.id, 'REJECTED')}
+                          >
+                            Reject
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Corrections Section */}
+              <h3 style={{ marginTop: '2rem', marginBottom: '0.75rem' }}>
+                ✏️ Attendance Correction Requests ({corrections.length})
+              </h3>
+              {corrections.length === 0 ? (
+                <p className="text-sm text-muted">No pending correction requests.</p>
+              ) : (
+                <div style={{ display: 'grid', gap: '0.75rem' }}>
+                  {corrections.map((c) => (
+                    <div key={c.id} className="card">
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <div>
+                          <p className="font-semibold">
+                            {c.student?.user?.name} ({c.student?.rollNo})
+                          </p>
+                          <p className="text-xs text-muted">
+                            Subject: {c.session?.subject?.name} | Date:{' '}
+                            {new Date(c.session?.date).toLocaleDateString()}
+                          </p>
+                          <p className="text-sm" style={{ marginTop: '0.5rem' }}>
+                            Requested: <strong style={{ color: 'var(--color-success)' }}>{c.requestedStatus}</strong>{' '}
+                            | Reason: {c.reason}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <button
+                            className="btn btn--primary btn--sm"
+                            style={{ background: 'var(--color-success)' }}
+                            onClick={() => handleCorrectionDecision(c.id, 'APPROVED')}
+                          >
+                            Approve
+                          </button>
+                          <button
+                            className="btn btn--ghost btn--sm"
+                            style={{ color: 'var(--color-danger)' }}
+                            onClick={() => handleCorrectionDecision(c.id, 'REJECTED')}
+                          >
+                            Reject
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ─────────────────────────────────────────────────────────────
+              TAB 4: REPORTS & DEFAULTERS
+          ───────────────────────────────────────────────────────────── */}
+          {activeTab === 'reports' && (
+            <div>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: '1rem',
+                  marginBottom: '1.5rem',
+                }}
+              >
+                <div>
+                  <h2>Class Attendance Report</h2>
+                  <p className="text-sm text-muted">
+                    Class Average:{' '}
+                    <strong style={{ color: 'var(--color-primary)' }}>
+                      {classReport?.classAverage || 0}%
+                    </strong>
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-1">
+                  <button className="btn btn--ghost btn--sm" onClick={loadReports} disabled={loadingReport}>
+                    ⟳ Refresh
+                  </button>
+                  <button className="btn btn--primary btn--sm" onClick={handleExportCSV}>
+                    📥 Export CSV
+                  </button>
+                </div>
+              </div>
+
+              {/* Defaulter Alert Box */}
+              {defaulters.length > 0 && (
+                <div
+                  className="card"
+                  style={{
+                    background: 'rgba(239, 68, 68, 0.1)',
+                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                    marginBottom: '1.5rem',
+                  }}
+                >
+                  <h3 style={{ color: 'var(--color-danger)', marginBottom: '0.5rem' }}>
+                    ⚠️ {defaulters.length} Defaulters Below 75%
+                  </h3>
+                  <div style={{ display: 'grid', gap: '0.5rem' }}>
+                    {defaulters.map((d) => (
+                      <div
+                        key={d.studentId}
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          padding: '0.5rem 0',
+                          borderBottom: '1px solid rgba(255,255,255,0.05)',
+                        }}
+                      >
+                        <span>
+                          {d.rollNo} — {d.name}
+                        </span>
+                        <span style={{ color: 'var(--color-danger)', fontWeight: 700 }}>
+                          {d.percentage}% (Shortage: {d.shortage})
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Student Summary Table */}
+              <div className="card" style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
+                      <th style={{ padding: '0.75rem' }}>Roll No</th>
+                      <th style={{ padding: '0.75rem' }}>Name</th>
+                      <th style={{ padding: '0.75rem' }}>Total Classes</th>
+                      <th style={{ padding: '0.75rem' }}>Present</th>
+                      <th style={{ padding: '0.75rem' }}>Attendance %</th>
+                      <th style={{ padding: '0.75rem' }}>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {classReport?.students?.map((st: any) => (
+                      <tr key={st.studentId} style={{ borderBottom: '1px solid var(--color-border)' }}>
+                        <td style={{ padding: '0.75rem' }}>{st.rollNo}</td>
+                        <td style={{ padding: '0.75rem' }}>{st.name}</td>
+                        <td style={{ padding: '0.75rem' }}>{st.totalClasses}</td>
+                        <td style={{ padding: '0.75rem' }}>{st.present}</td>
+                        <td
+                          style={{
+                            padding: '0.75rem',
+                            fontWeight: 700,
+                            color: st.percentage < 75 ? 'var(--color-danger)' : 'var(--color-success)',
+                          }}
+                        >
+                          {st.percentage}%
+                        </td>
+                        <td style={{ padding: '0.75rem' }}>
+                          <span
+                            className={`badge ${
+                              st.percentage < 75 ? 'badge--offline' : 'badge--online'
+                            }`}
+                          >
+                            {st.percentage < 75 ? 'Defaulter' : 'Eligible'}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+      </main>
+    </div>
+  );
+}
