@@ -3,7 +3,7 @@ import { useAuthStore } from '../stores/useAuthStore';
 import heroImage from '../assets/attendance_3d_hero.jpg';
 
 export default function HomePage() {
-  const user = useAuthStore((s) => s.user);
+  const { user, setToken, setUser } = useAuthStore();
   const navigate = useNavigate();
 
   function getDashboardRoute() {
@@ -19,7 +19,35 @@ export default function HomePage() {
   }
 
   function handleQuickDemo(role: 'ADMIN' | 'TEACHER' | 'STUDENT') {
-    navigate('/login', { state: { quickRole: role } });
+    const demoUser =
+      role === 'STUDENT'
+        ? {
+            id: 1,
+            name: 'Aman Kumar',
+            email: 'student1@attendai.com',
+            role: 'STUDENT' as const,
+            student: { id: 1, sectionId: 1, rollNo: '2101640100015' },
+          }
+        : role === 'TEACHER'
+        ? {
+            id: 2,
+            name: 'Dr. R. Sharma',
+            email: 'teacher1@attendai.com',
+            role: 'TEACHER' as const,
+            teacher: { id: 1, departmentId: 1 },
+          }
+        : {
+            id: 3,
+            name: 'Dean Academics',
+            email: 'admin@attendai.com',
+            role: 'ADMIN' as const,
+          };
+
+    setToken('demo-token-attendai');
+    setUser(demoUser);
+    if (role === 'STUDENT') navigate('/student');
+    else if (role === 'TEACHER') navigate('/teacher');
+    else navigate('/admin');
   }
 
   return (

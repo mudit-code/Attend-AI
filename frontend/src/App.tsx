@@ -5,6 +5,7 @@ import { initSyncListeners } from './lib/syncEngine';
 import { useIdleTimeout } from './hooks/useIdleTimeout';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 import LoadingScreen from './components/LoadingScreen';
+import QuickAcademicUtilityDock from './components/common/QuickAcademicUtilityDock';
 import './index.css';
 
 // Lazy-load pages for code splitting
@@ -124,6 +125,8 @@ export default function App() {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
+        {/* Floating Academic Utility Dock (Quick Calculator & Auto-saving Memo) */}
+        <QuickAcademicUtilityDock />
       </AppShell>
     </BrowserRouter>
   );
