@@ -118,11 +118,43 @@ export async function markRecords(
     };
   }
 
+  // Check auto-lock edit window
+  const rules = await prisma.attendanceRule.findFirst();
+  const editWindowHours = rules?.editWindowHours ?? 24;
+  const windowMs = editWindowHours * 60 * 60 * 1000;
+  if (Date.now() - session.createdAt.getTime() > windowMs) {
+    await prisma.attendanceSession.update({
+      where: { id: sessionId },
+      data: { locked: true, lockedAt: new Date() },
+    });
+    throw {
+      code: 'SESSION_LOCKED',
+      status: 403,
+      message: `This session was automatically locked after the ${editWindowHours}-hour edit window. Request HOD/Admin unlock to edit.`,
+    };
+  }
+
+  // Check approved leaves for session date so they are preserved
+  const studentIds = input.records.map((r) => r.studentId);
+  const approvedLeaves = await prisma.leaveRequest.findMany({
+    where: {
+      studentId: { in: studentIds },
+      status: 'APPROVED',
+      fromDate: { lte: session.date },
+      toDate: { gte: session.date },
+    },
+  });
+  const leaveMap = new Map(approvedLeaves.map((l) => [l.studentId, (l.type === 'OD' ? 'OD' : 'LV') as AttendanceStatus]));
+
   const results = await prisma.$transaction(async (tx) => {
     const updated = [];
 
     for (const item of input.records) {
       const clientTs = item.clientTs ? new Date(item.clientTs) : new Date();
+      // If student was marked Absent but has an approved Leave or OD, preserve it
+      const finalStatus = (item.status === 'A' && leaveMap.has(item.studentId))
+        ? leaveMap.get(item.studentId)!
+        : (item.status as AttendanceStatus);
 
       const record = await tx.attendanceRecord.upsert({
         where: {
@@ -132,7 +164,7 @@ export async function markRecords(
           },
         },
         update: {
-          status: item.status as AttendanceStatus,
+          status: finalStatus,
           method: item.method as MarkingMethod,
           clientTs,
           receivedAt: new Date(),
@@ -140,9 +172,19 @@ export async function markRecords(
         create: {
           sessionId,
           studentId: item.studentId,
-          status: item.status as AttendanceStatus,
+          status: finalStatus,
           method: item.method as MarkingMethod,
           clientTs,
+        },
+      });
+
+      // Insert change_log entry for incremental sync pull
+      await tx.changeLog.create({
+        data: {
+          entity: 'attendance',
+          entityId: record.id,
+          op: 'upsert',
+          sectionId: session.sectionId,
         },
       });
 

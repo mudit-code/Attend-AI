@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { api } from '../../lib/api';
 
 interface DayStudentStatus {
   id: number;
@@ -25,8 +26,55 @@ export default function SingleDateAttendanceSnapshot() {
   const [selectedDate, setSelectedDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
   const [selectedPeriod, setSelectedPeriod] = useState<number>(1);
   const [filterStatus, setFilterStatus] = useState<'ALL' | 'P' | 'A' | 'OD'>('ALL');
+  const [roster, setRoster] = useState<DayStudentStatus[]>(SAMPLE_DAILY_ROSTERS.default);
+  const [, setLoading] = useState<boolean>(false);
 
-  const roster: DayStudentStatus[] = SAMPLE_DAILY_ROSTERS.default;
+  useEffect(() => {
+    let isMounted = true;
+    async function loadSnapshot() {
+      try {
+        setLoading(true);
+        const res = await api.get('/attendance/my-sessions');
+        const sessions = res.data?.data || res.data || [];
+        const match = Array.isArray(sessions) && sessions.find((s: any) => {
+          const sDate = s.date ? new Date(s.date).toISOString().slice(0, 10) : '';
+          return sDate === selectedDate;
+        });
+
+        if (match && isMounted) {
+          const detailRes = await api.get(`/attendance/sessions/${match.id}`);
+          const sessionData = detailRes.data?.data || detailRes.data;
+          if (sessionData && sessionData.records && sessionData.records.length > 0) {
+            const mapped: DayStudentStatus[] = sessionData.records.map((r: any, idx: number) => ({
+              id: r.student?.id || idx + 1,
+              rollNo: r.student?.rollNo || `21016401000${String(idx + 1).padStart(2, '0')}`,
+              name: r.student?.user?.name || `Student ${idx + 1}`,
+              status: (r.status === 'PRESENT' ? 'P' : r.status === 'LEAVE' ? 'L' : r.status === 'ON_DUTY' ? 'OD' : 'A'),
+              markedAt: r.markedAt ? new Date(r.markedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '09:00 AM',
+              method: r.method === 'QR' ? 'DYNAMIC_QR' : 'MANUAL_ROSTER',
+            }));
+            if (isMounted) {
+              setRoster(mapped);
+              setLoading(false);
+              return;
+            }
+          }
+        }
+      } catch {
+        // Fallback to sample roster
+      }
+      if (isMounted) {
+        setRoster(SAMPLE_DAILY_ROSTERS.default);
+        setLoading(false);
+      }
+    }
+
+    loadSnapshot();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedDate, selectedPeriod]);
 
   const filtered = roster.filter((s) => {
     if (filterStatus === 'ALL') return true;

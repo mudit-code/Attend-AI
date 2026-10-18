@@ -56,7 +56,7 @@ router.get('/admin/inbox', authenticate, async (_req: AuthRequest, res: Response
       orderBy: { createdAt: 'desc' },
     });
 
-    res.json({ feedbacks });
+    res.json({ success: true, data: feedbacks, feedbacks });
   } catch (err) {
     logger.error('Failed to fetch admin feedback inbox', { error: err });
     res.status(500).json({ error: { message: 'Failed to fetch feedback tickets' } });

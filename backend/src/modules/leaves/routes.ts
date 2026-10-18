@@ -89,15 +89,15 @@ router.get('/admin/all', authenticate, async (_req: AuthRequest, res: Response):
       orderBy: { createdAt: 'desc' },
     });
 
-    res.json({ teacherLeaves, studentLeaves });
+    res.json({ data: teacherLeaves, teacherLeaves, studentLeaves });
   } catch (err) {
     logger.error('Failed to fetch admin leaves', { error: err });
     res.status(500).json({ error: { message: 'Failed to fetch leave applications' } });
   }
 });
 
-// PATCH /leaves/admin/teacher/:id/decision - Approve/Reject teacher leave
-router.patch('/admin/teacher/:id/decision', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
+// Handler for Teacher Leave Decision
+const handleTeacherLeaveDecision = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const id = req.params.id as string;
     const { status, decisionNote } = req.body;
@@ -114,14 +114,18 @@ router.patch('/admin/teacher/:id/decision', authenticate, async (req: AuthReques
     });
 
     logger.info('Teacher leave decision updated', { id, status });
-    res.json({ message: `Leave ${status.toLowerCase()} successfully`, leave: updated });
+    res.json({ message: `Leave ${status.toLowerCase()} successfully`, leave: updated, data: updated });
   } catch (err) {
     res.status(500).json({ error: { message: 'Failed to update leave status' } });
   }
-});
+};
 
-// PATCH /leaves/admin/student/:id/decision - Approve/Reject student leave
-router.patch('/admin/student/:id/decision', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
+// Accept both PATCH and POST for teacher leave decisions
+router.patch('/admin/teacher/:id/decision', authenticate, handleTeacherLeaveDecision);
+router.post('/admin/teacher/:id/decision', authenticate, handleTeacherLeaveDecision);
+
+// Handler for Student Leave Decision
+const handleStudentLeaveDecision = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const id = req.params.id as string;
     const { status, decisionNote } = req.body;
@@ -138,10 +142,14 @@ router.patch('/admin/student/:id/decision', authenticate, async (req: AuthReques
     });
 
     logger.info('Student leave decision updated', { id, status });
-    res.json({ message: `Student leave ${status.toLowerCase()} successfully`, leave: updated });
+    res.json({ message: `Student leave ${status.toLowerCase()} successfully`, leave: updated, data: updated });
   } catch (err) {
     res.status(500).json({ error: { message: 'Failed to update student leave status' } });
   }
-});
+};
+
+// Accept both PATCH and POST for student leave decisions
+router.patch('/admin/student/:id/decision', authenticate, handleStudentLeaveDecision);
+router.post('/admin/student/:id/decision', authenticate, handleStudentLeaveDecision);
 
 export default router;

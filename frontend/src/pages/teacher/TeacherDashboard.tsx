@@ -13,6 +13,7 @@ import { TeacherLeaveTab } from '../../components/teacher/TeacherLeaveTab';
 import DefaulterEmailManager from '../../components/teacher/DefaulterEmailManager';
 import SingleDateAttendanceSnapshot from '../../components/teacher/SingleDateAttendanceSnapshot';
 import UserProfileDrawer from '../../components/common/UserProfileDrawer';
+import ProjectorQRMode from '../../components/teacher/ProjectorQRMode';
 
 interface StudentItem {
   id: number;
@@ -59,6 +60,8 @@ export default function TeacherDashboard() {
   const [qrToken, setQrToken] = useState<string>('');
   const [qrSecondsLeft, setQrSecondsLeft] = useState<number>(10);
   const [qrActive, setQrActive] = useState(false);
+  const [projectorMode, setProjectorMode] = useState(false);
+  const qrScannedCount = students.filter((s) => s.status === 'P').length;
 
   // Approvals
   const [leaves, setLeaves] = useState<any[]>([]);
@@ -704,6 +707,22 @@ export default function TeacherDashboard() {
           ───────────────────────────────────────────────────────────── */}
           {activeTab === 'qr' && (
             <div style={{ maxWidth: 600, margin: '0 auto', textAlign: 'center' }}>
+              {/* Projector Fullscreen Overlay */}
+              {projectorMode && (
+                <ProjectorQRMode
+                  sessionId={qrSessionId}
+                  qrToken={qrToken}
+                  secondsLeft={qrSecondsLeft}
+                  scannedCount={qrScannedCount}
+                  totalStudents={students.length}
+                  subjectName={subjects.find((s) => s.id === selectedSubject)?.name || 'Subject'}
+                  subjectCode={subjects.find((s) => s.id === selectedSubject)?.code || ''}
+                  sectionName={sections.find((s) => s.id === selectedSection)?.name || 'Section'}
+                  period={period}
+                  date={date}
+                  onExit={() => setProjectorMode(false)}
+                />
+              )}
               <div className="card">
                 <h2 style={{ marginBottom: '0.5rem' }}>📱 Rotating QR Attendance</h2>
                 <p className="text-sm text-muted" style={{ marginBottom: '1.5rem' }}>
@@ -760,12 +779,22 @@ export default function TeacherDashboard() {
                       </p>
                     </div>
 
-                    <button
-                      className="btn btn--ghost btn--sm"
-                      onClick={() => setQrActive(false)}
-                    >
-                      Stop QR Session
-                    </button>
+                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                      <button
+                        id="projector-mode-btn"
+                        className="btn btn--primary btn--sm"
+                        onClick={() => setProjectorMode(true)}
+                        title="Display QR fullscreen on projector / smartboard"
+                      >
+                        📽️ Projector Fullscreen Mode
+                      </button>
+                      <button
+                        className="btn btn--ghost btn--sm"
+                        onClick={() => setQrActive(false)}
+                      >
+                        Stop QR Session
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>

@@ -11,6 +11,8 @@ import LeaveApprovalDesk from '../../components/admin/LeaveApprovalDesk';
 import InstitutionalFeedbackManager from '../../components/admin/InstitutionalFeedbackManager';
 import AcademicStructureManager from '../../components/admin/AcademicStructureManager';
 import CampusDispensaryDesk from '../../components/admin/CampusDispensaryDesk';
+import DeviceManagerModal from '../../components/admin/DeviceManagerModal';
+import SessionUnlockDesk from '../../components/admin/SessionUnlockDesk';
 import UserProfileDrawer from '../../components/common/UserProfileDrawer';
 
 export default function AdminDashboard() {
@@ -18,7 +20,7 @@ export default function AdminDashboard() {
   const logout = useAuthStore((s) => s.logout);
   const navigate = useNavigate();
 
-  const [activeTab, setActiveTab] = useState<'stats' | 'academic' | 'clearance' | 'notices' | 'grievance' | 'placement' | 'users' | 'rules' | 'audit' | 'leaves' | 'feedback' | 'allocations' | 'dispensary'>('stats');
+  const [activeTab, setActiveTab] = useState<'stats' | 'academic' | 'clearance' | 'notices' | 'grievance' | 'placement' | 'users' | 'rules' | 'audit' | 'leaves' | 'feedback' | 'allocations' | 'dispensary' | 'devices' | 'unlock'>('stats');
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   // Stats
@@ -368,6 +370,20 @@ export default function AdminDashboard() {
           onClick={() => setActiveTab('dispensary')}
         >
           🏥 Campus Clinic
+        </button>
+        <button
+          id="admin-tab-devices"
+          className={`btn btn--sm ${activeTab === 'devices' ? 'btn--primary' : 'btn--ghost'}`}
+          onClick={() => setActiveTab('devices')}
+        >
+          📱 Device Reset
+        </button>
+        <button
+          id="admin-tab-unlock"
+          className={`btn btn--sm ${activeTab === 'unlock' ? 'btn--primary' : 'btn--ghost'}`}
+          onClick={() => setActiveTab('unlock')}
+        >
+          🔓 Session Unlock
         </button>
       </nav>
 
@@ -773,6 +789,22 @@ export default function AdminDashboard() {
 
           {/* TAB: CAMPUS DISPENSARY & HEALTH CLINIC */}
           {activeTab === 'dispensary' && <CampusDispensaryDesk />}
+
+          {/* TAB: DEVICE BINDING MANAGER */}
+          {activeTab === 'devices' && (
+            <div>
+              <h2 style={{ marginBottom: '1.5rem' }}>📱 Student Device Binding Manager</h2>
+              <DeviceManagerModal />
+            </div>
+          )}
+
+          {/* TAB: LOCKED SESSION UNLOCK DESK */}
+          {activeTab === 'unlock' && (
+            <div>
+              <h2 style={{ marginBottom: '1.5rem' }}>🔐 Locked Session Unlock Desk</h2>
+              <SessionUnlockDesk />
+            </div>
+          )}
         </div>
       </main>
 

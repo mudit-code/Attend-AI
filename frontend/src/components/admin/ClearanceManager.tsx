@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { api } from "../../lib/api";
 
 interface StudentClearance {
@@ -28,6 +28,27 @@ export default function ClearanceManager() {
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [updating, setUpdating] = useState<number | null>(null);
   const [bulkMsg, setBulkMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    api.get('/clearance/all')
+      .then((res) => {
+        if (res.data?.data && res.data.data.length > 0) {
+          const mapped: StudentClearance[] = res.data.data.map((c: any) => ({
+            studentId: c.studentId,
+            rollNo: c.student?.rollNo || '2101640100000',
+            name: c.student?.user?.name || 'Student',
+            branch: c.student?.section?.name || 'CSE',
+            academic: Boolean(c.academic),
+            accounts: Boolean(c.accounts),
+            library: Boolean(c.library),
+            discipline: Boolean(c.discipline),
+            examUnlocked: Boolean(c.examUnlocked),
+          }));
+          setList(mapped);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   async function toggleStatus(studentId: number, field: "accounts" | "library" | "discipline") {
     setUpdating(studentId);

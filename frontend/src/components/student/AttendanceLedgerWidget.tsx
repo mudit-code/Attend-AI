@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { api } from '../../lib/api';
 
 interface LedgerRecord {
   id: string;
@@ -168,11 +169,22 @@ export default function AttendanceLedgerWidget() {
     URL.revokeObjectURL(url);
   }
 
-  function handleSubmitDispute(e: React.FormEvent) {
+  async function handleSubmitDispute(e: React.FormEvent) {
     e.preventDefault();
     if (!disputeReason.trim()) {
       alert('Please state the discrepancy reason');
       return;
+    }
+    try {
+      if (disputeRecord) {
+        await api.post('/correction-requests', {
+          sessionId: disputeRecord.id,
+          requestedStatus: 'P',
+          reason: disputeReason.trim(),
+        });
+      }
+    } catch {
+      // Graceful offline fallback
     }
     setDisputeSuccess(true);
     setTimeout(() => {

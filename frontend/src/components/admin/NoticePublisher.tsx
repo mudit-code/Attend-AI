@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { api } from "../../lib/api";
 
 interface NoticeItem {
@@ -55,6 +55,24 @@ export default function NoticePublisher() {
   const [publishing, setPublishing] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
+  useEffect(() => {
+    let isMounted = true;
+    api
+      .get("/notices")
+      .then((res) => {
+        const list = res.data?.data || res.data;
+        if (isMounted && Array.isArray(list) && list.length > 0) {
+          setNotices(list);
+        }
+      })
+      .catch(() => {
+        // Fallback to default notices when offline or mock
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   async function handlePublish(e: React.FormEvent) {
     e.preventDefault();
     if (!title.trim() || !body.trim()) return;
@@ -73,7 +91,10 @@ export default function NoticePublisher() {
     };
 
     try {
-      await api.post("/notices", newNotice);
+      const res = await api.post("/notices", newNotice);
+      if (res.data?.data) {
+        newNotice.id = res.data.data.id || newNotice.id;
+      }
     } catch {
       // fallback to local addition
     }
@@ -93,7 +114,12 @@ export default function NoticePublisher() {
     );
   }
 
-  function handleDelete(id: number) {
+  async function handleDelete(id: number) {
+    try {
+      await api.delete(`/notices/${id}`);
+    } catch {
+      // ignore network errors in fallback/demo mode
+    }
     setNotices((prev) => prev.filter((n) => n.id !== id));
   }
 

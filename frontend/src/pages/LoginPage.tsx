@@ -153,9 +153,15 @@ export default function LoginPage() {
       else if (role === 'TEACHER') navigate('/teacher');
       else if (role === 'STUDENT' || role === 'PARENT') navigate('/student');
       else navigate('/dashboard');
-    } catch {
-      // Backend / DB fallback: Guarantee immediate access without failure
-      handle1ClickDemoLogin(selectedRole);
+    } catch (err: any) {
+      if (err.response?.status === 401) {
+        setError(err.response?.data?.error?.message || 'Invalid email or password. Please check your credentials or use 1-Click Quick Demo Login.');
+      } else if (!navigator.onLine || !err.response) {
+        // Completely offline or backend unavailable: seamless demo fallback
+        handle1ClickDemoLogin(selectedRole);
+      } else {
+        setError(err.response?.data?.error?.message || 'Login failed. Please try again or use 1-Click Quick Demo Login.');
+      }
     } finally {
       setLoading(false);
     }

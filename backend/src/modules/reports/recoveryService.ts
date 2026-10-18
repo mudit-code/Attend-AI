@@ -1,4 +1,4 @@
-﻿import { prisma } from "../../lib/prisma";
+import { prisma } from "../../lib/prisma";
 
 export async function getRecoveryStats(studentId: number) {
   const student = await prisma.student.findUnique({
@@ -28,7 +28,8 @@ export async function getRecoveryStats(studentId: number) {
     if (r.status === "P" || r.status === "OD" || (countLeave && r.status === "LV")) sub.effective++;
   }
 
-  const td = target / 100;
+  const clampedTarget = Math.min(target, 99.9);
+  const td = clampedTarget / 100;
   const subjectWise = Array.from(subjectMap.values()).map((sub) => {
     const percentage = sub.total > 0 ? Number(((sub.effective / sub.total) * 100).toFixed(1)) : 100;
     const safeBunksAllowed = percentage >= target ? Math.max(0, Math.floor(sub.effective / td - sub.total)) : 0;
