@@ -39,15 +39,28 @@ router.get('/student/:id', async (req: AuthRequest, res: Response, next: NextFun
   }
 });
 
-// ─── My Report (For logged-in Student) ─────────────────────────────
-router.get('/my-report', requireRole('STUDENT'), async (req: AuthRequest, res: Response, next: NextFunction) => {
+// ─── My Report (For logged-in Student or Parent) ─────────────────────────
+router.get('/my-report', requireRole('STUDENT', 'PARENT'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const student = await prisma.student.findUnique({ where: { userId: req.user!.id } });
-    if (!student) {
-      res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Student profile not found' } });
+    const user = req.user!;
+    let studentId: number | undefined;
+
+    if (user.role === 'STUDENT') {
+      const student = await prisma.student.findUnique({ where: { userId: user.id } });
+      if (student) studentId = student.id;
+    } else if (user.role === 'PARENT') {
+      const parent = await prisma.parent.findUnique({
+        where: { userId: user.id },
+        include: { children: true },
+      });
+      studentId = parent?.children[0]?.id;
+    }
+
+    if (!studentId) {
+      res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Student profile not found for account' } });
       return;
     }
-    const data = await reportsService.getStudentReport(student.id);
+    const data = await reportsService.getStudentReport(studentId);
     res.json({ data });
   } catch (err) {
     next(err);

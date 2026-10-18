@@ -93,10 +93,11 @@ export async function refreshService(rawToken: string) {
   });
 
   const newRawToken = await createRefreshToken(stored.userId);
+  const teacher = await prisma.teacher.findUnique({ where: { userId: stored.userId } });
   const accessToken = generateAccessToken(
     stored.userId,
     stored.user.role,
-    undefined
+    teacher?.departmentId
   );
 
   return { accessToken, refreshToken: newRawToken };
@@ -197,8 +198,10 @@ export async function registerService(input: RegisterInput) {
   }
 
   // Admin access code validation if registering as ADMIN
-  if (input.role === 'ADMIN' && input.adminCode && input.adminCode !== 'ADMIN2026' && input.adminCode !== 'ATTENDAI_ADMIN') {
-    throw { code: 'INVALID_ADMIN_CODE', status: 403, message: 'Invalid Admin Authorization Code' };
+  if (input.role === 'ADMIN') {
+    if (!input.adminCode || (input.adminCode !== 'ADMIN2026' && input.adminCode !== 'ATTENDAI_ADMIN')) {
+      throw { code: 'INVALID_ADMIN_CODE', status: 403, message: 'Valid Admin Authorization Code is required to register as Administrator' };
+    }
   }
 
   const passwordHash = await bcrypt.hash(input.password, 10);
@@ -280,6 +283,9 @@ export async function oauthService(input: OAuthInput) {
   });
 
   if (!user) {
+    if (input.role === 'ADMIN') {
+      throw { code: 'UNAUTHORIZED_ADMIN_OAUTH', status: 403, message: 'Administrator accounts cannot be automatically provisioned via OAuth' };
+    }
     let sectionId: number | undefined;
     let departmentId: number | undefined;
 

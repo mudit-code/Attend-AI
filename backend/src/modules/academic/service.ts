@@ -184,8 +184,9 @@ export async function getTodayTimetable(req: AuthRequest) {
   }
 
   const now = new Date();
-  // JS getDay(): 0=Sun, 1=Mon...6=Sat. Map to 1=Mon...7=Sun
-  const jsDay = now.getDay();
+  const istOffset = 5.5 * 60 * 60 * 1000;
+  const istNow = new Date(now.getTime() + istOffset);
+  const jsDay = istNow.getUTCDay();
   const dayOfWeek = jsDay === 0 ? 7 : jsDay;
 
   const slots = await prisma.timetableSlot.findMany({
@@ -232,7 +233,9 @@ export async function getTeacherTodayTimetable(req: AuthRequest) {
   if (!teacher) throw { code: 'NOT_FOUND', status: 404, message: 'Teacher not found' };
 
   const now = new Date();
-  const jsDay = now.getDay();
+  const istOffset = 5.5 * 60 * 60 * 1000;
+  const istNow = new Date(now.getTime() + istOffset);
+  const jsDay = istNow.getUTCDay();
   const dayOfWeek = jsDay === 0 ? 7 : jsDay;
 
   const slots = await prisma.timetableSlot.findMany({

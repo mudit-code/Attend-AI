@@ -36,12 +36,19 @@ export async function createLeaveRequest(userId: number, input: CreateLeaveInput
 
 // ─── List Leave Requests ──────────────────────────────────────────
 export async function getLeaveRequests(userId: number, role: string, status?: string) {
-  if (role === 'STUDENT') {
-    const student = await prisma.student.findUnique({ where: { userId } });
-    if (!student) return [];
+  if (role === 'STUDENT' || role === 'PARENT') {
+    let studentId: number | undefined;
+    if (role === 'STUDENT') {
+      const student = await prisma.student.findUnique({ where: { userId } });
+      if (student) studentId = student.id;
+    } else {
+      const parent = await prisma.parent.findUnique({ where: { userId }, include: { children: true } });
+      studentId = parent?.children[0]?.id;
+    }
+    if (!studentId) return [];
     return prisma.leaveRequest.findMany({
       where: {
-        studentId: student.id,
+        studentId,
         ...(status ? { status: status as any } : {}),
       },
       orderBy: { createdAt: 'desc' },

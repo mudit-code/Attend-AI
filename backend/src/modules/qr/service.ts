@@ -112,7 +112,17 @@ export async function markQrAttendance(userId: number, input: MarkQrInput) {
     },
   });
 
-  // 7. Audit log
+  // 7. Change log for offline sync pull
+  await prisma.changeLog.create({
+    data: {
+      entity: 'attendance',
+      entityId: record.id,
+      op: 'upsert',
+      sectionId: session.sectionId,
+    },
+  });
+
+  // 8. Audit log
   await prisma.auditLog.create({
     data: {
       userId,

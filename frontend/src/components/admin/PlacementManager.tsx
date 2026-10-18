@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { api } from "../../lib/api";
 
 interface Drive {
@@ -56,6 +56,26 @@ export default function PlacementManager() {
   const [publishing, setPublishing] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
+  useEffect(() => {
+    api.get('/placement/drives')
+      .then((res) => {
+        if (res.data?.data && res.data.data.length > 0) {
+          const mapped: Drive[] = res.data.data.map((d: any) => ({
+            id: d.id,
+            companyName: d.companyName,
+            driveDate: d.driveDate?.slice(0, 10) || '',
+            minAttendance: d.minAttendance ?? 75,
+            eligibleBranches: d.eligibleBranches || ['CSE', 'IT', 'ECE'],
+            description: d.description || '',
+            registrationDeadline: d.registrationDeadline?.slice(0, 10) || d.driveDate?.slice(0, 10) || '',
+            registeredCount: d._count?.registrations ?? 0,
+          }));
+          setDrives(mapped);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
     if (!companyName.trim() || !driveDate) return;
@@ -74,7 +94,14 @@ export default function PlacementManager() {
     };
 
     try {
-      await api.post("/placement/drives", newDrive);
+      await api.post("/placement/drives", {
+        companyName,
+        driveDate,
+        minAttendance,
+        eligibleBranches: branches.split(",").map((b) => b.trim().toUpperCase()),
+        description,
+        registrationDeadline: deadline || driveDate,
+      });
     } catch {
       // fallback to local addition
     }

@@ -182,9 +182,14 @@ export default function LeaveApprovalDesk() {
           status: newStatus,
           decisionNote: decisionNote.trim() || (newStatus === 'APPROVED' ? 'Approved by Academic Dean' : 'Rejected'),
         });
+      } else {
+        await api.post(`/teacher-leaves/admin/student/${modalItem.id}/decision`, {
+          status: newStatus,
+          decisionNote: decisionNote.trim() || (newStatus === 'APPROVED' ? 'Approved by Academic Dean' : 'Rejected'),
+        });
       }
     } catch {
-      // Simulate locally
+      // Simulate locally if offline
     }
 
     if (modalItem.target === 'faculty') {

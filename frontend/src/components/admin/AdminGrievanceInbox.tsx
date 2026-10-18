@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { api } from "../../lib/api";
 
 interface Ticket {
@@ -57,6 +57,28 @@ export default function AdminGrievanceInbox() {
   const [activeReplyId, setActiveReplyId] = useState<string | null>(null);
   const [resolutionText, setResolutionText] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    api.get('/grievances/all')
+      .then((res) => {
+        if (res.data?.data && res.data.data.length > 0) {
+          const mapped: Ticket[] = res.data.data.map((t: any) => ({
+            id: t.id,
+            studentName: t.isAnonymous ? 'Student' : (t.student?.user?.name || 'Enrolled Student'),
+            rollNo: t.isAnonymous ? '—' : (t.student?.rollNo || '2101640100000'),
+            category: t.category,
+            title: t.title,
+            description: t.description,
+            isAnonymous: t.isAnonymous,
+            status: t.status === 'RESOLVED' || t.status === 'CLOSED' ? 'RESOLVED' : 'OPEN',
+            createdAt: t.createdAt,
+            resolution: t.resolution,
+          }));
+          setTickets(mapped);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   async function handleResolve(ticketId: string) {
     if (!resolutionText.trim()) return;

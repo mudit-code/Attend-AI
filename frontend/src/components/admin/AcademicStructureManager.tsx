@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { api } from '../../lib/api';
 
 interface AllocationItem {
   id: string;
@@ -80,11 +81,20 @@ export default function AcademicStructureManager() {
     setTimeout(() => setToast(null), 3500);
   }
 
-  function handleCreateSubject(e: React.FormEvent) {
+  async function handleCreateSubject(e: React.FormEvent) {
     e.preventDefault();
     if (!subjectName.trim() || !subjectCode.trim()) {
       alert('Please fill in Subject Name and Code');
       return;
+    }
+
+    try {
+      await api.post('/academic/subjects', {
+        name: subjectName.trim(),
+        code: subjectCode.trim().toUpperCase(),
+      });
+    } catch {
+      // Local fallback if offline
     }
 
     triggerToast(`Subject ${subjectCode} (${subjectName}) registered into Academic Master!`);

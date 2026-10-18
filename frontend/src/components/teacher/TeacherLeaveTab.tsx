@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { api } from '../../lib/api';
 
 interface LeaveItem {
@@ -43,6 +43,34 @@ export function TeacherLeaveTab() {
   const [reason, setReason] = useState('');
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState('');
+
+  useEffect(() => {
+    let isMounted = true;
+    api
+      .get('/teacher-leaves/teacher/my')
+      .then((res) => {
+        const fetched = res.data?.leaves || res.data?.data;
+        if (isMounted && Array.isArray(fetched) && fetched.length > 0) {
+          const formatted = fetched.map((item: any) => ({
+            id: String(item.id),
+            type: item.type || 'CASUAL',
+            fromDate: item.fromDate ? new Date(item.fromDate).toISOString().split('T')[0] : '',
+            toDate: item.toDate ? new Date(item.toDate).toISOString().split('T')[0] : '',
+            reason: item.reason || '',
+            status: item.status || 'PENDING',
+            decisionNote: item.decisionNote,
+            createdAt: item.createdAt ? new Date(item.createdAt).toISOString().split('T')[0] : '',
+          }));
+          setLeaves(formatted);
+        }
+      })
+      .catch(() => {
+        // Fallback to DEFAULT_TEACHER_LEAVES in demo or offline mode
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   async function handleApply(e: React.FormEvent) {
     e.preventDefault();

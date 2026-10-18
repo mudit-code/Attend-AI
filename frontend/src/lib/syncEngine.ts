@@ -40,21 +40,28 @@ async function pushOutbox(): Promise<void> {
     try {
       const { data } = await api.post('/sync/push', {
         batchId,
-        items: batch.map((item) => ({ id: item.id, type: item.type, ...item.payload })),
+        items: batch.map((item) => ({
+          clientMutationId: item.id,
+          entity: item.type === 'attendance_session' || item.type === 'attendance_record' ? 'attendance' : item.type === 'leave_request' ? 'leave' : 'correction',
+          action: 'create',
+          payload: item.payload,
+        })),
       });
 
       // Process results
-      for (const result of data.results) {
-        if (result.result === 'accepted' || result.result === 'duplicate') {
-          await db.outbox.update(result.id, { status: 'done' });
-        } else if (result.result === 'rejected') {
-          await db.outbox.update(result.id, {
+      for (const result of (data.results || [])) {
+        const mutationId = result.clientMutationId || result.id;
+        const resStatus = result.status || result.result;
+        if (resStatus === 'accepted' || resStatus === 'duplicate') {
+          await db.outbox.update(mutationId, { status: 'done' });
+        } else if (resStatus === 'rejected') {
+          await db.outbox.update(mutationId, {
             status: 'failed',
-            error: result.reason,
-            attempts: (batch.find((b) => b.id === result.id)?.attempts ?? 0) + 1,
+            error: result.error || result.reason,
+            attempts: (batch.find((b) => b.id === mutationId)?.attempts ?? 0) + 1,
           });
-        } else if (result.result === 'conflict') {
-          await db.outbox.update(result.id, { status: 'conflict', error: 'Conflict detected' });
+        } else if (resStatus === 'conflict') {
+          await db.outbox.update(mutationId, { status: 'conflict', error: 'Conflict detected' });
         }
       }
     } catch (err) {
@@ -85,7 +92,7 @@ async function pullChanges(): Promise<void> {
 
     await db.transaction('rw', [db.students, db.sections, db.subjects, db.timetableSlots, db.syncMeta], async () => {
       for (const change of data.changes) {
-        if (change.op === 'upsert') {
+        if (change.op === 'upsert' && change.data) {
           switch (change.entity) {
             case 'student':
               await db.students.put(change.data);
@@ -100,19 +107,20 @@ async function pullChanges(): Promise<void> {
               await db.timetableSlots.put(change.data);
               break;
           }
-        } else if (change.op === 'delete') {
+        } else if (change.op === 'delete' && (change.id || change.entityId)) {
           switch (change.entity) {
             case 'student':
-              await db.students.delete(change.id);
+              await db.students.delete(Number(change.id || change.entityId));
               break;
           }
         }
       }
 
-      await db.syncMeta.put({ key: 'cursor', value: data.cursor });
+      const nextCursorVal = data.nextCursor || data.cursor || '0';
+      await db.syncMeta.put({ key: 'cursor', value: nextCursorVal });
     });
 
-    currentCursor = data.cursor;
+    currentCursor = data.nextCursor || data.cursor;
     hasMore = data.hasMore;
   }
 }

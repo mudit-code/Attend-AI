@@ -90,7 +90,7 @@ export default function CampusDispensaryDesk() {
     }
   }
 
-  function handleLogConsultation(e: React.FormEvent) {
+  async function handleLogConsultation(e: React.FormEvent) {
     e.preventDefault();
     if (!rollNo || !diagnosis) {
       alert('Please fill in Roll No and Diagnosis');
@@ -106,6 +106,18 @@ export default function CampusDispensaryDesk() {
       medicinesPrescribed: prescriptions || 'First Aid & Supportive Care',
       visitDate: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
     };
+
+    try {
+      await api.post('/dispensary/consultation/log', {
+        studentRollNo: rollNo,
+        studentName: studentName || 'Enrolled Student',
+        doctorName: 'Dr. K. P. Singh (Campus CMO)',
+        diagnosis,
+        medicinesPrescribed: prescriptions || 'First Aid & Supportive Care',
+      });
+    } catch {
+      // Fallback to local memory addition
+    }
 
     setConsultations([newRecord, ...consultations]);
     setRollNo('');
