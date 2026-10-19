@@ -17,7 +17,7 @@ export default function LoadingScreen({ message = 'Loading AttendAI...', fade = 
     >
       <div className="attendai-loader-emblem">
         <div className="attendai-loader-pulse-ring" />
-        <div className="attendai-loader-icon">▲</div>
+        <div className="attendai-loader-icon">a</div>
       </div>
 
       <div className="attendai-loader-title">AttendAI</div>

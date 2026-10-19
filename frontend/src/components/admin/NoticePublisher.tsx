@@ -7,6 +7,11 @@ interface NoticeItem {
   body: string;
   category: "EXAM" | "FEE" | "HOLIDAY" | "EVENT" | "DISCIPLINE" | "GENERAL";
   targetRole: string | null;
+  targetDeptId?: number | null;
+  targetDeptName?: string | null;
+  targetSectionId?: number | null;
+  targetSectionName?: string | null;
+  audienceScope?: "CAMPUS" | "BRANCH" | "SECTION";
   pdfUrl: string | null;
   isActive: boolean;
   createdAt: string;
@@ -19,6 +24,7 @@ const DEFAULT_NOTICES: NoticeItem[] = [
     body: "All B.Tech students are informed that Sessional-II commences from 28th October. Ensure departmental No-Dues clearance is completed.",
     category: "EXAM",
     targetRole: "STUDENT",
+    audienceScope: "CAMPUS",
     pdfUrl: "https://kit.ac.in/circulars/sessional-2-schedule.pdf",
     isActive: true,
     createdAt: "2026-10-10T10:00:00Z",
@@ -29,6 +35,8 @@ const DEFAULT_NOTICES: NoticeItem[] = [
     body: "T&P cell invites eligible candidates (min 75% attendance) to register for upcoming on-campus technical assessments.",
     category: "EVENT",
     targetRole: "STUDENT",
+    audienceScope: "BRANCH",
+    targetDeptName: "Computer Science",
     pdfUrl: null,
     isActive: true,
     createdAt: "2026-10-11T12:30:00Z",
@@ -39,6 +47,7 @@ const DEFAULT_NOTICES: NoticeItem[] = [
     body: "College will observe holiday from 1st Nov to 5th Nov. All classes will resume on 6th November.",
     category: "HOLIDAY",
     targetRole: null,
+    audienceScope: "CAMPUS",
     pdfUrl: null,
     isActive: true,
     createdAt: "2026-10-09T09:15:00Z",
@@ -51,6 +60,11 @@ export default function NoticePublisher() {
   const [body, setBody] = useState("");
   const [category, setCategory] = useState<NoticeItem["category"]>("EXAM");
   const [targetRole, setTargetRole] = useState<string>("ALL");
+  const [audienceScope, setAudienceScope] = useState<"CAMPUS" | "BRANCH" | "SECTION">("CAMPUS");
+  const [selectedDeptId, setSelectedDeptId] = useState<number | null>(null);
+  const [selectedSectionId, setSelectedSectionId] = useState<number | null>(null);
+  const [departments, setDepartments] = useState<any[]>([]);
+  const [sections, setSections] = useState<any[]>([]);
   const [pdfUrl, setPdfUrl] = useState("");
   const [publishing, setPublishing] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -65,9 +79,22 @@ export default function NoticePublisher() {
           setNotices(list);
         }
       })
-      .catch(() => {
-        // Fallback to default notices when offline or mock
+      .catch(() => {});
+
+    // Load academic structures
+    Promise.allSettled([api.get("/academic/departments"), api.get("/academic/sections")])
+      .then(([dRes, sRes]) => {
+        if (!isMounted) return;
+        if (dRes.status === "fulfilled" && dRes.value.data.data?.length) {
+          setDepartments(dRes.value.data.data);
+          setSelectedDeptId(dRes.value.data.data[0].id);
+        }
+        if (sRes.status === "fulfilled" && sRes.value.data.data?.length) {
+          setSections(sRes.value.data.data);
+          setSelectedSectionId(sRes.value.data.data[0].id);
+        }
       });
+
     return () => {
       isMounted = false;
     };
@@ -79,12 +106,20 @@ export default function NoticePublisher() {
     setPublishing(true);
     setMsg(null);
 
+    const deptObj = departments.find((d) => d.id === selectedDeptId);
+    const secObj = sections.find((s) => s.id === selectedSectionId);
+
     const newNotice: NoticeItem = {
       id: Date.now(),
       title,
       body,
       category,
       targetRole: targetRole === "ALL" ? null : targetRole,
+      audienceScope,
+      targetDeptId: audienceScope === "BRANCH" ? selectedDeptId : null,
+      targetDeptName: audienceScope === "BRANCH" ? deptObj?.name || "Branch" : null,
+      targetSectionId: audienceScope === "SECTION" ? selectedSectionId : null,
+      targetSectionName: audienceScope === "SECTION" ? secObj?.name || "Section" : null,
       pdfUrl: pdfUrl.trim() || null,
       isActive: true,
       createdAt: new Date().toISOString(),
@@ -103,7 +138,7 @@ export default function NoticePublisher() {
     setTitle("");
     setBody("");
     setPdfUrl("");
-    setMsg("✓ Official Notice published successfully to student and faculty portals!");
+    setMsg("✓ Official Circular published successfully with targeted audience scope!");
     setPublishing(false);
     setTimeout(() => setMsg(null), 3000);
   }
@@ -164,7 +199,7 @@ export default function NoticePublisher() {
 
             <div>
               <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--color-muted)", display: "block", marginBottom: 4 }}>
-                Target Audience
+                Target Role
               </label>
               <select
                 value={targetRole}
@@ -179,11 +214,88 @@ export default function NoticePublisher() {
                   fontWeight: 600,
                 }}
               >
-                <option value="ALL">Everyone (All Students & Faculty)</option>
+                <option value="ALL">Everyone (All Students &amp; Faculty)</option>
                 <option value="STUDENT">Students Only</option>
                 <option value="TEACHER">Faculty Only</option>
               </select>
             </div>
+
+            <div>
+              <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--color-muted)", display: "block", marginBottom: 4 }}>
+                Audience Scope (Branch / Section)
+              </label>
+              <select
+                value={audienceScope}
+                onChange={(e) => setAudienceScope(e.target.value as any)}
+                style={{
+                  width: "100%",
+                  padding: "0.6rem",
+                  borderRadius: 8,
+                  border: "1.5px solid var(--color-border)",
+                  background: "var(--color-bg)",
+                  color: "var(--color-text)",
+                  fontWeight: 700,
+                }}
+              >
+                <option value="CAMPUS">🌐 Campus Wide (All Departments)</option>
+                <option value="BRANCH">🏢 Specific Branch (Department Only)</option>
+                <option value="SECTION">👥 Specific Section Only</option>
+              </select>
+            </div>
+
+            {audienceScope === "BRANCH" && (
+              <div>
+                <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--color-muted)", display: "block", marginBottom: 4 }}>
+                  Select Target Branch
+                </label>
+                <select
+                  value={selectedDeptId || ""}
+                  onChange={(e) => setSelectedDeptId(Number(e.target.value))}
+                  style={{
+                    width: "100%",
+                    padding: "0.6rem",
+                    borderRadius: 8,
+                    border: "1.5px solid var(--color-border)",
+                    background: "var(--color-bg)",
+                    color: "var(--color-text)",
+                    fontWeight: 600,
+                  }}
+                >
+                  {departments.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.name} ({d.code})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {audienceScope === "SECTION" && (
+              <div>
+                <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--color-muted)", display: "block", marginBottom: 4 }}>
+                  Select Target Section
+                </label>
+                <select
+                  value={selectedSectionId || ""}
+                  onChange={(e) => setSelectedSectionId(Number(e.target.value))}
+                  style={{
+                    width: "100%",
+                    padding: "0.6rem",
+                    borderRadius: 8,
+                    border: "1.5px solid var(--color-border)",
+                    background: "var(--color-bg)",
+                    color: "var(--color-text)",
+                    fontWeight: 600,
+                  }}
+                >
+                  {sections.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name} ({s.course?.code || "Course"})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             <div>
               <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--color-muted)", display: "block", marginBottom: 4 }}>
@@ -286,12 +398,27 @@ export default function NoticePublisher() {
               }}
             >
               <div>
-                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: 4 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: 4, flexWrap: "wrap" }}>
                   <span className="badge" style={{ background: "#FFE4E6", color: "#E11D48", fontWeight: 800 }}>
                     {n.category}
                   </span>
                   <span className="badge" style={{ background: "var(--color-border)", color: "var(--color-text)", fontSize: "0.7rem" }}>
-                    Target: {n.targetRole || "ALL"}
+                    Role: {n.targetRole || "ALL"}
+                  </span>
+                  <span
+                    className="badge"
+                    style={{
+                      background: n.audienceScope === "BRANCH" ? "#FEF3C7" : n.audienceScope === "SECTION" ? "#E0E7FF" : "#F3F4F6",
+                      color: n.audienceScope === "BRANCH" ? "#92400E" : n.audienceScope === "SECTION" ? "#3730A3" : "#374151",
+                      fontSize: "0.7rem",
+                      fontWeight: 700,
+                    }}
+                  >
+                    {n.audienceScope === "BRANCH"
+                      ? `🏢 ${n.targetDeptName || "Branch"}`
+                      : n.audienceScope === "SECTION"
+                      ? `👥 ${n.targetSectionName || "Section"}`
+                      : "🌐 Campus Wide"}
                   </span>
                   <span className="text-xs text-muted">
                     {new Date(n.createdAt).toLocaleDateString()}

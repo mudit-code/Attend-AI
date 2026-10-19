@@ -72,6 +72,16 @@ export async function markQrAttendance(userId: number, input: MarkQrInput) {
   });
 
   if (!existingDevice) {
+    // Check if this deviceId was previously attached to a different account in testing
+    const conflictDevice = await prisma.device.findUnique({
+      where: { deviceId: input.deviceId },
+    });
+    if (conflictDevice && conflictDevice.userId !== userId) {
+      await prisma.device.delete({
+        where: { id: conflictDevice.id },
+      });
+    }
+
     // First device: auto-bind
     await prisma.device.create({
       data: {

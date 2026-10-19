@@ -7,16 +7,40 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate', // Automatic background update, no intrusive banner
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
+      includeAssets: ['favicon.svg', 'apple-touch-icon.png', 'pwa-192x192.png', 'pwa-512x512.png'],
       manifest: {
-        name: 'AttendAI - College Attendance',
+        name: 'AttendAI - Smart Attendance System',
         short_name: 'AttendAI',
-        description: 'Offline-first college attendance management system',
-        theme_color: '#6C63FF',
-        background_color: '#0F0E17',
+        description: 'Offline-first college attendance & campus management system',
+        theme_color: '#0F172A',
+        background_color: '#F4F5F8',
         display: 'standalone',
-        orientation: 'portrait',
+        orientation: 'any',
         start_url: '/',
+        categories: ['education', 'productivity'],
+        shortcuts: [
+          {
+            name: 'Student Portal',
+            short_name: 'Student',
+            description: 'Open Student Attendance & Timetable',
+            url: '/student',
+            icons: [{ src: 'pwa-192x192.png', sizes: '192x192' }],
+          },
+          {
+            name: 'Teacher Roll Call',
+            short_name: 'Teacher',
+            description: 'Open Teacher Scanner & Roll Call Desk',
+            url: '/teacher',
+            icons: [{ src: 'pwa-192x192.png', sizes: '192x192' }],
+          },
+          {
+            name: 'Admin Dashboard',
+            short_name: 'Admin',
+            description: 'Open College Admin Intelligence',
+            url: '/admin',
+            icons: [{ src: 'pwa-192x192.png', sizes: '192x192' }],
+          },
+        ],
         icons: [
           {
             src: 'pwa-192x192.png',
@@ -43,6 +67,11 @@ export default defineConfig({
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
             handler: 'CacheFirst',
             options: { cacheName: 'google-fonts-cache', expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 } },
+          },
+          {
+            urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
+            handler: 'CacheFirst',
+            options: { cacheName: 'gstatic-fonts-cache', expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 } },
           },
           {
             urlPattern: /^\/api\/v1\/health$/,

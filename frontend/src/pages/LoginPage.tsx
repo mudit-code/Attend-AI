@@ -5,6 +5,23 @@ import { useAuthStore } from '../stores/useAuthStore';
 import { db } from '../lib/db';
 import { runSync } from '../lib/syncEngine';
 import heroImage from '../assets/attendance_3d_hero.jpg';
+import BrandLogo from '../components/common/BrandLogo';
+
+export const COLLEGE_BRANCHES = [
+  { id: 'ALL', name: '🏛️ Central Campus - All Branches (Institutional Administration)' },
+  { id: 'CSE', name: '💻 Computer Science & Engineering (B.Tech CSE)' },
+  { id: 'CSE-AIML', name: '🤖 Artificial Intelligence & Machine Learning (CSE-AIML)' },
+  { id: 'IT', name: '🌐 Information Technology (B.Tech IT)' },
+  { id: 'ECE', name: '📡 Electronics & Communication Engineering (B.Tech ECE)' },
+  { id: 'EEE', name: '⚡ Electrical & Electronics Engineering (B.Tech EEE)' },
+  { id: 'ME', name: '⚙️ Mechanical Engineering (B.Tech ME)' },
+  { id: 'CE', name: '🏗️ Civil Engineering (B.Tech CE)' },
+  { id: 'MBA', name: '📊 Department of Business Administration (MBA)' },
+  { id: 'MCA', name: '📱 Department of Computer Applications (MCA)' },
+  { id: 'PHARM', name: '💊 Faculty of Pharmacy (B.Pharm / M.Pharm)' },
+  { id: 'ASH', name: '🔬 Applied Sciences & Humanities (1st Year)' },
+  { id: 'EXAM', name: '📋 Examination & Academic Administration Cell' },
+];
 
 export default function LoginPage() {
   const [authMode, setAuthMode] = useState<'LOGIN' | 'REGISTER'>('LOGIN');
@@ -24,6 +41,7 @@ export default function LoginPage() {
   const [employeeCode, setEmployeeCode] = useState('FAC-KIT-204');
   const [department, setDepartment] = useState('Computer Science & Engineering');
   const [adminCode, setAdminCode] = useState('ADMIN2026');
+  const [adminBranch, setAdminBranch] = useState(COLLEGE_BRANCHES[0].name);
 
   // OAuth Modal state
   const [oauthModalOpen, setOauthModalOpen] = useState(false);
@@ -35,7 +53,7 @@ export default function LoginPage() {
 
   const navigate = useNavigate();
   const location = useLocation();
-  const { setToken, setUser } = useAuthStore();
+  const { setToken, setUser, unlockApp } = useAuthStore();
 
   useEffect(() => {
     const quick = (location.state as any)?.quickRole;
@@ -76,6 +94,7 @@ export default function LoginPage() {
       setConfirmPassword('Admin@123');
       setEmployeeCode('ADM-KIT-001');
       setAdminCode('ADMIN2026');
+      setAdminBranch(COLLEGE_BRANCHES[0].name);
     }
   }
 
@@ -105,6 +124,7 @@ export default function LoginPage() {
             role: 'ADMIN' as const,
           };
 
+    unlockApp();
     setToken(`token-${targetRole.toLowerCase()}-demo-attendai`);
     setUser(demoUser);
 
@@ -132,6 +152,7 @@ export default function LoginPage() {
     try {
       const { data } = await api.post('/auth/login', { email, password });
 
+      unlockApp();
       setToken(data.accessToken);
       setUser(data.user);
 
@@ -156,8 +177,9 @@ export default function LoginPage() {
     } catch (err: any) {
       if (err.response?.status === 401) {
         setError(err.response?.data?.error?.message || 'Invalid email or password. Please check your credentials or use 1-Click Quick Demo Login.');
-      } else if (!navigator.onLine || !err.response) {
-        // Completely offline or backend unavailable: seamless demo fallback
+      } else if (!navigator.onLine || !err.response || err.response?.status >= 500) {
+        // Backend offline or database down (e.g. PostgreSQL not running): seamless demo fallback
+        console.warn('Backend database unreachable. Entering dashboard in Offline Demo Mode.');
         handle1ClickDemoLogin(selectedRole);
       } else {
         setError(err.response?.data?.error?.message || 'Login failed. Please try again or use 1-Click Quick Demo Login.');
@@ -190,6 +212,8 @@ export default function LoginPage() {
       role: selectedRole,
       student: selectedRole === 'STUDENT' ? { id: 1, sectionId: 1, rollNo: rollNo || '2101640100015' } : null,
       teacher: selectedRole === 'TEACHER' ? { id: 1, departmentId: 1 } : null,
+      branch: selectedRole === 'ADMIN' ? adminBranch : branch,
+      department: selectedRole === 'ADMIN' ? adminBranch : department,
     };
 
     try {
@@ -200,7 +224,7 @@ export default function LoginPage() {
         role: selectedRole,
         ...(selectedRole === 'STUDENT' ? { rollNo: rollNo || '2101640100015' } : {}),
         ...(selectedRole === 'TEACHER' ? { employeeCode: employeeCode || 'FAC-KIT-204' } : {}),
-        ...(selectedRole === 'ADMIN' ? { adminCode: adminCode || 'ADMIN2026' } : {}),
+        ...(selectedRole === 'ADMIN' ? { adminCode: adminCode || 'ADMIN2026', branch: adminBranch } : {}),
       };
 
       const { data } = await api.post('/auth/register', payload);
@@ -306,7 +330,7 @@ export default function LoginPage() {
       className="page"
       style={{
         minHeight: '100dvh',
-        background: 'linear-gradient(180deg, #FFEBE8 0%, #FFF3F1 260px, #FFF9F8 100%)',
+        background: 'var(--color-bg)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -319,21 +343,21 @@ export default function LoginPage() {
           width: '100%',
           maxWidth: 480,
           background: '#FFFFFF',
-          borderRadius: '24px',
-          boxShadow: '0 12px 40px rgba(230, 60, 45, 0.08)',
-          border: '1px solid rgba(255, 60, 50, 0.08)',
-          padding: '2rem 1.75rem',
+          borderRadius: '20px',
+          boxShadow: '0 8px 32px rgba(15, 23, 42, 0.06)',
+          border: '1px solid var(--color-border)',
+          padding: 'clamp(1.25rem, 3.5vw, 2rem) clamp(1rem, 3vw, 1.75rem)',
         }}
       >
         {/* Back to Home Link */}
-        <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ marginBottom: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <button
             type="button"
             onClick={() => navigate('/')}
             style={{
               background: 'none',
               border: 'none',
-              color: 'var(--color-primary)',
+              color: 'var(--color-text-muted)',
               fontSize: '0.85rem',
               fontWeight: 700,
               cursor: 'pointer',
@@ -345,14 +369,19 @@ export default function LoginPage() {
           >
             ← Back to Homepage
           </button>
-          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#A58B87' }}>AttendAI v2.4</span>
+          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-faint)' }}>AttendAI v2.4</span>
+        </div>
+
+        {/* Trombone Brand Logo */}
+        <div style={{ marginBottom: '1.25rem' }}>
+          <BrandLogo size="lg" subtitle="Institutional Campus Access" onClick={() => navigate('/')} />
         </div>
 
         {/* Title */}
         <div style={{ marginBottom: '1.25rem' }}>
           <h1
             style={{
-              fontSize: '1.65rem',
+              fontSize: '1.5rem',
               fontWeight: 800,
               lineHeight: 1.25,
               color: 'var(--color-text)',
@@ -395,96 +424,12 @@ export default function LoginPage() {
           />
         </div>
 
-        {/* ─── ⚡ 1-CLICK INSTANT DEMO ACCOUNTS BAR ─── */}
-        <div
-          style={{
-            marginBottom: '1.25rem',
-            background: '#FFF7F6',
-            border: '1.5px solid #FFDCD7',
-            borderRadius: '16px',
-            padding: '0.85rem',
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem' }}>
-            <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-              ⚡ 1-Click Demo Accounts (Instant Access)
-            </span>
-            <span style={{ fontSize: '0.7rem', color: '#888', fontWeight: 600 }}>No password needed</span>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.45rem' }}>
-            {/* Student Demo Chip */}
-            <button
-              type="button"
-              id="demo-student-quick-btn"
-              onClick={() => handle1ClickDemoLogin('STUDENT')}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '0.65rem 0.4rem',
-                borderRadius: '12px',
-                border: selectedRole === 'STUDENT' ? '2px solid #3B82F6' : '1px solid #E2E8F0',
-                background: selectedRole === 'STUDENT' ? '#EFF6FF' : '#FFFFFF',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-              }}
-            >
-              <span style={{ fontSize: '1.25rem' }}>🎓</span>
-              <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#1E3A8A', marginTop: '3px' }}>Student</span>
-            </button>
-
-            {/* Teacher Demo Chip */}
-            <button
-              type="button"
-              id="demo-teacher-quick-btn"
-              onClick={() => handle1ClickDemoLogin('TEACHER')}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '0.65rem 0.4rem',
-                borderRadius: '12px',
-                border: selectedRole === 'TEACHER' ? '2px solid var(--color-primary)' : '1px solid #E2E8F0',
-                background: selectedRole === 'TEACHER' ? '#FFF0EE' : '#FFFFFF',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-              }}
-            >
-              <span style={{ fontSize: '1.25rem' }}>👨‍🏫</span>
-              <span style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--color-primary)', marginTop: '3px' }}>Teacher</span>
-            </button>
-
-            {/* Admin Demo Chip */}
-            <button
-              type="button"
-              id="demo-admin-quick-btn"
-              onClick={() => handle1ClickDemoLogin('ADMIN')}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '0.65rem 0.4rem',
-                borderRadius: '12px',
-                border: selectedRole === 'ADMIN' ? '2px solid #0F172A' : '1px solid #E2E8F0',
-                background: selectedRole === 'ADMIN' ? '#F8FAFC' : '#FFFFFF',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-              }}
-            >
-              <span style={{ fontSize: '1.25rem' }}>🏛️</span>
-              <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0F172A', marginTop: '3px' }}>Admin</span>
-            </button>
-          </div>
-        </div>
-
         {/* Auth Mode Toggle Tabs (Sign In / Register) */}
         <div
           style={{
             display: 'flex',
-            background: '#F8EBE9',
+            background: 'var(--color-surface-2)',
+            border: '1px solid var(--color-border)',
             padding: '4px',
             borderRadius: '12px',
             marginBottom: '1.25rem',
@@ -822,29 +767,73 @@ export default function LoginPage() {
             )}
 
             {selectedRole === 'ADMIN' && (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
-                <input
-                  id="reg-admcode"
-                  type="text"
-                  className="input"
-                  placeholder="Staff Code (ADM-...)"
-                  value={employeeCode}
-                  onChange={(e) => setEmployeeCode(e.target.value)}
-                  required
-                  disabled={loading}
-                  style={{ height: 44, fontSize: '0.85rem' }}
-                />
-                <input
-                  id="reg-adminpass"
-                  type="password"
-                  className="input"
-                  placeholder="Admin Code (ADMIN2026)"
-                  value={adminCode}
-                  onChange={(e) => setAdminCode(e.target.value)}
-                  required
-                  disabled={loading}
-                  style={{ height: 44, fontSize: '0.85rem' }}
-                />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                  <input
+                    id="reg-admcode"
+                    type="text"
+                    className="input"
+                    placeholder="Staff Code (ADM-...)"
+                    value={employeeCode}
+                    onChange={(e) => setEmployeeCode(e.target.value)}
+                    required
+                    disabled={loading}
+                    style={{ height: 44, fontSize: '0.85rem' }}
+                  />
+                  <input
+                    id="reg-adminpass"
+                    type="password"
+                    className="input"
+                    placeholder="Admin Code (ADMIN2026)"
+                    value={adminCode}
+                    onChange={(e) => setAdminCode(e.target.value)}
+                    required
+                    disabled={loading}
+                    style={{ height: 44, fontSize: '0.85rem' }}
+                  />
+                </div>
+
+                {/* College Branch Dropdown for Admin */}
+                <div>
+                  <label
+                    htmlFor="reg-admin-branch"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      color: 'var(--color-text-muted)',
+                      marginBottom: '0.25rem',
+                    }}
+                  >
+                    <span>🏛️ College Branch / Department</span>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--color-primary)', fontWeight: 700 }}>Select Branch</span>
+                  </label>
+                  <select
+                    id="reg-admin-branch"
+                    className="input"
+                    value={adminBranch}
+                    onChange={(e) => setAdminBranch(e.target.value)}
+                    disabled={loading}
+                    style={{
+                      height: 44,
+                      fontSize: '0.85rem',
+                      fontWeight: 600,
+                      color: 'var(--color-text)',
+                      background: '#FFF0EE',
+                      border: '1.5px solid #FFDCD7',
+                      cursor: 'pointer',
+                      borderRadius: '8px',
+                    }}
+                  >
+                    {COLLEGE_BRANCHES.map((b) => (
+                      <option key={b.id} value={b.name} style={{ background: '#FFFFFF', color: '#1E293B' }}>
+                        {b.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
             )}
 
@@ -1011,8 +1000,39 @@ export default function LoginPage() {
 
         {/* Offline notice */}
         <p className="text-xs text-muted" style={{ textAlign: 'center', marginTop: '0.85rem' }}>
-          🔒 Offline-first PWA · Works seamlessly with or without internet
+          🔒 Institutional Single Sign-On &amp; Offline PWA Sync
         </p>
+
+        {/* Demo Sandbox Link */}
+        <div
+          style={{
+            marginTop: '1.25rem',
+            paddingTop: '1rem',
+            borderTop: '1px solid var(--color-border)',
+            textAlign: 'center',
+          }}
+        >
+          <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
+            Evaluating or testing the platform?{' '}
+          </span>
+          <button
+            type="button"
+            id="btn-goto-demo-sandbox"
+            onClick={() => navigate('/demo')}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'var(--color-accent-text)',
+              fontWeight: 800,
+              fontSize: '0.8rem',
+              cursor: 'pointer',
+              padding: 0,
+              textDecoration: 'underline',
+            }}
+          >
+            Launch 1-Click Demo Sandbox →
+          </button>
+        </div>
       </div>
 
       {/* ─── GOOGLE WORKSPACE SSO MODAL ─── */}

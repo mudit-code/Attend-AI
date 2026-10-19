@@ -141,7 +141,7 @@ export async function getStudentReport(studentId: number) {
   };
 }
 
-// ─── Class Attendance Report ──────────────────────────────────────
+// ─── Class Attendance Report (Optimized Bulk Query) ───────────────
 export async function getClassReport(sectionId: number, subjectId?: number) {
   const section = await prisma.section.findUnique({
     where: { id: sectionId },
@@ -152,27 +152,65 @@ export async function getClassReport(sectionId: number, subjectId?: number) {
     throw { code: 'NOT_FOUND', status: 404, message: 'Section not found' };
   }
 
+  const rules = await prisma.attendanceRule.findFirst();
+  const countLeave = rules?.countLeaveAsPresent ?? false;
+  const minPercent = rules?.minPercent ?? 75;
+
   const students = await prisma.student.findMany({
     where: { sectionId },
     include: { user: { select: { id: true, name: true, email: true } } },
     orderBy: { rollNo: 'asc' },
   });
 
+  const studentIds = students.map((s) => s.id);
+
+  // Bulk fetch all attendance records for students in this section in a single query
+  const records = await prisma.attendanceRecord.findMany({
+    where: {
+      studentId: { in: studentIds },
+      ...(subjectId ? { session: { subjectId } } : {}),
+    },
+    select: {
+      studentId: true,
+      status: true,
+    },
+  });
+
+  // Aggregate in-memory (O(N) operation)
+  const statsMap = new Map<number, { total: number; present: number; absent: number; late: number; leave: number; od: number }>();
+  for (const id of studentIds) {
+    statsMap.set(id, { total: 0, present: 0, absent: 0, late: 0, leave: 0, od: 0 });
+  }
+
+  for (const r of records) {
+    const s = statsMap.get(r.studentId);
+    if (!s) continue;
+    s.total++;
+    if (r.status === 'P') s.present++;
+    else if (r.status === 'A') s.absent++;
+    else if (r.status === 'L') s.late++;
+    else if (r.status === 'LV') s.leave++;
+    else if (r.status === 'OD') s.od++;
+  }
+
   const studentSummaries = [];
   let totalPercentSum = 0;
 
   for (const st of students) {
-    const rep = await getStudentReport(st.id);
-    totalPercentSum += rep.summary.percentage;
+    const s = statsMap.get(st.id) || { total: 0, present: 0, absent: 0, late: 0, leave: 0, od: 0 };
+    const effectivePresent = s.present + s.od + (countLeave ? s.leave : 0);
+    const pct = s.total > 0 ? Number(((effectivePresent / s.total) * 100).toFixed(1)) : 100;
+    totalPercentSum += pct;
+
     studentSummaries.push({
       studentId: st.id,
       name: st.user.name,
       rollNo: st.rollNo,
-      totalClasses: rep.summary.totalClasses,
-      present: rep.summary.present,
-      absent: rep.summary.absent,
-      percentage: rep.summary.percentage,
-      isDefaulter: rep.summary.isDefaulter,
+      totalClasses: s.total,
+      present: s.present,
+      absent: s.absent,
+      percentage: pct,
+      isDefaulter: pct < minPercent,
     });
   }
 
@@ -187,8 +225,12 @@ export async function getClassReport(sectionId: number, subjectId?: number) {
   };
 }
 
-// ─── Defaulters List ──────────────────────────────────────────────
+// ─── Defaulters List (Optimized Bulk Query) ────────────────────────
 export async function getDefaulters(minPercent = 75, sectionId?: number, departmentId?: number) {
+  const rules = await prisma.attendanceRule.findFirst();
+  const countLeave = rules?.countLeaveAsPresent ?? false;
+  const threshold = rules?.minPercent ?? minPercent;
+
   const students = await prisma.student.findMany({
     where: {
       ...(sectionId ? { sectionId } : {}),
@@ -201,37 +243,66 @@ export async function getDefaulters(minPercent = 75, sectionId?: number, departm
     orderBy: { rollNo: 'asc' },
   });
 
+  const studentIds = students.map((s) => s.id);
+
+  // Bulk query all attendance records in one single database round trip
+  const records = await prisma.attendanceRecord.findMany({
+    where: { studentId: { in: studentIds } },
+    select: {
+      studentId: true,
+      status: true,
+    },
+  });
+
+  const statsMap = new Map<number, { total: number; present: number; od: number; leave: number }>();
+  for (const id of studentIds) {
+    statsMap.set(id, { total: 0, present: 0, od: 0, leave: 0 });
+  }
+
+  for (const r of records) {
+    const s = statsMap.get(r.studentId);
+    if (!s) continue;
+    s.total++;
+    if (r.status === 'P') s.present++;
+    else if (r.status === 'OD') s.od++;
+    else if (r.status === 'LV') s.leave++;
+  }
+
   const defaulters = [];
 
   for (const st of students) {
-    const rep = await getStudentReport(st.id);
-    if (rep.summary.percentage < minPercent && rep.summary.totalClasses > 0) {
-      defaulters.push({
-        studentId: st.id,
-        name: st.user.name,
-        email: st.user.email,
-        phone: st.user.phone,
-        rollNo: st.rollNo,
-        section: st.section.name,
-        course: st.section.course.name,
-        totalClasses: rep.summary.totalClasses,
-        attended: rep.summary.present + rep.summary.onDuty,
-        percentage: rep.summary.percentage,
-        shortage: (minPercent - rep.summary.percentage).toFixed(1) + '%',
-      });
+    const s = statsMap.get(st.id) || { total: 0, present: 0, od: 0, leave: 0 };
+    if (s.total > 0) {
+      const effectivePresent = s.present + s.od + (countLeave ? s.leave : 0);
+      const percentage = Number(((effectivePresent / s.total) * 100).toFixed(1));
+      if (percentage < threshold) {
+        defaulters.push({
+          studentId: st.id,
+          name: st.user.name,
+          email: st.user.email,
+          phone: st.user.phone,
+          rollNo: st.rollNo,
+          section: st.section.name,
+          course: st.section.course.name,
+          totalClasses: s.total,
+          attended: s.present + s.od,
+          percentage,
+          shortage: (threshold - percentage).toFixed(1) + '%',
+        });
+      }
     }
   }
 
   return {
-    threshold: minPercent,
+    threshold,
     totalDefaulters: defaulters.length,
     defaulters,
   };
 }
 
 // ─── Export Report Data (CSV) ─────────────────────────────────────
-export async function exportDefaultersCSV(minPercent = 75, sectionId?: number) {
-  const { defaulters } = await getDefaulters(minPercent, sectionId);
+export async function exportDefaultersCSV(minPercent = 75, sectionId?: number, departmentId?: number) {
+  const { defaulters } = await getDefaulters(minPercent, sectionId, departmentId);
 
   const header = 'Roll No,Student Name,Section,Course,Total Classes,Attended,Attendance %,Shortage\n';
   const rows = defaulters.map((d) =>

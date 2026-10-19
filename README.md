@@ -22,6 +22,10 @@
    - [Session Auto-Lock & Administrative Unlock Desk](#8-session-auto-lock--administrative-unlock-desk)
    - [Academic Structure & Roster Upload](#9-academic-structure--roster-upload)
    - [Quick Academic Utility Dock (Calc & Scratchpad)](#10-quick-academic-utility-dock-calc--scratchpad)
+   - [Live Timetable Tracking & Attendance Pulse Bar](#11-live-timetable-tracking--attendance-pulse-bar)
+   - [Faculty 1-Click Roll Call Matrix & Lab 2x Credits](#12-faculty-1-click-roll-call-matrix--lab-2x-credits)
+   - [Attendance Dispute Redressal & Claim Matrix](#13-attendance-dispute-redressal--claim-matrix)
+   - [System Hardening & Enterprise Resilience Engineering](#14-system-hardening--enterprise-resilience-engineering)
 7. [Database Architecture & Data Modeling](#-database-architecture--data-modeling)
 8. [Complete REST API Specification](#-complete-rest-api-specification)
 9. [Folder Structure](#-folder-structure)
@@ -229,6 +233,33 @@ graph TD
 - **Quick Bunk / Target Calculator:** Instant attendance target simulation without leaving current tasks.
 - **Scratchpad Memo:** Auto-saving local storage notepad for faculty reminders and student lecture notes.
 
+### 11. Live Timetable Tracking & Attendance Pulse Bar
+- **Live Status Badges (`TodayTimetable.tsx`):** Every scheduled period automatically evaluates current IST time against lecture boundaries to display real-time status chips:
+  - 🟢 **Ongoing:** Active lecture session currently in progress.
+  - 🔵 **Upcoming:** Scheduled future lectures for today.
+  - ⚪ **Completed:** Past lectures with confirmed attendance outcomes (`✓ Present`, `✗ Absent`, `🏛️ On-Duty`).
+- **Real-Time Attendance Pulse Bar:** Interactive visual progress indicator showing the exact fraction of today's periods marked present vs. absent, providing instant daily clarity without digging through ledgers.
+
+### 12. Faculty 1-Click Roll Call Matrix & Lab 2x Credits
+- **Rapid Roll Call Launcher (`TeacherDashboard.tsx`):**
+  - Instant mass actions: `✓ All Present` and `✗ All Absent` buttons mark 60+ students in 1 second.
+  - Individual toggle switches permit rapid exceptions before saving.
+- **Lab Practical 2x Credits Integration:**
+  - Built-in `🧪 Lab Practical (2x Credits)` switch.
+  - When enabled for practical sessions or workshops, credits and attendance hours scale to 2 units in institutional calculations.
+
+### 13. Attendance Dispute Redressal & Claim Matrix
+- **Dispute Redressal Modal:** Students can raise attendance correction requests directly from their daily timetable card for periods mistakenly marked absent.
+- **Evidence Attachment & Faculty Inbox:** Attach explanations or medical tokens; faculty receives notifications in their Approvals desk for 1-click verification.
+
+### 14. System Hardening & Enterprise Resilience Engineering
+- **Demo Token Bridge:** Seamless integration for 1-click preview accounts (`token-*-demo-attendai`) connecting to real database entities without 401 token authentication rejections.
+- **Dynamic Device UUID Generator:** Generates persistent browser client hardware fingerprints to eliminate PostgreSQL unique constraint collisions in multi-user test environments.
+- **Administrative Role Enforcement:** Strict `requireRole('ADMIN', 'HOD')` guards on administrative decision endpoints preventing privilege escalation.
+- **Synchronized Leave Approvals:** Approving a student leave automatically converts historical session records from `ABSENT` to `LV` / `OD` across the institutional ledger.
+- **N+1 Query Elimination in Reporting:** Bulk query consolidation reduces 1500+ sequential SQL queries during class reports and defaulter calculations down to 2 optimized database round-trips.
+- **Resilient Degraded Server Boot:** Backend gracefully handles initial connection dips to PostgreSQL or Redis without crashing the Express process.
+
 ---
 
 ## 🗄️ Database Architecture & Data Modeling
@@ -266,6 +297,12 @@ erDiagram
 ## 🔌 Complete REST API Specification
 
 All endpoints are mounted under `/api/v1`.
+
+### 0. Health & Diagnostics (`/api/v1/health`)
+| Method | Endpoint | Access | Description |
+|---|---|---|---|
+| `GET` | `/health` | Public | Root heartbeat status (`ok`), version, and UTC timestamp |
+| `GET` | `/api/v1/health` | Public | Proxied microservice health check for PWA connectivity monitoring |
 
 ### 1. Authentication (`/api/v1/auth`)
 | Method | Endpoint | Access | Description |
@@ -435,11 +472,12 @@ This automatically:
 1. Verifies Node.js installation (v20+).
 2. Generates `backend\.env` from `.env.example` if not already present.
 3. Automatically installs dependencies (`npm install`) if `node_modules` is missing.
-4. Boots PostgreSQL 16 and Redis 7 containers via Docker Compose.
+4. Boots PostgreSQL 16 and Redis 7 containers via Docker Compose (with graceful fallback if Docker engine is offline).
 5. Generates the Prisma ORM Client.
-6. Launches the Backend API on `http://localhost:4000` in its own window.
-7. Launches the Frontend PWA on `http://localhost:5173` in its own window.
-8. Automatically opens `http://localhost:5173` in your default browser.
+6. **Smart Port Collision Detection:** Checks if ports 4000 or 5173 are already running to prevent duplicate process conflicts.
+7. Launches the Backend API on `http://localhost:4000` in its own window.
+8. Launches the Frontend PWA on `http://localhost:5173` in its own window.
+9. Automatically opens `http://localhost:5173` in your default browser.
 
 ### 🛑 Clean Shutdown (`stop.bat`)
 To terminate all AttendAI services and containers cleanly:

@@ -123,15 +123,16 @@ export default function ProjectorQRMode({
       </div>
 
       {/* Center: QR + Timer */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '60px', position: 'relative', zIndex: 1 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: 'clamp(1.5rem, 4vw, 3.75rem)', position: 'relative', zIndex: 1, maxWidth: '94vw' }}>
         {/* QR Code */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
           <div style={{
             padding: '16px', background: 'rgba(255,255,255,0.04)', borderRadius: '20px',
             border: '2px solid rgba(6,182,212,0.4)', boxShadow: '0 0 60px rgba(6,182,212,0.2)',
+            maxWidth: 'min(86vw, 320px)',
           }}>
             {qrDataUrl ? (
-              <img src={qrDataUrl} alt="QR Code" width={280} height={280} style={{ borderRadius: '8px', display: 'block' }} />
+              <img src={qrDataUrl} alt="QR Code" style={{ width: '100%', height: 'auto', maxWidth: 280, borderRadius: '8px', display: 'block' }} />
             ) : (
               <div style={{ width: 280, height: 280, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(6,182,212,0.05)', borderRadius: '8px' }}>
                 <div style={{ textAlign: 'center' }}>

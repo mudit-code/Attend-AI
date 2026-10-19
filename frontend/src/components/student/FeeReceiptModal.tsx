@@ -42,14 +42,14 @@ export default function FeeReceiptModal({
       }}
     >
       <div
-        className="card"
+        className="card modal-responsive"
         style={{
           width: '100%',
           maxWidth: 620,
           background: 'var(--color-surface)',
           boxShadow: 'var(--shadow-float)',
-          padding: '1.75rem',
-          maxHeight: '90vh',
+          padding: 'clamp(1rem, 2.5vw, 1.75rem)',
+          maxHeight: '90dvh',
           overflowY: 'auto',
         }}
       >

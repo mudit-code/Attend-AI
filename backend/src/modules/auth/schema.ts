@@ -33,6 +33,7 @@ export const registerSchema = z.object({
   employeeCode: z.string().optional(),
   departmentId: z.number().int().optional(),
   adminCode: z.string().optional(),
+  branch: z.string().optional(),
 });
 
 export const oauthSchema = z.object({

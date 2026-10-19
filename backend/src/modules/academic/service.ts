@@ -43,7 +43,7 @@ export async function getSections(courseId?: number) {
   return prisma.section.findMany({
     where: courseId ? { courseId } : undefined,
     include: {
-      course: true,
+      course: { include: { department: true } },
       _count: { select: { students: true } },
     },
   });
@@ -129,6 +129,56 @@ export async function createTimetableSlot(data: TimetableSlotInput) {
   }
 
   return prisma.timetableSlot.create({ data });
+}
+
+export async function deleteTimetableSlot(id: number) {
+  return prisma.timetableSlot.delete({ where: { id } });
+}
+
+export async function preGenerateTodaySessions() {
+  const now = new Date();
+  const istOffset = 5.5 * 60 * 60 * 1000;
+  const istNow = new Date(now.getTime() + istOffset);
+  const jsDay = istNow.getUTCDay();
+  const dayOfWeek = jsDay === 0 ? 7 : jsDay;
+  const todayDateStr = istNow.toISOString().slice(0, 10);
+  const todayDate = new Date(todayDateStr);
+
+  const slots = await prisma.timetableSlot.findMany({
+    where: { dayOfWeek },
+  });
+
+  const createdSessions = [];
+  for (const slot of slots) {
+    const existing = await prisma.attendanceSession.findFirst({
+      where: {
+        sectionId: slot.sectionId,
+        subjectId: slot.subjectId,
+        period: slot.period,
+        date: todayDate,
+      },
+    });
+    if (!existing) {
+      const session = await prisma.attendanceSession.create({
+        data: {
+          teacherId: slot.teacherId,
+          sectionId: slot.sectionId,
+          subjectId: slot.subjectId,
+          period: slot.period,
+          date: todayDate,
+          status: 'OPEN',
+        },
+      });
+      createdSessions.push(session);
+    }
+  }
+
+  return {
+    date: todayDateStr,
+    dayOfWeek,
+    totalSlots: slots.length,
+    sessionsCreated: createdSessions.length,
+  };
 }
 
 // ─── Holidays ─────────────────────────────────────────────────────
@@ -265,4 +315,47 @@ export async function getTeacherTodayTimetable(req: AuthRequest) {
 
   return { dayOfWeek, currentTime, currentPeriod, nextPeriod, teacherId: teacher.id, slots: slotsWithDetails };
 }
+// --- Teacher Assigned Classes (Branch + Section + Subject chips) ---
+export async function getTeacherAssignedClasses(userId: number) {
+  const teacher = await prisma.teacher.findUnique({
+    where: { userId },
+    include: {
+      subjects: {
+        include: {
+          subject: true,
+          section: {
+            include: {
+              course: {
+                include: { department: true },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
 
+  if (!teacher) return [];
+
+  const seen = new Set<string>();
+  const chips = teacher.subjects
+    .filter((ts) => {
+      const key = `${ts.sectionId}-${ts.subjectId}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .map((ts) => ({
+      sectionId: ts.sectionId,
+      sectionName: ts.section.name,
+      sectionYear: ts.section.year,
+      courseCode: ts.section.course.code,
+      courseName: ts.section.course.name,
+      departmentName: ts.section.course.department.name,
+      subjectId: ts.subjectId,
+      subjectName: ts.subject.name,
+      subjectCode: ts.subject.code,
+    }));
+
+  return chips;
+}

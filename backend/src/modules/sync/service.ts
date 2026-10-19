@@ -47,8 +47,20 @@ export async function bootstrap(userId: number, role: string) {
 
   const sections = await prisma.section.findMany({
     where: sectionIds.length > 0 ? { id: { in: sectionIds } } : undefined,
-    include: { course: true },
+    include: { course: { include: { department: true } } },
   });
+
+  // Enrich sections with flat fields for fast frontend lookup
+  const enrichedSections = sections.map((s) => ({
+    id: s.id,
+    name: s.name,
+    year: s.year,
+    courseId: s.courseId,
+    courseName: s.course.name,
+    courseCode: s.course.code,
+    departmentId: s.course.departmentId,
+    departmentName: s.course.department.name,
+  }));
 
   const subjects = await prisma.subject.findMany();
 
@@ -77,7 +89,7 @@ export async function bootstrap(userId: number, role: string) {
   return {
     academicYear: currentAcademicYear,
     rules: rules || { minPercent: 75, lateGraceMinutes: 10, editWindowHours: 24, countLeaveAsPresent: false },
-    sections,
+    sections: enrichedSections,
     subjects,
     teacherSubjects,
     students,
@@ -250,15 +262,44 @@ export async function pullChanges(cursor: bigint, sectionId?: number) {
 
   const nextCursor = changes.length > 0 ? changes[changes.length - 1].changeSeq.toString() : cursor.toString();
 
-  // Convert BigInt to string for JSON serialization
-  const serializedChanges = changes.map((c) => ({
-    changeSeq: c.changeSeq.toString(),
-    entity: c.entity,
-    entityId: c.entityId,
-    op: c.op,
-    sectionId: c.sectionId,
-    createdAt: c.createdAt,
-  }));
+  // Enrich changes with actual entity data for IndexedDB client storage
+  const serializedChanges = await Promise.all(
+    changes.map(async (c) => {
+      let data: any = null;
+      if (c.op === 'upsert') {
+        const numId = parseInt(c.entityId, 10);
+        try {
+          if (c.entity === 'student' && !isNaN(numId)) {
+            data = await prisma.student.findUnique({
+              where: { id: numId },
+              include: { user: { select: { name: true, email: true } } },
+            });
+          } else if (c.entity === 'section' && !isNaN(numId)) {
+            data = await prisma.section.findUnique({ where: { id: numId } });
+          } else if (c.entity === 'subject' && !isNaN(numId)) {
+            data = await prisma.subject.findUnique({ where: { id: numId } });
+          } else if (c.entity === 'timetable' && !isNaN(numId)) {
+            data = await prisma.timetableSlot.findUnique({ where: { id: numId } });
+          } else if (c.entity === 'attendance') {
+            data = await prisma.attendanceRecord.findUnique({ where: { id: c.entityId } });
+          }
+        } catch {
+          // If entity was modified or unavailable, omit data payload gracefully
+        }
+      }
+
+      return {
+        changeSeq: c.changeSeq.toString(),
+        entity: c.entity,
+        entityId: c.entityId,
+        id: c.entityId,
+        op: c.op,
+        sectionId: c.sectionId,
+        createdAt: c.createdAt,
+        data,
+      };
+    })
+  );
 
   return {
     changes: serializedChanges,

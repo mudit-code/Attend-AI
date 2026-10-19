@@ -13,10 +13,30 @@ export async function createLeaveRequest(userId: number, input: CreateLeaveInput
   }
 
   const fromDate = new Date(`${input.fromDate}T00:00:00.000Z`);
-  const toDate = new Date(`${input.toDate}T23:59:59.999Z`);
+  const toDate = new Date(`${input.toDate}T00:00:00.000Z`);
 
   if (fromDate > toDate) {
     throw { code: 'INVALID_DATES', status: 400, message: 'fromDate cannot be after toDate' };
+  }
+
+  // Prevent overlapping pending or approved leave applications
+  const existingOverlap = await prisma.leaveRequest.findFirst({
+    where: {
+      studentId: student.id,
+      status: { in: ['PENDING', 'APPROVED'] },
+      AND: [
+        { fromDate: { lte: toDate } },
+        { toDate: { gte: fromDate } },
+      ],
+    },
+  });
+
+  if (existingOverlap) {
+    throw {
+      code: 'OVERLAPPING_LEAVE',
+      status: 409,
+      message: `An overlapping ${existingOverlap.status.toLowerCase()} leave request already exists for this date range.`,
+    };
   }
 
   return prisma.leaveRequest.create({

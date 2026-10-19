@@ -74,13 +74,16 @@ app.use(
 );
 
 // ─── Health Check ─────────────────────────────────────────────────
-app.get('/health', (_req, res) => {
+const handleHealthCheck = (_req: express.Request, res: express.Response) => {
   res.json({
     status: 'ok',
     version: env.APP_VERSION,
     timestamp: new Date().toISOString(),
   });
-});
+};
+app.get('/health', handleHealthCheck);
+app.get('/api/health', handleHealthCheck);
+app.get('/api/v1/health', handleHealthCheck);
 
 // ─── API Routes ───────────────────────────────────────────────────
 app.use('/api/v1/auth', authRouter);

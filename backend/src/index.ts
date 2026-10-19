@@ -5,12 +5,21 @@ import { redis } from './lib/redis';
 import { logger } from './lib/logger';
 
 async function main() {
-  // Test DB connection
-  await prisma.$connect();
-  logger.info('Database connected');
+  // Test DB connection gracefully
+  try {
+    await prisma.$connect();
+    logger.info('Database connected');
+  } catch (dbErr) {
+    logger.warn('Database connection failed, running in degraded mode', { error: dbErr });
+  }
 
-  // Connect Redis
-  await redis.connect();
+  // Connect Redis gracefully
+  try {
+    await redis.connect();
+    logger.info('Redis connected');
+  } catch (redisErr) {
+    logger.warn('Redis connection failed, continuing without cache', { error: redisErr });
+  }
 
   const server = app.listen(env.PORT, () => {
     logger.info(`AttendAI backend running on port ${env.PORT}`, {

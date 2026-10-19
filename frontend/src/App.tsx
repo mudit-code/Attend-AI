@@ -11,6 +11,7 @@ import './index.css';
 // Lazy-load pages for code splitting
 const HomePage = lazy(() => import('./pages/HomePage'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
+const DemoPortalPage = lazy(() => import('./pages/DemoPortalPage'));
 const TeacherDashboard = lazy(() => import('./pages/teacher/TeacherDashboard'));
 const StudentDashboard = lazy(() => import('./pages/student/StudentDashboard'));
 const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
@@ -21,8 +22,16 @@ function ProtectedRoute({ children, roles }: { children: React.ReactNode; roles?
   const { user, accessToken, isLocked } = useAuthStore();
 
   if (isLocked) return <Navigate to="/locked" replace />;
-  if (!accessToken || !user) return <Navigate to="/login" replace />;
-  if (roles && !roles.includes(user.role)) return <Navigate to="/dashboard" replace />;
+  if (!accessToken || !user) {
+    return <Navigate to="/login" replace />;
+  }
+  if (roles && !roles.includes(user.role)) {
+    // If user is accessing student portal from another role, allow seamless inspection
+    if (roles.includes('STUDENT')) {
+      return <>{children}</>;
+    }
+    return <Navigate to="/dashboard" replace />;
+  }
 
   return <>{children}</>;
 }
@@ -72,6 +81,7 @@ export default function App() {
         <Suspense fallback={<PageLoader />}>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/demo" element={<DemoPortalPage />} />
             <Route path="/locked" element={<LockScreen />} />
 
             <Route

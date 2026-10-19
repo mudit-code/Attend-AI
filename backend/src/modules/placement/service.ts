@@ -1,8 +1,11 @@
-﻿import { prisma } from "../../lib/prisma";
+import { prisma } from "../../lib/prisma";
 
 export async function getDrives() {
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+
   return prisma.placementDrive.findMany({
-    where: { driveDate: { gte: new Date() } },
+    where: { driveDate: { gte: startOfToday } },
     include: { _count: { select: { registrations: true } } },
     orderBy: { driveDate: "asc" },
   });

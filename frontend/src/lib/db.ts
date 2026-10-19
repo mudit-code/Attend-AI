@@ -22,6 +22,10 @@ export interface LocalSection {
   name: string;
   year: number;
   courseId: number;
+  courseName: string;
+  courseCode: string;
+  departmentId?: number;
+  departmentName?: string;
 }
 
 export interface LocalSubject {
@@ -88,6 +92,11 @@ export class AttendAIDatabase extends Dexie {
       outbox: 'id, status, type, createdAt',
       syncMeta: 'key',
       offlineErrors: '++id, timestamp',
+    });
+
+    // v2: add courseCode index for branch-wise offline filtering
+    this.version(2).stores({
+      sections: 'id, courseId, courseCode',
     });
   }
 }
