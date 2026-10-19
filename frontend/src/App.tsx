@@ -19,20 +19,11 @@ const LockScreen = lazy(() => import('./pages/LockScreen'));
 
 // ─── Route Guard ──────────────────────────────────────────────────
 function ProtectedRoute({ children, roles }: { children: React.ReactNode; roles?: string[] }) {
-  const { user, accessToken, isLocked, setUser, setToken } = useAuthStore();
+  const { user, accessToken, isLocked } = useAuthStore();
 
   if (isLocked) return <Navigate to="/locked" replace />;
   if (!accessToken || !user) {
-    // Immediate fallback to Demo Student so direct navigation never kicks user to login
-    setToken('token-student-demo-attendai');
-    setUser({
-      id: 1,
-      name: 'Aman Kumar',
-      email: 'student1@attendai.com',
-      role: 'STUDENT',
-      student: { id: 1, sectionId: 1, rollNo: '2101640100015' },
-    });
-    return <>{children}</>;
+    return <Navigate to="/login" replace />;
   }
   if (roles && !roles.includes(user.role)) {
     // If user is accessing student portal from another role, allow seamless inspection

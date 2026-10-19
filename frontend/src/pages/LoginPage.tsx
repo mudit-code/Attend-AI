@@ -177,8 +177,9 @@ export default function LoginPage() {
     } catch (err: any) {
       if (err.response?.status === 401) {
         setError(err.response?.data?.error?.message || 'Invalid email or password. Please check your credentials or use 1-Click Quick Demo Login.');
-      } else if (!navigator.onLine || !err.response) {
-        // Completely offline or backend unavailable: seamless demo fallback
+      } else if (!navigator.onLine || !err.response || err.response?.status >= 500) {
+        // Backend offline or database down (e.g. PostgreSQL not running): seamless demo fallback
+        console.warn('Backend database unreachable. Entering dashboard in Offline Demo Mode.');
         handle1ClickDemoLogin(selectedRole);
       } else {
         setError(err.response?.data?.error?.message || 'Login failed. Please try again or use 1-Click Quick Demo Login.');
