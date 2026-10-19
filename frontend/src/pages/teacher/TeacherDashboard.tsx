@@ -15,6 +15,7 @@ import SingleDateAttendanceSnapshot from '../../components/teacher/SingleDateAtt
 import UserProfileDrawer from '../../components/common/UserProfileDrawer';
 import ProjectorQRMode from '../../components/teacher/ProjectorQRMode';
 import InstallAppPrompt from '../../components/common/InstallAppPrompt';
+import BrandLogo from '../../components/common/BrandLogo';
 
 interface StudentItem {
   id: number;
@@ -459,46 +460,62 @@ export default function TeacherDashboard() {
           zIndex: 100,
         }}
       >
-        <div className="flex items-center gap-2">
-          <div
-            style={{
-              width: 34,
-              height: 34,
-              borderRadius: '10px',
-              background: 'var(--color-primary)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#FFFFFF',
-              fontWeight: 800,
-              fontSize: '1rem',
-              boxShadow: '0 4px 12px var(--color-primary-glow)',
-            }}
-          >
-            ▲
-          </div>
-          <span style={{ fontWeight: 800, fontSize: '1.25rem', color: 'var(--color-text)' }}>
-            Dashboard
-          </span>
-          <button
-            onClick={() => setIsProfileOpen(true)}
-            className="badge"
-            style={{
-              background: '#FFF0EE',
-              color: 'var(--color-primary)',
-              cursor: 'pointer',
-              border: '1px solid var(--color-border)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-            }}
-            title="Click to view/edit institutional profile"
-          >
-            👤 {user?.name || 'Teacher'}
-          </button>
+        <div className="flex items-center gap-3">
+          <BrandLogo size="md" subtitle="Faculty Portal" onClick={() => navigate('/teacher')} />
+        </div>
+
+        {/* Trombone Quick Search Pill */}
+        <div className="trombone-search-pill" style={{ minWidth: 220, maxWidth: 360, flex: 1, margin: '0 0.5rem' }}>
+          <span style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>🔍</span>
+          <input
+            type="text"
+            placeholder="Quick search student or subject..."
+            style={{ border: 'none', background: 'transparent', outline: 'none', width: '100%', fontSize: '0.85rem', fontFamily: 'inherit', color: 'var(--color-text)' }}
+          />
+          <span className="trombone-kbd-shortcut">⌘K</span>
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Trombone User Profile Chip */}
+          <button
+            onClick={() => setIsProfileOpen(true)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              padding: '0.25rem 0.75rem 0.25rem 0.35rem',
+              background: 'var(--color-surface-2)',
+              borderRadius: '999px',
+              border: '1px solid var(--color-border)',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+            }}
+            title="Click to view/edit profile"
+          >
+            <div
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: '50%',
+                background: '#FEF3C7',
+                color: '#B45309',
+                fontWeight: 800,
+                fontSize: '0.75rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              {(user?.name || 'TC').slice(0, 2).toUpperCase()}
+            </div>
+            <span style={{ fontSize: '0.825rem', fontWeight: 700, color: 'var(--color-text)' }}>
+              {user?.name || 'Faculty Member'}
+            </span>
+            <span style={{ fontSize: '0.65rem', background: '#F59E0B', color: '#0F172A', padding: '1px 6px', borderRadius: '4px', fontWeight: 800 }}>
+              FACULTY
+            </span>
+          </button>
+
           <SyncBadge />
           {pendingCount > 0 && isOnline && (
             <button
@@ -509,8 +526,8 @@ export default function TeacherDashboard() {
               {isSyncing ? 'Syncing...' : 'Sync Now'}
             </button>
           )}
-          <button className="btn btn--ghost btn--sm" onClick={handleLogout}>
-            Logout
+          <button className="btn btn--ghost btn--sm" onClick={handleLogout} title="Sign Out">
+            ⎋ Logout
           </button>
         </div>
       </header>

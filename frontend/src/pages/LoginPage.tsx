@@ -5,6 +5,7 @@ import { useAuthStore } from '../stores/useAuthStore';
 import { db } from '../lib/db';
 import { runSync } from '../lib/syncEngine';
 import heroImage from '../assets/attendance_3d_hero.jpg';
+import BrandLogo from '../components/common/BrandLogo';
 
 export const COLLEGE_BRANCHES = [
   { id: 'ALL', name: '🏛️ Central Campus - All Branches (Institutional Administration)' },
@@ -328,7 +329,7 @@ export default function LoginPage() {
       className="page"
       style={{
         minHeight: '100dvh',
-        background: 'linear-gradient(180deg, #FFEBE8 0%, #FFF3F1 260px, #FFF9F8 100%)',
+        background: 'var(--color-bg)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -341,21 +342,21 @@ export default function LoginPage() {
           width: '100%',
           maxWidth: 480,
           background: '#FFFFFF',
-          borderRadius: '24px',
-          boxShadow: '0 12px 40px rgba(230, 60, 45, 0.08)',
-          border: '1px solid rgba(255, 60, 50, 0.08)',
+          borderRadius: '20px',
+          boxShadow: '0 8px 32px rgba(15, 23, 42, 0.06)',
+          border: '1px solid var(--color-border)',
           padding: 'clamp(1.25rem, 3.5vw, 2rem) clamp(1rem, 3vw, 1.75rem)',
         }}
       >
         {/* Back to Home Link */}
-        <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ marginBottom: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <button
             type="button"
             onClick={() => navigate('/')}
             style={{
               background: 'none',
               border: 'none',
-              color: 'var(--color-primary)',
+              color: 'var(--color-text-muted)',
               fontSize: '0.85rem',
               fontWeight: 700,
               cursor: 'pointer',
@@ -367,14 +368,19 @@ export default function LoginPage() {
           >
             ← Back to Homepage
           </button>
-          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#A58B87' }}>AttendAI v2.4</span>
+          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-faint)' }}>AttendAI v2.4</span>
+        </div>
+
+        {/* Trombone Brand Logo */}
+        <div style={{ marginBottom: '1.25rem' }}>
+          <BrandLogo size="lg" subtitle="Institutional Campus Access" onClick={() => navigate('/')} />
         </div>
 
         {/* Title */}
         <div style={{ marginBottom: '1.25rem' }}>
           <h1
             style={{
-              fontSize: '1.65rem',
+              fontSize: '1.5rem',
               fontWeight: 800,
               lineHeight: 1.25,
               color: 'var(--color-text)',

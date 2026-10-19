@@ -17,6 +17,7 @@ import StudentMarksheetModal from '../../components/student/StudentMarksheetModa
 import FeeReceiptModal from '../../components/student/FeeReceiptModal';
 import UserProfileDrawer from '../../components/common/UserProfileDrawer';
 import InstallAppPrompt from '../../components/common/InstallAppPrompt';
+import BrandLogo from '../../components/common/BrandLogo';
 
 export default function StudentDashboard() {
   const user = useAuthStore((s) => s.user);
@@ -271,129 +272,98 @@ export default function StudentDashboard() {
         }}
       >
         <div className="flex items-center gap-3">
-          <div
-            style={{
-              width: 38,
-              height: 38,
-              borderRadius: '11px',
-              background: 'var(--color-primary)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#FFFFFF',
-              fontWeight: 900,
-              fontSize: '1.15rem',
-              boxShadow: '0 4px 14px var(--color-primary-glow)',
-            }}
-          >
-            ▲
+          <BrandLogo size="md" subtitle="Student Portal" onClick={() => navigate('/student')} />
+          <div style={{ display: 'none', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }} className="hidden-mobile-info">
+            <span
+              style={{
+                fontSize: '0.72rem',
+                fontWeight: 700,
+                background: 'var(--color-surface-2)',
+                color: 'var(--color-text)',
+                padding: '0.15rem 0.5rem',
+                borderRadius: '6px',
+                border: '1px solid var(--color-border)',
+              }}
+            >
+              🏢 {report?.student?.section?.course?.department?.name || 'CSE'} · {report?.student?.section?.name || 'Section A'}
+            </span>
+            <span
+              style={{
+                fontSize: '0.72rem',
+                fontWeight: 800,
+                fontFamily: 'monospace',
+                background: 'var(--color-surface-2)',
+                color: 'var(--color-text)',
+                padding: '0.15rem 0.5rem',
+                borderRadius: '6px',
+                border: '1px solid var(--color-border)',
+              }}
+            >
+              🆔 {report?.student?.rollNo || user?.student?.rollNo || '2101640100015'}
+            </span>
           </div>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span style={{ fontWeight: 800, fontSize: '1.25rem', color: 'var(--color-text)', letterSpacing: '-0.2px' }}>
-                Student ERP Portal
-              </span>
-              <span
-                style={{
-                  background: '#FFF0EE',
-                  color: 'var(--color-primary)',
-                  fontSize: '0.7rem',
-                  fontWeight: 800,
-                  padding: '0.15rem 0.5rem',
-                  borderRadius: '999px',
-                  border: '1px solid #FFDCD7',
-                  textTransform: 'uppercase',
-                }}
-              >
-                AKTU Aligned
-              </span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap', marginTop: '0.2rem' }}>
-              <span
-                style={{
-                  fontSize: '0.72rem',
-                  fontWeight: 700,
-                  background: 'rgba(99, 102, 241, 0.08)',
-                  color: '#4F46E5',
-                  padding: '0.15rem 0.5rem',
-                  borderRadius: '6px',
-                  border: '1px solid rgba(99, 102, 241, 0.2)',
-                }}
-              >
-                🏢 {report?.student?.section?.course?.department?.name || 'Computer Science & Engineering'}
-              </span>
-              <span
-                style={{
-                  fontSize: '0.72rem',
-                  fontWeight: 700,
-                  background: 'rgba(16, 185, 129, 0.08)',
-                  color: '#059669',
-                  padding: '0.15rem 0.5rem',
-                  borderRadius: '6px',
-                  border: '1px solid rgba(16, 185, 129, 0.2)',
-                }}
-              >
-                👥 {report?.student?.section?.course?.name || 'B.Tech'} · {report?.student?.section?.name || 'Section A'} (Sem {report?.student?.section?.semester || 6})
-              </span>
-              <span
-                style={{
-                  fontSize: '0.72rem',
-                  fontWeight: 800,
-                  fontFamily: 'monospace',
-                  background: 'var(--color-surface-2)',
-                  color: 'var(--color-text)',
-                  padding: '0.15rem 0.5rem',
-                  borderRadius: '6px',
-                  border: '1px solid var(--color-border)',
-                }}
-              >
-                🆔 Roll: {report?.student?.rollNo || user?.student?.rollNo || '2101640100015'}
-              </span>
-            </div>
-          </div>
-
-          <button
-            onClick={() => setIsProfileOpen(true)}
-            className="badge"
-            style={{
-              background: '#FFF0EE',
-              color: 'var(--color-primary)',
-              cursor: 'pointer',
-              border: '1.5px solid #FFDCD7',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              fontWeight: 700,
-              padding: '0.4rem 0.85rem',
-              borderRadius: '999px',
-              marginLeft: '0.5rem',
-            }}
-            title="Click to view/edit institutional student profile"
-          >
-            👤 {user?.name || 'Aman Kumar'} (Student Profile)
-          </button>
         </div>
 
         <div className="flex items-center gap-2" style={{ flexWrap: 'wrap' }}>
+          {/* Trombone Student Profile Chip */}
+          <button
+            onClick={() => setIsProfileOpen(true)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              padding: '0.25rem 0.75rem 0.25rem 0.35rem',
+              background: 'var(--color-surface-2)',
+              borderRadius: '999px',
+              border: '1px solid var(--color-border)',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+            }}
+            title="Click to view/edit student profile"
+          >
+            <div
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: '50%',
+                background: '#FEF3C7',
+                color: '#B45309',
+                fontWeight: 800,
+                fontSize: '0.75rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              {(user?.name || 'AK').slice(0, 2).toUpperCase()}
+            </div>
+            <span style={{ fontSize: '0.825rem', fontWeight: 700, color: 'var(--color-text)' }}>
+              {user?.name || 'Aman Kumar'}
+            </span>
+            <span style={{ fontSize: '0.65rem', background: '#0F172A', color: '#FFFFFF', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
+              STUDENT
+            </span>
+          </button>
+
           <SyncBadge />
           <button
             id="btn-header-marksheet"
-            className="btn btn--secondary btn--sm"
+            className="btn btn--ghost btn--sm"
             onClick={() => setIsMarksheetOpen(true)}
-            style={{ fontWeight: 700, padding: '0.4rem 0.85rem' }}
+            style={{ fontWeight: 700 }}
           >
             📄 Marksheet
           </button>
           <button
             id="btn-header-fee"
-            className="btn btn--secondary btn--sm"
+            className="btn btn--ghost btn--sm"
             onClick={() => setIsFeeReceiptOpen(true)}
-            style={{ fontWeight: 700, padding: '0.4rem 0.85rem' }}
+            style={{ fontWeight: 700 }}
           >
             🧾 Fee Receipt
           </button>
-          <button className="btn btn--ghost btn--sm" onClick={handleLogout} style={{ fontWeight: 700 }}>
-            Logout
+          <button className="btn btn--ghost btn--sm" onClick={handleLogout} style={{ fontWeight: 700 }} title="Sign Out">
+            ⎋ Logout
           </button>
         </div>
       </header>

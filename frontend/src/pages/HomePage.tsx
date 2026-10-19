@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/useAuthStore';
 import heroImage from '../assets/attendance_3d_hero.jpg';
+import BrandLogo from '../components/common/BrandLogo';
 
 export default function HomePage() {
   const { user, setToken, setUser } = useAuthStore();
@@ -51,11 +52,11 @@ export default function HomePage() {
   }
 
   return (
-    <div className="page" style={{ background: 'linear-gradient(180deg, #FFEBE8 0%, #FFF3F1 320px, #FFF9F8 100%)' }}>
+    <div className="page" style={{ background: 'var(--color-bg)' }}>
       {/* ─── Navigation Header ─────────────────────────────────────── */}
       <header
         style={{
-          background: 'rgba(255, 255, 255, 0.92)',
+          background: 'rgba(255, 255, 255, 0.95)',
           backdropFilter: 'blur(16px)',
           borderBottom: '1px solid var(--color-border)',
           position: 'sticky',
@@ -74,47 +75,7 @@ export default function HomePage() {
           }}
         >
           {/* Brand Logo */}
-          <div
-            className="flex items-center gap-2"
-            style={{ cursor: 'pointer' }}
-            onClick={() => navigate('/')}
-          >
-            <div
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: '11px',
-                background: 'var(--color-primary)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#FFFFFF',
-                fontWeight: 900,
-                fontSize: '1.1rem',
-                boxShadow: '0 4px 14px var(--color-primary-glow)',
-              }}
-            >
-              ▲
-            </div>
-            <div>
-              <span style={{ fontWeight: 800, fontSize: '1.25rem', color: 'var(--color-text)', letterSpacing: '-0.2px' }}>
-                AttendAI
-              </span>
-              <span
-                style={{
-                  display: 'block',
-                  fontSize: '0.65rem',
-                  fontWeight: 700,
-                  color: 'var(--color-primary)',
-                  letterSpacing: '0.5px',
-                  textTransform: 'uppercase',
-                  lineHeight: 1,
-                }}
-              >
-                College Attendance
-              </span>
-            </div>
-          </div>
+          <BrandLogo size="md" subtitle="Institutional ERP" onClick={() => navigate('/')} />
 
           {/* Nav links on desktop */}
           <div className="flex items-center gap-2">
@@ -753,10 +714,8 @@ export default function HomePage() {
       >
         <div className="container container--wide">
           <div className="flex items-center justify-between" style={{ flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
-            <div className="flex items-center gap-1">
-              <span style={{ fontWeight: 800, fontSize: '1.1rem', color: 'var(--color-text)' }}>
-                ▲ AttendAI
-              </span>
+            <div className="flex items-center gap-2">
+              <BrandLogo size="sm" onClick={() => navigate('/')} />
               <span className="text-xs text-muted">• College Attendance Management System</span>
             </div>
 

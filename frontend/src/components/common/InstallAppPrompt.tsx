@@ -78,13 +78,13 @@ export default function InstallAppPrompt() {
     <aside aria-label="Install AttendAI App" className="pwa-install-banner" style={{ margin: '0.75rem 0' }}>
       <div className="pwa-install-banner__content">
         <div className="pwa-install-banner__badge">
-          <span>▲</span>
+          <span>a</span>
         </div>
         <div>
-          <strong style={{ display: 'block', fontSize: '0.875rem', color: '#1C1C26' }}>
+          <strong style={{ display: 'block', fontSize: '0.875rem', color: 'var(--color-text)' }}>
             Install AttendAI App
           </strong>
-          <span style={{ fontSize: '0.75rem', color: '#6E6D7E' }}>
+          <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
             Fast 1-tap home screen access &amp; offline attendance mode
           </span>
           {showIosGuide && (
@@ -95,8 +95,8 @@ export default function InstallAppPrompt() {
                 background: '#FFFFFF',
                 borderRadius: '8px',
                 fontSize: '0.75rem',
-                border: '1px solid #FFDCD7',
-                color: '#1C1C26',
+                border: '1px solid var(--color-border)',
+                color: 'var(--color-text)',
               }}
             >
               1. Tap <strong>Share</strong> button in Safari toolbar.<br />
