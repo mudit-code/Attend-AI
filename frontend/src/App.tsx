@@ -11,6 +11,7 @@ import './index.css';
 // Lazy-load pages for code splitting
 const HomePage = lazy(() => import('./pages/HomePage'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
+const DemoPortalPage = lazy(() => import('./pages/DemoPortalPage'));
 const TeacherDashboard = lazy(() => import('./pages/teacher/TeacherDashboard'));
 const StudentDashboard = lazy(() => import('./pages/student/StudentDashboard'));
 const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
@@ -89,6 +90,7 @@ export default function App() {
         <Suspense fallback={<PageLoader />}>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/demo" element={<DemoPortalPage />} />
             <Route path="/locked" element={<LockScreen />} />
 
             <Route

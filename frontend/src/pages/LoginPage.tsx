@@ -423,96 +423,12 @@ export default function LoginPage() {
           />
         </div>
 
-        {/* ─── ⚡ 1-CLICK INSTANT DEMO ACCOUNTS BAR ─── */}
-        <div
-          style={{
-            marginBottom: '1.25rem',
-            background: '#FFF7F6',
-            border: '1.5px solid #FFDCD7',
-            borderRadius: '16px',
-            padding: '0.85rem',
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem' }}>
-            <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-              ⚡ 1-Click Demo Accounts (Instant Access)
-            </span>
-            <span style={{ fontSize: '0.7rem', color: '#888', fontWeight: 600 }}>No password needed</span>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.45rem' }}>
-            {/* Student Demo Chip */}
-            <button
-              type="button"
-              id="demo-student-quick-btn"
-              onClick={() => handle1ClickDemoLogin('STUDENT')}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '0.65rem 0.4rem',
-                borderRadius: '12px',
-                border: selectedRole === 'STUDENT' ? '2px solid #3B82F6' : '1px solid #E2E8F0',
-                background: selectedRole === 'STUDENT' ? '#EFF6FF' : '#FFFFFF',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-              }}
-            >
-              <span style={{ fontSize: '1.25rem' }}>🎓</span>
-              <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#1E3A8A', marginTop: '3px' }}>Student</span>
-            </button>
-
-            {/* Teacher Demo Chip */}
-            <button
-              type="button"
-              id="demo-teacher-quick-btn"
-              onClick={() => handle1ClickDemoLogin('TEACHER')}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '0.65rem 0.4rem',
-                borderRadius: '12px',
-                border: selectedRole === 'TEACHER' ? '2px solid var(--color-primary)' : '1px solid #E2E8F0',
-                background: selectedRole === 'TEACHER' ? '#FFF0EE' : '#FFFFFF',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-              }}
-            >
-              <span style={{ fontSize: '1.25rem' }}>👨‍🏫</span>
-              <span style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--color-primary)', marginTop: '3px' }}>Teacher</span>
-            </button>
-
-            {/* Admin Demo Chip */}
-            <button
-              type="button"
-              id="demo-admin-quick-btn"
-              onClick={() => handle1ClickDemoLogin('ADMIN')}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '0.65rem 0.4rem',
-                borderRadius: '12px',
-                border: selectedRole === 'ADMIN' ? '2px solid #0F172A' : '1px solid #E2E8F0',
-                background: selectedRole === 'ADMIN' ? '#F8FAFC' : '#FFFFFF',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-              }}
-            >
-              <span style={{ fontSize: '1.25rem' }}>🏛️</span>
-              <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0F172A', marginTop: '3px' }}>Admin</span>
-            </button>
-          </div>
-        </div>
-
         {/* Auth Mode Toggle Tabs (Sign In / Register) */}
         <div
           style={{
             display: 'flex',
-            background: '#F8EBE9',
+            background: 'var(--color-surface-2)',
+            border: '1px solid var(--color-border)',
             padding: '4px',
             borderRadius: '12px',
             marginBottom: '1.25rem',
@@ -1083,8 +999,39 @@ export default function LoginPage() {
 
         {/* Offline notice */}
         <p className="text-xs text-muted" style={{ textAlign: 'center', marginTop: '0.85rem' }}>
-          🔒 Offline-first PWA · Works seamlessly with or without internet
+          🔒 Institutional Single Sign-On &amp; Offline PWA Sync
         </p>
+
+        {/* Demo Sandbox Link */}
+        <div
+          style={{
+            marginTop: '1.25rem',
+            paddingTop: '1rem',
+            borderTop: '1px solid var(--color-border)',
+            textAlign: 'center',
+          }}
+        >
+          <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
+            Evaluating or testing the platform?{' '}
+          </span>
+          <button
+            type="button"
+            id="btn-goto-demo-sandbox"
+            onClick={() => navigate('/demo')}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'var(--color-accent-text)',
+              fontWeight: 800,
+              fontSize: '0.8rem',
+              cursor: 'pointer',
+              padding: 0,
+              textDecoration: 'underline',
+            }}
+          >
+            Launch 1-Click Demo Sandbox →
+          </button>
+        </div>
       </div>
 
       {/* ─── GOOGLE WORKSPACE SSO MODAL ─── */}

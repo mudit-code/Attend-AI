@@ -124,18 +124,22 @@ export default function HomePage() {
                 Dashboard ({user.name.split(' ')[0]}) →
               </button>
             ) : (
-              <button
-                className="btn btn--primary btn--sm"
-                onClick={() => navigate('/login')}
-                style={{
-                  fontWeight: 800,
-                  borderRadius: '999px',
-                  padding: '0.55rem 1.35rem',
-                  boxShadow: '0 4px 14px var(--color-primary-glow)',
-                }}
-              >
-                Launch App 🚀
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  className="btn btn--ghost btn--sm"
+                  onClick={() => navigate('/demo')}
+                  style={{ fontWeight: 700 }}
+                >
+                  ⚡ Try Demo Sandbox
+                </button>
+                <button
+                  className="btn btn--primary btn--sm"
+                  onClick={() => navigate('/login')}
+                  style={{ fontWeight: 700 }}
+                >
+                  Institutional Sign In →
+                </button>
+              </div>
             )}
           </div>
         </div>
@@ -202,26 +206,25 @@ export default function HomePage() {
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.875rem', marginBottom: '2rem' }}>
                 <button
                   className="btn btn--primary"
-                  onClick={() => navigate(getDashboardRoute())}
+                  onClick={() => navigate(user ? getDashboardRoute() : '/login')}
                   style={{
                     padding: '0.9rem 2rem',
                     fontSize: '1rem',
-                    boxShadow: '0 8px 24px var(--color-primary-glow)',
                   }}
                 >
-                  {user ? 'Open My Dashboard →' : '🚀 Launch App / Sign In'}
+                  {user ? 'Open My Dashboard →' : 'Institutional Sign In →'}
                 </button>
-                <a
-                  href="#features"
-                  className="btn btn--ghost"
+                <button
+                  className="btn btn--accent"
+                  onClick={() => navigate('/demo')}
                   style={{
                     padding: '0.9rem 1.75rem',
                     fontSize: '1rem',
-                    textDecoration: 'none',
+                    fontWeight: 800,
                   }}
                 >
-                  ⚡ Explore Features
-                </a>
+                  ⚡ Explore 1-Click Demo Sandbox
+                </button>
               </div>
 
               {/* Trust Badges */}
