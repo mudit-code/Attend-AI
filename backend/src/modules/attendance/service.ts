@@ -118,11 +118,14 @@ export async function markRecords(
     };
   }
 
-  // Check auto-lock edit window
+  // Check auto-lock edit window based on lecture date
   const rules = await prisma.attendanceRule.findFirst();
   const editWindowHours = rules?.editWindowHours ?? 24;
   const windowMs = editWindowHours * 60 * 60 * 1000;
-  if (Date.now() - session.createdAt.getTime() > windowMs) {
+  // End of lecture day in ms (or createdAt, whichever is later)
+  const lectureDayEnd = new Date(session.date).setHours(23, 59, 59, 999);
+  const effectiveBaseTime = Math.max(session.createdAt.getTime(), lectureDayEnd);
+  if (Date.now() - effectiveBaseTime > windowMs) {
     await prisma.attendanceSession.update({
       where: { id: sessionId },
       data: { locked: true, lockedAt: new Date() },

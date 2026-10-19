@@ -1,5 +1,6 @@
 import { prisma } from '../../lib/prisma';
 import type { UpdateRulesInput } from './schema';
+import { getDefaulters } from '../reports/service';
 
 // ─── Attendance Rules ─────────────────────────────────────────────
 export async function getRules() {
@@ -64,8 +65,9 @@ export async function getAuditLogs(entity?: string, limit = 50) {
 
 // ─── Device Management ───────────────────────────────────────────
 export async function getDeviceByRollNo(rollNo: string) {
-  const student = await prisma.student.findUnique({
-    where: { rollNo },
+  const cleanRollNo = rollNo.trim();
+  const student = await prisma.student.findFirst({
+    where: { rollNo: { equals: cleanRollNo, mode: 'insensitive' } },
     include: {
       user: {
         select: { id: true, name: true, email: true, role: true },
@@ -88,8 +90,9 @@ export async function getDeviceByRollNo(rollNo: string) {
 }
 
 export async function unbindStudentDevice(rollNo: string, adminUserId: number, clientIp?: string) {
-  const student = await prisma.student.findUnique({
-    where: { rollNo },
+  const cleanRollNo = rollNo.trim();
+  const student = await prisma.student.findFirst({
+    where: { rollNo: { equals: cleanRollNo, mode: 'insensitive' } },
     include: { user: { include: { devices: true } } },
   });
 
@@ -188,12 +191,13 @@ export async function adminUnlockSession(
 
 // ─── System Stats ─────────────────────────────────────────────────
 export async function getSystemStats() {
-  const [totalStudents, totalTeachers, totalCourses, totalSessions, totalLeaves] = await Promise.all([
+  const [totalStudents, totalTeachers, totalCourses, totalSessions, totalLeaves, defaultersRes] = await Promise.all([
     prisma.student.count(),
     prisma.teacher.count(),
     prisma.course.count(),
     prisma.attendanceSession.count(),
     prisma.leaveRequest.count(),
+    getDefaulters(75).catch(() => ({ totalDefaulters: 0 })),
   ]);
 
   const today = new Date();
@@ -210,5 +214,6 @@ export async function getSystemStats() {
     totalSessions,
     totalLeaves,
     todaySessions,
+    defaultersCount: defaultersRes.totalDefaulters,
   };
 }

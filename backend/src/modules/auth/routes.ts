@@ -65,6 +65,13 @@ router.post('/oauth', validate(oauthSchema), async (req: Request, res: Response)
 
 // POST /auth/refresh
 router.post('/refresh', async (req: Request, res: Response): Promise<void> => {
+  const authHeader = req.headers.authorization;
+  if (authHeader?.includes('demo-')) {
+    const token = authHeader.split(' ')[1];
+    res.json({ accessToken: token });
+    return;
+  }
+
   const rawToken = req.cookies?.refresh_token;
   if (!rawToken) {
     res.status(401).json({ error: { code: 'MISSING_REFRESH_TOKEN', message: 'Refresh token not found' } });

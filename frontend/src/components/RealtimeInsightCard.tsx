@@ -79,9 +79,17 @@ export default function RealtimeInsightCard() {
   }
 
   return (
-    <div style={{ display: 'grid', gap: '1rem', marginBottom: '1.5rem' }}>
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+        gap: '1.25rem',
+        marginBottom: '1.5rem',
+        alignItems: 'stretch',
+      }}
+    >
       {/* ─── Realtime Insight Card ─────────────────────────────── */}
-      <div className="realtime-widget">
+      <div className="realtime-widget" style={{ marginBottom: 0, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
         <div className="flex items-center gap-2" style={{ marginBottom: '0.75rem' }}>
           <div
             style={{

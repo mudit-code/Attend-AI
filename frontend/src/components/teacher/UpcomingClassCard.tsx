@@ -57,10 +57,11 @@ const DEFAULT_TEACHER_TIMETABLE: TimetableData = {
 };
 
 interface UpcomingClassCardProps {
-  onStartQr?: (sectionId: number, subjectId: number, period: number) => void;
+  onStartQr?: (sectionId: number, subjectId: number, period: number, isLab: boolean) => void;
+  onStartManualRollCall?: (sectionId: number, subjectId: number, period: number, isLab: boolean) => void;
 }
 
-export default function UpcomingClassCard({ onStartQr }: UpcomingClassCardProps = {}) {
+export default function UpcomingClassCard({ onStartQr, onStartManualRollCall }: UpcomingClassCardProps = {}) {
   const [data, setData] = useState<TimetableData | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
@@ -85,65 +86,125 @@ export default function UpcomingClassCard({ onStartQr }: UpcomingClassCardProps 
   if (!focusSlot) return null;
 
   const isCurrent = !!currentSlot;
+  const isLab = !!(
+    focusSlot.subject?.name?.toLowerCase().includes("lab") ||
+    focusSlot.subject?.code?.toLowerCase().includes("lab") ||
+    focusSlot.roomNo?.toLowerCase().includes("lab")
+  );
 
   return (
     <div style={{
-      background: isCurrent ? "linear-gradient(135deg, rgba(99,102,241,0.15), rgba(139,92,246,0.08))" : "var(--color-surface)",
+      background: isCurrent ? "linear-gradient(135deg, rgba(99,102,241,0.12), rgba(139,92,246,0.06))" : "var(--color-surface)",
       borderRadius: 16,
-      border: `1px solid ${isCurrent ? "#6366f1" : "var(--color-border)"}`,
-      padding: "1rem 1.25rem",
+      border: `1.5px solid ${isCurrent ? "#6366f1" : "var(--color-border)"}`,
+      padding: "1.25rem",
       marginBottom: "1rem",
-      boxShadow: isCurrent ? "0 0 24px rgba(99,102,241,0.2)" : "none",
+      boxShadow: isCurrent ? "0 8px 24px rgba(99,102,241,0.15)" : "none",
     }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.75rem" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.75rem", flexWrap: "wrap", gap: "0.5rem" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
           {isCurrent ? (
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
               <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#10b981", animation: "pulse 1s infinite" }} />
-              <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#10b981", textTransform: "uppercase" }}>Ongoing Class</span>
+              <span style={{ fontSize: "0.75rem", fontWeight: 800, color: "#10b981", textTransform: "uppercase" }}>⚡ Ongoing Scheduled Class</span>
             </div>
           ) : (
-            <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#f59e0b", textTransform: "uppercase" }}>⏰ Upcoming Class</span>
+            <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#f59e0b", textTransform: "uppercase" }}>⏰ Upcoming Scheduled Class</span>
           )}
         </div>
-        <span style={{ fontSize: "0.7rem", color: "var(--color-muted)" }}>{focusSlot.startTime} – {focusSlot.endTime}</span>
+        <span style={{ fontSize: "0.75rem", color: "var(--color-muted)", fontWeight: 600 }}>{focusSlot.startTime} – {focusSlot.endTime}</span>
       </div>
 
       <div style={{ marginBottom: "0.875rem" }}>
-        <div style={{ fontWeight: 800, fontSize: "1.15rem", color: "var(--color-text)" }}>{focusSlot.subject?.name ?? "—"}</div>
-        <div style={{ fontSize: "0.8rem", color: "var(--color-muted)", marginTop: 2 }}>
-          {focusSlot.section.name}
-          {focusSlot.roomNo && <> · <span style={{ fontWeight: 600, color: "var(--color-text)" }}>🚪 Room {focusSlot.roomNo.replace(/^Room\s*/i, '')}</span></>}
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
+          <span style={{ fontWeight: 800, fontSize: "1.2rem", color: "var(--color-text)" }}>
+            {focusSlot.subject?.name ?? "—"}
+          </span>
+          {isLab && (
+            <span
+              style={{
+                background: "#EEF2FF",
+                color: "#4F46E5",
+                fontSize: "0.72rem",
+                fontWeight: 800,
+                padding: "2px 8px",
+                borderRadius: "6px",
+                border: "1px solid #C7D2FE",
+              }}
+            >
+              🧪 2-Hour Practical Lab (Double Attendance Credit · 2x)
+            </span>
+          )}
+        </div>
+        <div style={{ fontSize: "0.82rem", color: "var(--color-muted)", marginTop: 4 }}>
+          Section: <strong style={{ color: "var(--color-text)" }}>{focusSlot.section.name}</strong>
+          {focusSlot.roomNo && <> · 🚪 <strong style={{ color: "var(--color-text)" }}>Room {focusSlot.roomNo.replace(/^Room\s*/i, '')}</strong></>}
           · Period {focusSlot.period}
         </div>
       </div>
 
-      <button
-        onClick={() => {
-          if (onStartQr) {
-            onStartQr(focusSlot.sectionId, focusSlot.subject?.id || 1, focusSlot.period);
-          } else {
-            navigate(`/teacher?startQR=${focusSlot.sectionId}&subjectId=${focusSlot.subject?.id}`);
-          }
-        }}
-        style={{
-          width: "100%",
-          padding: "0.7rem",
-          background: "var(--color-primary)",
-          color: "#fff",
-          border: "none",
-          borderRadius: 10,
-          fontWeight: 700,
-          fontSize: "0.9rem",
-          cursor: "pointer",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 6,
-        }}
-      >
-        📱 Start QR Attendance
-      </button>
+      {/* Direct 1-Click Action Launchers */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "0.75rem", marginTop: "1rem" }}>
+        <button
+          type="button"
+          id="btn-quick-manual-rollcall"
+          onClick={() => {
+            if (onStartManualRollCall) {
+              onStartManualRollCall(focusSlot.sectionId, focusSlot.subject?.id || 1, focusSlot.period, isLab);
+            } else {
+              navigate(`/teacher?sectionId=${focusSlot.sectionId}&subjectId=${focusSlot.subject?.id}&period=${focusSlot.period}`);
+            }
+          }}
+          style={{
+            padding: "0.75rem 1rem",
+            background: "#059669",
+            color: "#ffffff",
+            border: "none",
+            borderRadius: 12,
+            fontWeight: 800,
+            fontSize: "0.88rem",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 6,
+            boxShadow: "0 4px 12px rgba(5, 150, 105, 0.25)",
+            transition: "all 0.2s ease",
+          }}
+        >
+          📋 1-Click Manual Roll Call
+        </button>
+
+        <button
+          type="button"
+          id="btn-quick-dynamic-qr"
+          onClick={() => {
+            if (onStartQr) {
+              onStartQr(focusSlot.sectionId, focusSlot.subject?.id || 1, focusSlot.period, isLab);
+            } else {
+              navigate(`/teacher?startQR=${focusSlot.sectionId}&subjectId=${focusSlot.subject?.id}`);
+            }
+          }}
+          style={{
+            padding: "0.75rem 1rem",
+            background: "var(--color-primary)",
+            color: "#ffffff",
+            border: "none",
+            borderRadius: 12,
+            fontWeight: 800,
+            fontSize: "0.88rem",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 6,
+            boxShadow: "0 4px 12px var(--color-primary-glow)",
+            transition: "all 0.2s ease",
+          }}
+        >
+          📱 Launch Dynamic QR
+        </button>
+      </div>
 
       {data.slots.length > 1 && (
         <div style={{ marginTop: "0.75rem", display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>

@@ -6,6 +6,22 @@ import { db } from '../lib/db';
 import { runSync } from '../lib/syncEngine';
 import heroImage from '../assets/attendance_3d_hero.jpg';
 
+export const COLLEGE_BRANCHES = [
+  { id: 'ALL', name: '🏛️ Central Campus - All Branches (Institutional Administration)' },
+  { id: 'CSE', name: '💻 Computer Science & Engineering (B.Tech CSE)' },
+  { id: 'CSE-AIML', name: '🤖 Artificial Intelligence & Machine Learning (CSE-AIML)' },
+  { id: 'IT', name: '🌐 Information Technology (B.Tech IT)' },
+  { id: 'ECE', name: '📡 Electronics & Communication Engineering (B.Tech ECE)' },
+  { id: 'EEE', name: '⚡ Electrical & Electronics Engineering (B.Tech EEE)' },
+  { id: 'ME', name: '⚙️ Mechanical Engineering (B.Tech ME)' },
+  { id: 'CE', name: '🏗️ Civil Engineering (B.Tech CE)' },
+  { id: 'MBA', name: '📊 Department of Business Administration (MBA)' },
+  { id: 'MCA', name: '📱 Department of Computer Applications (MCA)' },
+  { id: 'PHARM', name: '💊 Faculty of Pharmacy (B.Pharm / M.Pharm)' },
+  { id: 'ASH', name: '🔬 Applied Sciences & Humanities (1st Year)' },
+  { id: 'EXAM', name: '📋 Examination & Academic Administration Cell' },
+];
+
 export default function LoginPage() {
   const [authMode, setAuthMode] = useState<'LOGIN' | 'REGISTER'>('LOGIN');
   const [selectedRole, setSelectedRole] = useState<'TEACHER' | 'STUDENT' | 'ADMIN'>('TEACHER');
@@ -24,6 +40,7 @@ export default function LoginPage() {
   const [employeeCode, setEmployeeCode] = useState('FAC-KIT-204');
   const [department, setDepartment] = useState('Computer Science & Engineering');
   const [adminCode, setAdminCode] = useState('ADMIN2026');
+  const [adminBranch, setAdminBranch] = useState(COLLEGE_BRANCHES[0].name);
 
   // OAuth Modal state
   const [oauthModalOpen, setOauthModalOpen] = useState(false);
@@ -35,7 +52,7 @@ export default function LoginPage() {
 
   const navigate = useNavigate();
   const location = useLocation();
-  const { setToken, setUser } = useAuthStore();
+  const { setToken, setUser, unlockApp } = useAuthStore();
 
   useEffect(() => {
     const quick = (location.state as any)?.quickRole;
@@ -76,6 +93,7 @@ export default function LoginPage() {
       setConfirmPassword('Admin@123');
       setEmployeeCode('ADM-KIT-001');
       setAdminCode('ADMIN2026');
+      setAdminBranch(COLLEGE_BRANCHES[0].name);
     }
   }
 
@@ -105,6 +123,7 @@ export default function LoginPage() {
             role: 'ADMIN' as const,
           };
 
+    unlockApp();
     setToken(`token-${targetRole.toLowerCase()}-demo-attendai`);
     setUser(demoUser);
 
@@ -132,6 +151,7 @@ export default function LoginPage() {
     try {
       const { data } = await api.post('/auth/login', { email, password });
 
+      unlockApp();
       setToken(data.accessToken);
       setUser(data.user);
 
@@ -190,6 +210,8 @@ export default function LoginPage() {
       role: selectedRole,
       student: selectedRole === 'STUDENT' ? { id: 1, sectionId: 1, rollNo: rollNo || '2101640100015' } : null,
       teacher: selectedRole === 'TEACHER' ? { id: 1, departmentId: 1 } : null,
+      branch: selectedRole === 'ADMIN' ? adminBranch : branch,
+      department: selectedRole === 'ADMIN' ? adminBranch : department,
     };
 
     try {
@@ -200,7 +222,7 @@ export default function LoginPage() {
         role: selectedRole,
         ...(selectedRole === 'STUDENT' ? { rollNo: rollNo || '2101640100015' } : {}),
         ...(selectedRole === 'TEACHER' ? { employeeCode: employeeCode || 'FAC-KIT-204' } : {}),
-        ...(selectedRole === 'ADMIN' ? { adminCode: adminCode || 'ADMIN2026' } : {}),
+        ...(selectedRole === 'ADMIN' ? { adminCode: adminCode || 'ADMIN2026', branch: adminBranch } : {}),
       };
 
       const { data } = await api.post('/auth/register', payload);
@@ -822,29 +844,73 @@ export default function LoginPage() {
             )}
 
             {selectedRole === 'ADMIN' && (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
-                <input
-                  id="reg-admcode"
-                  type="text"
-                  className="input"
-                  placeholder="Staff Code (ADM-...)"
-                  value={employeeCode}
-                  onChange={(e) => setEmployeeCode(e.target.value)}
-                  required
-                  disabled={loading}
-                  style={{ height: 44, fontSize: '0.85rem' }}
-                />
-                <input
-                  id="reg-adminpass"
-                  type="password"
-                  className="input"
-                  placeholder="Admin Code (ADMIN2026)"
-                  value={adminCode}
-                  onChange={(e) => setAdminCode(e.target.value)}
-                  required
-                  disabled={loading}
-                  style={{ height: 44, fontSize: '0.85rem' }}
-                />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                  <input
+                    id="reg-admcode"
+                    type="text"
+                    className="input"
+                    placeholder="Staff Code (ADM-...)"
+                    value={employeeCode}
+                    onChange={(e) => setEmployeeCode(e.target.value)}
+                    required
+                    disabled={loading}
+                    style={{ height: 44, fontSize: '0.85rem' }}
+                  />
+                  <input
+                    id="reg-adminpass"
+                    type="password"
+                    className="input"
+                    placeholder="Admin Code (ADMIN2026)"
+                    value={adminCode}
+                    onChange={(e) => setAdminCode(e.target.value)}
+                    required
+                    disabled={loading}
+                    style={{ height: 44, fontSize: '0.85rem' }}
+                  />
+                </div>
+
+                {/* College Branch Dropdown for Admin */}
+                <div>
+                  <label
+                    htmlFor="reg-admin-branch"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      color: 'var(--color-text-muted)',
+                      marginBottom: '0.25rem',
+                    }}
+                  >
+                    <span>🏛️ College Branch / Department</span>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--color-primary)', fontWeight: 700 }}>Select Branch</span>
+                  </label>
+                  <select
+                    id="reg-admin-branch"
+                    className="input"
+                    value={adminBranch}
+                    onChange={(e) => setAdminBranch(e.target.value)}
+                    disabled={loading}
+                    style={{
+                      height: 44,
+                      fontSize: '0.85rem',
+                      fontWeight: 600,
+                      color: 'var(--color-text)',
+                      background: '#FFF0EE',
+                      border: '1.5px solid #FFDCD7',
+                      cursor: 'pointer',
+                      borderRadius: '8px',
+                    }}
+                  >
+                    {COLLEGE_BRANCHES.map((b) => (
+                      <option key={b.id} value={b.name} style={{ background: '#FFFFFF', color: '#1E293B' }}>
+                        {b.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
             )}
 

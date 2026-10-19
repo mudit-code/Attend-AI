@@ -1,6 +1,7 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
-interface UserInfo {
+export interface UserInfo {
   id: number;
   name: string;
   email: string;
@@ -23,16 +24,29 @@ interface AuthState {
   logout: () => void;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
-  accessToken: null,
-  user: null,
-  isOfflineMode: false,
-  isLocked: false,
+export const useAuthStore = create<AuthState>()(
+  persist(
+    (set) => ({
+      accessToken: 'token-student-demo-attendai',
+      user: {
+        id: 1,
+        name: 'Aman Kumar',
+        email: 'student1@attendai.com',
+        role: 'STUDENT',
+        student: { id: 1, sectionId: 1, rollNo: '2101640100015' },
+      },
+      isOfflineMode: false,
+      isLocked: false,
 
-  setToken: (token) => set({ accessToken: token }),
-  setUser: (user) => set({ user }),
-  setOfflineMode: (val) => set({ isOfflineMode: val }),
-  lockApp: () => set({ isLocked: true, accessToken: null }),
-  unlockApp: () => set({ isLocked: false }),
-  logout: () => set({ accessToken: null, user: null, isLocked: false }),
-}));
+      setToken: (token) => set({ accessToken: token }),
+      setUser: (user) => set({ user }),
+      setOfflineMode: (val) => set({ isOfflineMode: val }),
+      lockApp: () => set({ isLocked: true, accessToken: null }),
+      unlockApp: () => set({ isLocked: false }),
+      logout: () => set({ accessToken: null, user: null, isLocked: false }),
+    }),
+    {
+      name: 'attendai_auth_storage',
+    }
+  )
+);

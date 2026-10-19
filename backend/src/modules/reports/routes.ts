@@ -119,7 +119,8 @@ router.get(
     try {
       const minPercent = req.query.minPercent ? Number(req.query.minPercent) : 75;
       const sectionId = req.query.sectionId ? Number(req.query.sectionId) : undefined;
-      const csv = await reportsService.exportDefaultersCSV(minPercent, sectionId);
+      const departmentId = req.query.departmentId ? Number(req.query.departmentId) : undefined;
+      const csv = await reportsService.exportDefaultersCSV(minPercent, sectionId, departmentId);
 
       res.setHeader('Content-Type', 'text/csv');
       res.setHeader('Content-Disposition', 'attachment; filename="defaulters_report.csv"');

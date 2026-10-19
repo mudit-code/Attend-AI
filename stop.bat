@@ -9,24 +9,24 @@ echo ===========================================================================
 echo.
 echo Stopping Node.js dev server processes on ports 4000 and 5173...
 
-:: Find and terminate processes listening on port 4000 (Backend)
+:: Find and terminate processes listening on port 4000
 for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":4000" ^| findstr "LISTENING"') do (
-    echo [INFO] Stopping process on port 4000 (PID: %%a)...
+    echo [INFO] Stopping process on port 4000 [PID: %%a]...
     taskkill /F /PID %%a >nul 2>&1
 )
 
-:: Find and terminate processes listening on port 5173 (Frontend)
+:: Find and terminate processes listening on port 5173
 for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":5173" ^| findstr "LISTENING"') do (
-    echo [INFO] Stopping process on port 5173 (PID: %%a)...
+    echo [INFO] Stopping process on port 5173 [PID: %%a]...
     taskkill /F /PID %%a >nul 2>&1
 )
 
-:: Ask if user wants to stop Docker containers
+:: Stop Docker containers if available
 echo.
 where docker >nul 2>&1
-if %errorlevel% equ 0 (
-    echo [INFO] Stopping Docker Compose containers (PostgreSQL ^& Redis)...
-    docker compose down >nul 2>&1
+if not errorlevel 1 (
+    echo [INFO] Stopping Docker Compose containers - PostgreSQL ^& Redis...
+    docker compose -f "%~dp0docker-compose.yml" down >nul 2>&1
     echo [OK] Docker containers stopped.
 )
 
@@ -37,4 +37,4 @@ echo            AttendAI servers and containers have been stopped.
 echo ===============================================================================
 echo.
 pause
-exit
+exit /b 0

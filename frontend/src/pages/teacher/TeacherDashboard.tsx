@@ -25,12 +25,29 @@ interface StudentItem {
 interface SectionItem {
   id: number;
   name: string;
+  year: number;
+  courseId: number;
+  courseName: string;
+  courseCode: string;
+  departmentName?: string;
 }
 
 interface SubjectItem {
   id: number;
   name: string;
   code: string;
+}
+
+interface AssignedChip {
+  sectionId: number;
+  sectionName: string;
+  sectionYear: number;
+  courseCode: string;
+  courseName: string;
+  departmentName: string;
+  subjectId: number;
+  subjectName: string;
+  subjectCode: string;
 }
 
 export default function TeacherDashboard() {
@@ -49,6 +66,12 @@ export default function TeacherDashboard() {
   const [selectedSubject, setSelectedSubject] = useState<number | null>(null);
   const [period, setPeriod] = useState(1);
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [isLabClass, setIsLabClass] = useState(false);
+
+  // Branch filter & quick-switch chips
+  const [assignedChips, setAssignedChips] = useState<AssignedChip[]>([]);
+  const [filterBranchCode, setFilterBranchCode] = useState<string>('ALL');
+  const [activeChipKey, setActiveChipKey] = useState<string | null>(null);
 
   // Attendance roster
   const [students, setStudents] = useState<StudentItem[]>([]);
@@ -76,7 +99,17 @@ export default function TeacherDashboard() {
   // Initial load: fetch bootstrap data
   useEffect(() => {
     loadInitialData();
+    loadAssignedChips();
   }, []);
+
+  async function loadAssignedChips() {
+    try {
+      const res = await api.get('/academic/teacher/assigned-classes');
+      setAssignedChips(res.data.data || []);
+    } catch {
+      // Backend unavailable: chips will be empty, graceful degradation
+    }
+  }
 
   async function loadInitialData() {
     try {
@@ -183,7 +216,27 @@ export default function TeacherDashboard() {
           records: recordsToSave,
         });
 
-        setSaveMessage('✓ Attendance saved and synced to server!');
+        // 3. STEP 5: If Lab Practical (Double Period), also record period + 1 for 2x attendance credit!
+        if (isLabClass) {
+          try {
+            const nextPeriod = period + 1;
+            const sessionRes2 = await api.post('/attendance/sessions', {
+              sectionId: selectedSection,
+              subjectId: selectedSubject,
+              date,
+              period: nextPeriod,
+            });
+            await api.post(`/attendance/sessions/${sessionRes2.data.data.id}/records`, {
+              records: recordsToSave,
+            });
+            setSaveMessage(`✓ Lab Attendance saved for Periods ${period} & ${nextPeriod} (Double Attendance Credit · 2x)!`);
+          } catch (labErr) {
+            console.warn('Period + 1 lab credit logged:', labErr);
+            setSaveMessage('✓ Attendance saved and synced to server!');
+          }
+        } else {
+          setSaveMessage('✓ Attendance saved and synced to server!');
+        }
       } else {
         const outboxItems = students.map((s) => ({
           id: crypto.randomUUID(),
@@ -204,10 +257,34 @@ export default function TeacherDashboard() {
           updatedAt: new Date().toISOString(),
         }));
 
-        await db.outbox.bulkAdd(outboxItems);
-        useSyncStore.getState().incrementPending();
-
-        setSaveMessage('⚡ Saved locally! Will auto-sync when internet reconnects.');
+        if (isLabClass) {
+          const outboxItems2 = students.map((s) => ({
+            id: crypto.randomUUID(),
+            type: 'attendance_record' as const,
+            payload: {
+              sectionId: selectedSection,
+              subjectId: selectedSubject,
+              date,
+              period: period + 1,
+              studentId: s.id,
+              status: s.status,
+              method: 'MANUAL',
+              clientTs: new Date().toISOString(),
+            },
+            status: 'pending' as const,
+            attempts: 0,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          }));
+          await db.outbox.bulkAdd([...outboxItems, ...outboxItems2]);
+          useSyncStore.getState().incrementPending();
+          useSyncStore.getState().incrementPending();
+          setSaveMessage('⚡ Lab Attendance saved locally for 2 continuous periods (2x Credit)! Will auto-sync.');
+        } else {
+          await db.outbox.bulkAdd(outboxItems);
+          useSyncStore.getState().incrementPending();
+          setSaveMessage('⚡ Saved locally! Will auto-sync when internet reconnects.');
+        }
       }
     } catch (err: any) {
       console.error('Failed to save attendance', err);
@@ -501,39 +578,158 @@ export default function TeacherDashboard() {
           ───────────────────────────────────────────────────────────── */}
           {activeTab === 'mark' && (
             <div>
+              {/* ── STEP 4: Schedule-Aware 1-Click Roll Call Launcher ── */}
               <UpcomingClassCard
-                onStartQr={(secId, subId, p) => {
+                onStartManualRollCall={(secId, subId, p, isLab) => {
                   setSelectedSection(secId);
                   setSelectedSubject(subId);
                   setPeriod(p);
+                  setIsLabClass(isLab);
+                  setActiveTab('mark');
+                  setTimeout(() => {
+                    document.getElementById('attendance-roster-section')?.scrollIntoView({ behavior: 'smooth' });
+                  }, 150);
+                }}
+                onStartQr={(secId, subId, p, isLab) => {
+                  setSelectedSection(secId);
+                  setSelectedSubject(subId);
+                  setPeriod(p);
+                  setIsLabClass(isLab);
                   setActiveTab('qr');
                 }}
               />
 
-              {/* Class & Date Controls */}
+              {/* ── My Assigned Classes Quick-Switch Chips ── */}
+              {assignedChips.length > 0 && (
+                <div
+                  style={{
+                    marginBottom: '1rem',
+                    padding: '0.875rem 1rem',
+                    background: 'var(--color-surface-2)',
+                    borderRadius: '12px',
+                    border: '1px solid var(--color-border)',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.625rem' }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      🎯 My Assigned Classes
+                    </span>
+                    <span style={{ fontSize: '0.7rem', background: 'var(--color-primary)', color: '#fff', borderRadius: '999px', padding: '0.1rem 0.5rem', fontWeight: 700 }}>
+                      {assignedChips.length}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    {assignedChips.map((chip) => {
+                      const chipKey = `${chip.sectionId}-${chip.subjectId}`;
+                      const isActive = activeChipKey === chipKey;
+                      return (
+                        <button
+                          key={chipKey}
+                          type="button"
+                          onClick={() => {
+                            setActiveChipKey(chipKey);
+                            setSelectedSection(chip.sectionId);
+                            setSelectedSubject(chip.subjectId);
+                            setFilterBranchCode(chip.courseCode);
+                          }}
+                          style={{
+                            display: 'inline-flex',
+                            flexDirection: 'column',
+                            alignItems: 'flex-start',
+                            gap: '0.125rem',
+                            padding: '0.5rem 0.875rem',
+                            borderRadius: '10px',
+                            border: isActive ? '2px solid var(--color-primary)' : '1.5px solid var(--color-border)',
+                            background: isActive ? 'linear-gradient(135deg, var(--color-primary) 0%, #FF7A00 100%)' : 'var(--color-surface)',
+                            color: isActive ? '#fff' : 'var(--color-text)',
+                            cursor: 'pointer',
+                            transition: 'all 0.18s ease',
+                            boxShadow: isActive ? '0 4px 14px var(--color-primary-glow)' : 'none',
+                          }}
+                        >
+                          <span style={{ fontSize: '0.8rem', fontWeight: 800 }}>
+                            {chip.courseCode} · {chip.sectionName}
+                          </span>
+                          <span style={{ fontSize: '0.68rem', opacity: 0.85, fontWeight: 500 }}>
+                            {chip.subjectName} ({chip.subjectCode})
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* ── Class & Date Controls with Branch Filter ── */}
               <div
                 className="card"
                 style={{
                   display: 'grid',
                   gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
                   gap: '1rem',
-                  marginBottom: '1.5rem',
+                  marginBottom: '1rem',
                 }}
               >
+                {/* Branch Filter */}
                 <div>
-                  <label className="text-xs text-muted" style={{ display: 'block', marginBottom: '0.25rem' }}>
-                    Select Section
+                  <label className="text-xs text-muted" style={{ display: 'block', marginBottom: '0.25rem', fontWeight: 700 }}>
+                    🏛️ Filter by Branch
+                  </label>
+                  <select
+                    className="input"
+                    value={filterBranchCode}
+                    onChange={(e) => {
+                      setFilterBranchCode(e.target.value);
+                      setActiveChipKey(null);
+                    }}
+                    style={{ height: 44, fontWeight: 600, background: 'var(--color-surface-2)' }}
+                  >
+                    <option value="ALL">🌐 All Branches</option>
+                    {Array.from(new Set(sections.filter(s => s.courseCode).map(s => s.courseCode))).map((code) => {
+                      const sec = sections.find(s => s.courseCode === code)!;
+                      return (
+                        <option key={code} value={code}>
+                          {code} — {sec.courseName || sec.courseCode}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+
+                {/* Grouped Section Selector */}
+                <div>
+                  <label className="text-xs text-muted" style={{ display: 'block', marginBottom: '0.25rem', fontWeight: 700 }}>
+                    📋 Section
                   </label>
                   <select
                     className="input"
                     value={selectedSection || ''}
-                    onChange={(e) => setSelectedSection(Number(e.target.value))}
+                    onChange={(e) => {
+                      setSelectedSection(Number(e.target.value));
+                      setActiveChipKey(null);
+                    }}
+                    style={{ height: 44 }}
                   >
-                    {sections.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name}
-                      </option>
-                    ))}
+                    {filterBranchCode === 'ALL' ? (
+                      // Grouped by course
+                      Array.from(new Set(sections.map(s => s.courseCode || 'Other'))).map((code) => (
+                        <optgroup key={code} label={`📚 ${code}`}>
+                          {sections.filter(s => (s.courseCode || 'Other') === code).map((s) => (
+                            <option key={s.id} value={s.id}>
+                              {s.name} {s.year ? `(Year ${s.year})` : ''}
+                            </option>
+                          ))}
+                        </optgroup>
+                      ))
+                    ) : (
+                      sections
+                        .filter(s => s.courseCode === filterBranchCode)
+                        .map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {s.name} {s.year ? `(Year ${s.year})` : ''}
+                          </option>
+                        ))
+                    )}
                   </select>
                 </div>
 
@@ -544,7 +740,14 @@ export default function TeacherDashboard() {
                   <select
                     className="input"
                     value={selectedSubject || ''}
-                    onChange={(e) => setSelectedSubject(Number(e.target.value))}
+                    onChange={(e) => {
+                      const subId = Number(e.target.value);
+                      setSelectedSubject(subId);
+                      const subObj = subjects.find(s => s.id === subId);
+                      if (subObj && (subObj.name.toLowerCase().includes('lab') || subObj.code.toLowerCase().includes('lab'))) {
+                        setIsLabClass(true);
+                      }
+                    }}
                   >
                     {subjects.map((sub) => (
                       <option key={sub.id} value={sub.id}>
@@ -578,10 +781,87 @@ export default function TeacherDashboard() {
                     onChange={(e) => setDate(e.target.value)}
                   />
                 </div>
+
+                {/* STEP 5: Lab Practical Double Period Toggle */}
+                <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+                  <label
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      padding: '0.6rem 0.85rem',
+                      borderRadius: '10px',
+                      background: isLabClass ? '#EEF2FF' : 'var(--color-surface)',
+                      border: isLabClass ? '1.5px solid #6366F1' : '1px solid var(--color-border)',
+                      cursor: 'pointer',
+                      height: 44,
+                      userSelect: 'none',
+                      transition: 'all 0.2s ease',
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isLabClass}
+                      onChange={(e) => setIsLabClass(e.target.checked)}
+                      style={{ width: 16, height: 16, accentColor: '#4F46E5', cursor: 'pointer' }}
+                    />
+                    <div style={{ lineHeight: 1.2 }}>
+                      <span style={{ fontSize: '0.78rem', fontWeight: 800, color: isLabClass ? '#4F46E5' : 'var(--color-text)', display: 'block' }}>
+                        🧪 Lab Practical
+                      </span>
+                      <span style={{ fontSize: '0.65rem', color: isLabClass ? '#6366F1' : 'var(--color-muted)' }}>
+                        {isLabClass ? `Double Period (P${period} & P${period + 1} · 2x)` : '1 Period (1x)'}
+                      </span>
+                    </div>
+                  </label>
+                </div>
               </div>
+
+              {/* ── Active Class Context Hero Card ── */}
+              {selectedSection && (() => {
+                const sec = sections.find(s => s.id === selectedSection);
+                const sub = subjects.find(s => s.id === selectedSubject);
+                return sec ? (
+                  <div
+                    style={{
+                      marginBottom: '1.25rem',
+                      padding: '0.875rem 1.125rem',
+                      borderRadius: '12px',
+                      background: 'linear-gradient(135deg, rgba(230,60,45,0.07) 0%, rgba(255,122,0,0.06) 100%)',
+                      border: '1px solid rgba(230,60,45,0.18)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      flexWrap: 'wrap',
+                      gap: '0.75rem',
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.25rem' }}>
+                        🏛️ {sec.departmentName || sec.courseName || sec.courseCode || 'Department'}
+                      </div>
+                      <div style={{ fontWeight: 800, fontSize: '1.05rem', color: 'var(--color-text)' }}>
+                        {sec.courseName || sec.courseCode} — {sec.name}
+                        {sec.year ? <span style={{ marginLeft: '0.5rem', fontSize: '0.82rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>· Year {sec.year}</span> : null}
+                      </div>
+                      {sub && (
+                        <div style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)', marginTop: '0.15rem' }}>
+                          Subject: <strong>{sub.name}</strong> ({sub.code}) · Period {period} · {date}
+                        </div>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                      <span className="badge badge--online">{presentCount} Present</span>
+                      <span className="badge badge--offline">{absentCount} Absent</span>
+                      <span className="badge badge--pending">{students.length} Total</span>
+                    </div>
+                  </div>
+                ) : null;
+              })()}
 
               {/* Roster Header & Quick Actions */}
               <div
+                id="attendance-roster-section"
                 style={{
                   display: 'flex',
                   alignItems: 'center',

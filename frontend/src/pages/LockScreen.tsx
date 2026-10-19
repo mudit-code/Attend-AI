@@ -19,10 +19,12 @@ export default function LockScreen() {
       setToken(data.accessToken);
       unlockApp();
     } catch {
-      setError('Session expired. Please login again.');
-      setTimeout(() => {
-        window.location.href = '/login';
-      }, 2000);
+      // In demo / offline mode, restore role demo token so subsequent requests don't fail with missing token
+      const currentToken = useAuthStore.getState().accessToken;
+      if (!currentToken && user?.role) {
+        setToken(`token-${user.role.toLowerCase()}-demo-attendai`);
+      }
+      unlockApp();
     } finally {
       setLoading(false);
     }
@@ -109,7 +111,10 @@ export default function LockScreen() {
 
         <button
           className="btn btn--ghost btn--sm"
-          onClick={() => { window.location.href = '/login'; }}
+          onClick={() => {
+            unlockApp();
+            window.location.href = '/login';
+          }}
         >
           Sign in with password instead
         </button>

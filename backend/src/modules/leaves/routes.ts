@@ -1,7 +1,9 @@
 import { Router, Response } from 'express';
 import { prisma } from '../../lib/prisma';
 import { authenticate, AuthRequest } from '../../middlewares/auth';
+import { requireRole } from '../../middlewares/role';
 import { logger } from '../../lib/logger';
+import * as studentLeaveService from '../leave/service';
 
 const router = Router();
 
@@ -63,7 +65,7 @@ router.get('/teacher/my', authenticate, async (req: AuthRequest, res: Response):
 });
 
 // GET /leaves/admin/all - Admin views all teacher and student leaves
-router.get('/admin/all', authenticate, async (_req: AuthRequest, res: Response): Promise<void> => {
+router.get('/admin/all', authenticate, requireRole('ADMIN', 'HOD'), async (_req: AuthRequest, res: Response): Promise<void> => {
   try {
     const teacherLeaves = await prisma.teacherLeaveRequest.findMany({
       include: {
@@ -121,35 +123,34 @@ const handleTeacherLeaveDecision = async (req: AuthRequest, res: Response): Prom
 };
 
 // Accept both PATCH and POST for teacher leave decisions
-router.patch('/admin/teacher/:id/decision', authenticate, handleTeacherLeaveDecision);
-router.post('/admin/teacher/:id/decision', authenticate, handleTeacherLeaveDecision);
+router.patch('/admin/teacher/:id/decision', authenticate, requireRole('ADMIN', 'HOD'), handleTeacherLeaveDecision);
+router.post('/admin/teacher/:id/decision', authenticate, requireRole('ADMIN', 'HOD'), handleTeacherLeaveDecision);
 
-// Handler for Student Leave Decision
+// Handler for Student Leave Decision with synchronized attendance ledger update
 const handleStudentLeaveDecision = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const id = req.params.id as string;
     const { status, decisionNote } = req.body;
     const adminUserId = req.user!.id;
 
-    const updated = await prisma.leaveRequest.update({
-      where: { id },
-      data: {
-        status,
-        decisionNote,
-        decidedBy: adminUserId,
-        decidedAt: new Date(),
-      },
+    // Use student leave service to ensure attendance ledger is synchronized (P/A -> LV/OD)
+    const updated = await studentLeaveService.decideLeaveRequest(id, adminUserId, {
+      decision: status,
+      note: decisionNote,
     });
 
-    logger.info('Student leave decision updated', { id, status });
+    logger.info('Student leave decision updated with attendance sync', { id, status });
     res.json({ message: `Student leave ${status.toLowerCase()} successfully`, leave: updated, data: updated });
-  } catch (err) {
-    res.status(500).json({ error: { message: 'Failed to update student leave status' } });
+  } catch (err: any) {
+    logger.error('Failed to update student leave status', { error: err });
+    const code = err.code || 'INTERNAL_ERROR';
+    const statusCode = err.status || 500;
+    res.status(statusCode).json({ error: { code, message: err.message || 'Failed to update student leave status' } });
   }
 };
 
 // Accept both PATCH and POST for student leave decisions
-router.patch('/admin/student/:id/decision', authenticate, handleStudentLeaveDecision);
-router.post('/admin/student/:id/decision', authenticate, handleStudentLeaveDecision);
+router.patch('/admin/student/:id/decision', authenticate, requireRole('ADMIN', 'HOD'), handleStudentLeaveDecision);
+router.post('/admin/student/:id/decision', authenticate, requireRole('ADMIN', 'HOD'), handleStudentLeaveDecision);
 
 export default router;

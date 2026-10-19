@@ -8,8 +8,8 @@ const BATCH_SIZE = 50;
 // ─── Network check ───────────────────────────────────────────────
 async function isServerReachable(): Promise<boolean> {
   try {
-    await fetch('/health', { method: 'GET', cache: 'no-store' });
-    return true;
+    const res = await fetch('/api/v1/health', { method: 'GET', cache: 'no-store' });
+    return res.ok;
   } catch {
     return false;
   }

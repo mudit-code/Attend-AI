@@ -58,7 +58,8 @@ p  { color: var(--color-text-muted); }
 
 /* ─── Layout ─────────────────────────────────────────────────────── */
 .container { width: 100%; max-width: 480px; margin: 0 auto; padding: 0 1rem; }
-.container--wide { max-width: 1200px; }
+.container--wide { max-width: 1600px; }
+.container--fluid { width: 100%; max-width: 100%; margin: 0; padding: 0; }
 .page { flex: 1; display: flex; flex-direction: column; }
 
 /* ─── Card ───────────────────────────────────────────────────────── */
@@ -292,6 +293,42 @@ p  { color: var(--color-text-muted); }
 .font-semibold { font-weight: 600; }
 .w-full { width: 100%; }
 .hidden { display: none; }
+
+/* ─── Student Desktop Dashboard Layout ───────────────────────────── */
+.student-desktop-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+@media (min-width: 1024px) {
+  .student-desktop-grid {
+    grid-template-columns: 7fr 5fr;
+  }
+}
+
+.student-history-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+@media (min-width: 768px) {
+  .student-history-grid {
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  }
+}
+
+.student-leave-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+@media (min-width: 1024px) {
+  .student-leave-grid {
+    grid-template-columns: 5fr 7fr;
+  }
+}
 
 /* ─── Global Loading Screen ────────────────────────────────────────── */
 .attendai-loader-container {

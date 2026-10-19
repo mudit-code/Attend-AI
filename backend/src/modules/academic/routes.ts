@@ -164,6 +164,32 @@ router.post(
   }
 );
 
+router.delete(
+  '/timetable/:id',
+  requireRole('ADMIN', 'HOD'),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await academicService.deleteTimetableSlot(Number(req.params.id));
+      res.json({ message: 'Timetable slot removed successfully' });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+router.post(
+  '/timetable/pre-generate-sessions',
+  requireRole('ADMIN', 'HOD'),
+  async (_req: Request, res: Response, next: NextFunction) => {
+    try {
+      const result = await academicService.preGenerateTodaySessions();
+      res.json({ data: result, message: `Pre-scheduled sessions generated for today (${result.date})` });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
 // ─── Holidays ─────────────────────────────────────────────────────
 router.get('/holidays', async (_req: Request, res: Response, next: NextFunction) => {
   try {
@@ -208,6 +234,21 @@ router.get(
   async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       const data = await academicService.getTeacherTodayTimetable(req as AuthRequest);
+      res.json({ data });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+// ─── Teacher Assigned Classes (Quick-Switch Chips) ───────────────
+router.get(
+  '/teacher/assigned-classes',
+  requireRole('TEACHER', 'HOD'),
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const userId = (req as AuthRequest).user!.id;
+      const data = await academicService.getTeacherAssignedClasses(userId);
       res.json({ data });
     } catch (err) {
       next(err);

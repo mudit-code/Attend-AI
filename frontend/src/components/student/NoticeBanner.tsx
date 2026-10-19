@@ -38,7 +38,12 @@ const DEFAULT_NOTICES: Notice[] = [
   },
 ];
 
-export default function NoticeBanner() {
+interface NoticeBannerProps {
+  branchName?: string;
+  sectionName?: string;
+}
+
+export default function NoticeBanner({ branchName, sectionName }: NoticeBannerProps) {
   const [notices, setNotices] = useState<Notice[]>(DEFAULT_NOTICES);
   const [current, setCurrent] = useState(0);
   const [expanded, setExpanded] = useState(false);
@@ -46,10 +51,23 @@ export default function NoticeBanner() {
   useEffect(() => {
     api.get("/notices")
       .then((res) => {
-        if (res.data.data?.length) setNotices(res.data.data.slice(0, 5));
+        const raw = res.data.data;
+        if (Array.isArray(raw) && raw.length > 0) {
+          const filtered = raw.filter((n: any) => {
+            if (!n.audienceScope || n.audienceScope === 'CAMPUS') return true;
+            if (n.audienceScope === 'BRANCH' && branchName) {
+              return !n.targetDeptName || n.targetDeptName.toLowerCase().includes(branchName.toLowerCase()) || branchName.toLowerCase().includes(n.targetDeptName.toLowerCase());
+            }
+            if (n.audienceScope === 'SECTION' && sectionName) {
+              return !n.targetSectionName || n.targetSectionName.toLowerCase().includes(sectionName.toLowerCase()) || sectionName.toLowerCase().includes(n.targetSectionName.toLowerCase());
+            }
+            return true;
+          });
+          setNotices(filtered.slice(0, 5));
+        }
       })
       .catch(() => {});
-  }, []);
+  }, [branchName, sectionName]);
 
   useEffect(() => {
     if (notices.length <= 1) return;
