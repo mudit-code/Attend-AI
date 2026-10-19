@@ -14,6 +14,7 @@ import DefaulterEmailManager from '../../components/teacher/DefaulterEmailManage
 import SingleDateAttendanceSnapshot from '../../components/teacher/SingleDateAttendanceSnapshot';
 import UserProfileDrawer from '../../components/common/UserProfileDrawer';
 import ProjectorQRMode from '../../components/teacher/ProjectorQRMode';
+import InstallAppPrompt from '../../components/common/InstallAppPrompt';
 
 interface StudentItem {
   id: number;
@@ -447,10 +448,12 @@ export default function TeacherDashboard() {
         style={{
           background: 'var(--color-surface)',
           borderBottom: '1px solid var(--color-border)',
-          padding: '0.875rem 1rem',
+          padding: '0.75rem clamp(0.75rem, 2.5vw, 1.5rem)',
           display: 'flex',
+          flexWrap: 'wrap',
           alignItems: 'center',
           justifyContent: 'space-between',
+          gap: '0.75rem',
           position: 'sticky',
           top: 0,
           zIndex: 100,
@@ -514,13 +517,12 @@ export default function TeacherDashboard() {
 
       {/* Tab Navigation */}
       <nav
+        className="nav-scroll-touch"
         style={{
-          display: 'flex',
           gap: '0.5rem',
-          padding: '0.75rem 1rem',
+          padding: '0.65rem clamp(0.75rem, 2.5vw, 1.5rem)',
           background: 'var(--color-surface-2)',
           borderBottom: '1px solid var(--color-border)',
-          overflowX: 'auto',
         }}
       >
         <button
@@ -568,8 +570,9 @@ export default function TeacherDashboard() {
       </nav>
 
       {/* Main Content */}
-      <main style={{ flex: 1, padding: '1.5rem 1rem' }}>
+      <main style={{ flex: 1, padding: '1.25rem clamp(0.75rem, 2.5vw, 1.5rem)' }}>
         <div className="container container--wide">
+          <InstallAppPrompt />
           {/* Realtime Insight & Calendar Widget (Screen 3) */}
           <RealtimeInsightCard />
 
@@ -665,8 +668,8 @@ export default function TeacherDashboard() {
                 className="card"
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                  gap: '1rem',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(145px, 1fr))',
+                  gap: '0.75rem',
                   marginBottom: '1rem',
                 }}
               >

@@ -705,7 +705,7 @@ export default function LectureScheduleManager() {
         </div>
 
         {/* 6-Day x 6-Period Table */}
-        <div style={{ overflowX: 'auto', borderRadius: '16px', border: '1px solid var(--color-border)' }}>
+        <div className="table-responsive" style={{ borderRadius: '16px', border: '1px solid var(--color-border)' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: 950 }}>
             <thead>
               <tr style={{ background: 'var(--color-surface-2)', borderBottom: '2px solid var(--color-border)' }}>

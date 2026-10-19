@@ -344,7 +344,7 @@ export default function LoginPage() {
           borderRadius: '24px',
           boxShadow: '0 12px 40px rgba(230, 60, 45, 0.08)',
           border: '1px solid rgba(255, 60, 50, 0.08)',
-          padding: '2rem 1.75rem',
+          padding: 'clamp(1.25rem, 3.5vw, 2rem) clamp(1rem, 3vw, 1.75rem)',
         }}
       >
         {/* Back to Home Link */}

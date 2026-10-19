@@ -30,8 +30,8 @@ export default function QuickAcademicUtilityDock() {
         onClick={() => setIsOpen(!isOpen)}
         style={{
           position: 'fixed',
-          bottom: '1.5rem',
-          right: '1.5rem',
+          bottom: 'calc(1.25rem + var(--sab, 0px))',
+          right: 'clamp(0.75rem, 3vw, 1.5rem)',
           zIndex: 9000,
           background: 'var(--color-primary)',
           color: '#FFF',
@@ -59,9 +59,10 @@ export default function QuickAcademicUtilityDock() {
           className="card"
           style={{
             position: 'fixed',
-            bottom: '4.75rem',
-            right: '1.5rem',
-            width: 340,
+            bottom: 'calc(4.75rem + var(--sab, 0px))',
+            right: 'clamp(0.75rem, 3vw, 1.5rem)',
+            width: 'min(92vw, 340px)',
+            maxWidth: '100%',
             zIndex: 9001,
             background: 'var(--color-surface)',
             boxShadow: 'var(--shadow-float)',

@@ -16,6 +16,7 @@ import AttendanceLedgerWidget from '../../components/student/AttendanceLedgerWid
 import StudentMarksheetModal from '../../components/student/StudentMarksheetModal';
 import FeeReceiptModal from '../../components/student/FeeReceiptModal';
 import UserProfileDrawer from '../../components/common/UserProfileDrawer';
+import InstallAppPrompt from '../../components/common/InstallAppPrompt';
 
 export default function StudentDashboard() {
   const user = useAuthStore((s) => s.user);
@@ -258,10 +259,12 @@ export default function StudentDashboard() {
           background: 'rgba(255, 255, 255, 0.95)',
           backdropFilter: 'blur(16px)',
           borderBottom: '1px solid var(--color-border)',
-          padding: '0.875rem 2rem',
+          padding: '0.75rem clamp(0.75rem, 2.5vw, 1.5rem)',
           display: 'flex',
+          flexWrap: 'wrap',
           alignItems: 'center',
           justifyContent: 'space-between',
+          gap: '0.75rem',
           position: 'sticky',
           top: 0,
           zIndex: 100,
@@ -371,7 +374,7 @@ export default function StudentDashboard() {
           </button>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2" style={{ flexWrap: 'wrap' }}>
           <SyncBadge />
           <button
             id="btn-header-marksheet"
@@ -397,13 +400,12 @@ export default function StudentDashboard() {
 
       {/* ─── Navigation Tabs Bar ──────────────────────────────────── */}
       <nav
+        className="nav-scroll-touch"
         style={{
-          display: 'flex',
           gap: '0.5rem',
-          padding: '0.75rem 2rem',
+          padding: '0.65rem clamp(0.75rem, 2.5vw, 1.5rem)',
           background: 'var(--color-surface-2)',
           borderBottom: '1px solid var(--color-border)',
-          overflowX: 'auto',
         }}
       >
         <button
@@ -437,8 +439,9 @@ export default function StudentDashboard() {
       </nav>
 
       {/* ─── Main Desktop Content Area ────────────────────────────── */}
-      <main style={{ flex: 1, padding: '1.5rem 2rem' }}>
+      <main style={{ flex: 1, padding: '1.25rem clamp(0.75rem, 2.5vw, 1.75rem)' }}>
         <div className="container--fluid">
+          <InstallAppPrompt />
           {/* ─────────────────────────────────────────────────────────────
               TAB 1: ACADEMIC OVERVIEW (DESKTOP EXECUTIVE VIEW)
           ───────────────────────────────────────────────────────────── */}

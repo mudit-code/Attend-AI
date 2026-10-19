@@ -15,6 +15,7 @@ import DeviceManagerModal from '../../components/admin/DeviceManagerModal';
 import SessionUnlockDesk from '../../components/admin/SessionUnlockDesk';
 import LectureScheduleManager from '../../components/admin/LectureScheduleManager';
 import UserProfileDrawer from '../../components/common/UserProfileDrawer';
+import InstallAppPrompt from '../../components/common/InstallAppPrompt';
 
 export default function AdminDashboard() {
   const user = useAuthStore((s) => s.user);
@@ -299,10 +300,12 @@ export default function AdminDashboard() {
         style={{
           background: 'var(--color-surface)',
           borderBottom: '1px solid var(--color-border)',
-          padding: '0.875rem 1rem',
+          padding: '0.75rem clamp(0.75rem, 2.5vw, 1.5rem)',
           display: 'flex',
+          flexWrap: 'wrap',
           alignItems: 'center',
           justifyContent: 'space-between',
+          gap: '0.75rem',
           position: 'sticky',
           top: 0,
           zIndex: 100,
@@ -356,13 +359,12 @@ export default function AdminDashboard() {
 
       {/* Tabs */}
       <nav
+        className="nav-scroll-touch"
         style={{
-          display: 'flex',
           gap: '0.5rem',
-          padding: '0.75rem 1rem',
+          padding: '0.65rem clamp(0.75rem, 2.5vw, 1.5rem)',
           background: 'var(--color-surface-2)',
           borderBottom: '1px solid var(--color-border)',
-          overflowX: 'auto',
         }}
       >
         <button
@@ -471,8 +473,9 @@ export default function AdminDashboard() {
       </nav>
 
       {/* Content */}
-      <main style={{ flex: 1, padding: '1.5rem 1rem' }}>
+      <main style={{ flex: 1, padding: '1.25rem clamp(0.75rem, 2.5vw, 1.5rem)' }}>
         <div className="container container--wide">
+          <InstallAppPrompt />
           {/* ─────────────────────────────────────────────────────────────
               TAB 1: STATS & OVERVIEW
           ───────────────────────────────────────────────────────────── */}
@@ -607,7 +610,7 @@ export default function AdminDashboard() {
               <div
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
                   gap: '1rem',
                   marginBottom: '1.5rem',
                 }}

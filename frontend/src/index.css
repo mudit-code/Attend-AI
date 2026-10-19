@@ -20,6 +20,12 @@
   --color-online: #10B981;
   --color-offline: #EF4444;
 
+  /* ─── PWA & Mobile Safe Area Inset Variables ─────────────────────── */
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
@@ -44,6 +50,14 @@ body {
   color: var(--color-text);
   min-height: 100dvh;
   line-height: 1.6;
+  padding-top: var(--sat);
+  padding-bottom: var(--sab);
+  padding-left: var(--sal);
+  padding-right: var(--sar);
+  /* Native PWA gesture protection */
+  overscroll-behavior-y: contain;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -58,7 +72,7 @@ p  { color: var(--color-text-muted); }
 
 /* ─── Layout ─────────────────────────────────────────────────────── */
 .container { width: 100%; max-width: 480px; margin: 0 auto; padding: 0 1rem; }
-.container--wide { max-width: 1600px; }
+.container--wide { max-width: 1600px; margin: 0 auto; padding: 0 clamp(0.75rem, 2.5vw, 1.5rem); }
 .container--fluid { width: 100%; max-width: 100%; margin: 0; padding: 0; }
 .page { flex: 1; display: flex; flex-direction: column; }
 
@@ -442,5 +456,118 @@ p  { color: var(--color-text-muted); }
 @keyframes loaderShimmer {
   0% { left: -50%; }
   100% { left: 120%; }
+}
+
+/* ─── PWA & Cross-Device Responsive Utilities ────────────────────── */
+
+/* Smooth momentum touch-scrolling container with hidden scrollbars for mobile tabs */
+.nav-scroll-touch {
+  display: flex;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
+  gap: 0.5rem;
+  padding-bottom: 2px;
+}
+.nav-scroll-touch::-webkit-scrollbar {
+  display: none;
+}
+.nav-scroll-touch > * {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* Responsive Table Wrapper: Prevents horizontal blowout on small viewports */
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 40, 27, 0.2) transparent;
+}
+.table-responsive::-webkit-scrollbar {
+  height: 6px;
+}
+.table-responsive::-webkit-scrollbar-track {
+  background: transparent;
+}
+.table-responsive::-webkit-scrollbar-thumb {
+  background: rgba(255, 40, 27, 0.2);
+  border-radius: 999px;
+}
+
+/* Responsive Modal Base: Constrained within dynamic viewport bounds */
+.modal-responsive {
+  width: min(94vw, 760px);
+  max-height: 90dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Adaptive Fluid Grids */
+.grid-auto-fit-sm {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 0.75rem;
+}
+.grid-auto-fit-md {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1rem;
+}
+.grid-auto-fit-lg {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.25rem;
+}
+
+/* PWA A2HS Install Banner Component */
+.pwa-install-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.875rem;
+  padding: 0.75rem 1.125rem;
+  background: linear-gradient(135deg, #FFF0EE 0%, #FFE6E2 100%);
+  border: 1.5px solid var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  margin-bottom: 1rem;
+  box-shadow: 0 4px 16px rgba(255, 40, 27, 0.08);
+  animation: fadeInLoader 0.3s ease-out;
+}
+.pwa-install-banner__content {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+.pwa-install-banner__badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--color-primary);
+  color: #FFFFFF;
+  font-size: 1.125rem;
+  flex-shrink: 0;
+  box-shadow: 0 4px 10px rgba(255, 40, 27, 0.3);
+}
+
+/* Mobile Thumb Touch Target Optimizations (<= 640px) */
+@media (max-width: 640px) {
+  .btn {
+    min-height: 48px;
+    padding: 0.75rem 1.25rem;
+  }
+  .input, .form-input {
+    min-height: 48px;
+    font-size: 1rem; /* Prevents auto-zoom on iOS Safari */
+  }
 }
 

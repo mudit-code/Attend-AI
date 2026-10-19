@@ -364,8 +364,8 @@ export default function AttendanceLedgerWidget() {
       </div>
 
       {/* Ledger Table */}
-      <div style={{ overflowX: 'auto', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', textAlign: 'left' }}>
+      <div className="table-responsive" style={{ border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)' }}>
+        <table style={{ width: '100%', minWidth: 620, borderCollapse: 'collapse', fontSize: '0.82rem', textAlign: 'left' }}>
           <thead>
             <tr style={{ background: 'var(--color-surface-2)', borderBottom: '1px solid var(--color-border)' }}>
               <th style={{ padding: '0.65rem 0.75rem', fontWeight: 700 }}>Date & Day</th>

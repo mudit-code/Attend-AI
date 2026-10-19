@@ -60,7 +60,7 @@ export default function NoDuesWidget() {
           <div style={{ fontSize: "0.7rem", color: "var(--color-muted)" }}>Cleared</div>
         </div>
       </div>
-      <div style={{ padding: "0.75rem 1.25rem", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }}>
+      <div style={{ padding: "0.75rem clamp(0.75rem, 2vw, 1.25rem)", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: "0.5rem" }}>
         {PILLARS.map((p) => {
           const ok = data[p.key];
           return (
