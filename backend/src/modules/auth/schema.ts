@@ -34,6 +34,13 @@ export const registerSchema = z.object({
   departmentId: z.number().int().optional(),
   adminCode: z.string().optional(),
   branch: z.string().optional(),
+  phone: z.string().optional(),
+  parentName: z.string().optional(),
+  parentPhone: z.string().optional(),
+  semester: z.string().optional(),
+  designation: z.string().optional(),
+  isClassTeacher: z.boolean().optional(),
+  adminRoleType: z.string().optional(),
 });
 
 export const oauthSchema = z.object({

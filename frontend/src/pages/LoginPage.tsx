@@ -7,7 +7,7 @@ import { runSync } from '../lib/syncEngine';
 import heroImage from '../assets/attendance_3d_hero.jpg';
 import BrandLogo from '../components/common/BrandLogo';
 
-export const COLLEGE_BRANCHES = [
+const COLLEGE_BRANCHES = [
   { id: 'ALL', name: '🏛️ Central Campus - All Branches (Institutional Administration)' },
   { id: 'CSE', name: '💻 Computer Science & Engineering (B.Tech CSE)' },
   { id: 'CSE-AIML', name: '🤖 Artificial Intelligence & Machine Learning (CSE-AIML)' },
@@ -23,6 +23,36 @@ export const COLLEGE_BRANCHES = [
   { id: 'EXAM', name: '📋 Examination & Academic Administration Cell' },
 ];
 
+const ACADEMIC_YEARS = [
+  '1st Year (Sem 1-2)',
+  '2nd Year (Sem 3-4)',
+  '3rd Year (Sem 5-6)',
+  '4th Year (Sem 7-8)',
+];
+
+const ACADEMIC_SECTIONS = [
+  'Section A',
+  'Section B',
+  'Section C',
+  'Section D',
+];
+
+const TEACHER_DESIGNATIONS = [
+  'Assistant Professor',
+  'Associate Professor',
+  'Professor',
+  'Head of Department (HOD)',
+  'Visiting Faculty / Guest Lecturer',
+];
+
+const ADMIN_ROLE_TYPES = [
+  'Super Admin / Director',
+  'Academic Coordinator',
+  'Registrar Office',
+  'Head of Department (HOD)',
+  'Examination Controller',
+];
+
 export default function LoginPage() {
   const [authMode, setAuthMode] = useState<'LOGIN' | 'REGISTER'>('LOGIN');
   const [selectedRole, setSelectedRole] = useState<'TEACHER' | 'STUDENT' | 'ADMIN'>('TEACHER');
@@ -36,12 +66,27 @@ export default function LoginPage() {
   const [regEmail, setRegEmail] = useState('teacher1@attendai.com');
   const [regPassword, setRegPassword] = useState('Teacher@123');
   const [confirmPassword, setConfirmPassword] = useState('Teacher@123');
+  const [phone, setPhone] = useState('9876543210');
+
+  // Student specific fields
   const [rollNo, setRollNo] = useState('2101640100015');
-  const [branch, setBranch] = useState('B.Tech CSE - 6th Sem');
+  const [branch, setBranch] = useState(COLLEGE_BRANCHES[1].name);
+  const [academicYear, setAcademicYear] = useState(ACADEMIC_YEARS[2]);
+  const [section, setSection] = useState(ACADEMIC_SECTIONS[0]);
+  const [parentName, setParentName] = useState('Suresh Kumar');
+  const [parentPhone, setParentPhone] = useState('9812345678');
+
+  // Teacher specific fields
   const [employeeCode, setEmployeeCode] = useState('FAC-KIT-204');
-  const [department, setDepartment] = useState('Computer Science & Engineering');
+  const [department, setDepartment] = useState(COLLEGE_BRANCHES[1].name);
+  const [designation, setDesignation] = useState(TEACHER_DESIGNATIONS[0]);
+  const [isClassTeacher, setIsClassTeacher] = useState(false);
+  const [classTeacherSection, setClassTeacherSection] = useState(ACADEMIC_SECTIONS[0]);
+
+  // Admin specific fields
   const [adminCode, setAdminCode] = useState('ADMIN2026');
   const [adminBranch, setAdminBranch] = useState(COLLEGE_BRANCHES[0].name);
+  const [adminRoleType, setAdminRoleType] = useState(ADMIN_ROLE_TYPES[0]);
 
   // OAuth Modal state
   const [oauthModalOpen, setOauthModalOpen] = useState(false);
@@ -74,8 +119,12 @@ export default function LoginPage() {
       setRegEmail('r.sharma@kit.ac.in');
       setRegPassword('Teacher@123');
       setConfirmPassword('Teacher@123');
+      setPhone('9876543210');
       setEmployeeCode('FAC-KIT-204');
-      setDepartment('Computer Science & Engineering');
+      setDepartment(COLLEGE_BRANCHES[1].name);
+      setDesignation(TEACHER_DESIGNATIONS[0]);
+      setIsClassTeacher(false);
+      setClassTeacherSection(ACADEMIC_SECTIONS[0]);
     } else if (role === 'STUDENT') {
       setEmail('student1@attendai.com');
       setPassword('Student@123');
@@ -83,8 +132,13 @@ export default function LoginPage() {
       setRegEmail('aman.kumar@kit.ac.in');
       setRegPassword('Student@123');
       setConfirmPassword('Student@123');
+      setPhone('9876512345');
       setRollNo('2101640100015');
-      setBranch('B.Tech CSE - 6th Sem');
+      setBranch(COLLEGE_BRANCHES[1].name);
+      setAcademicYear(ACADEMIC_YEARS[2]);
+      setSection(ACADEMIC_SECTIONS[0]);
+      setParentName('Suresh Kumar');
+      setParentPhone('9812345678');
     } else if (role === 'ADMIN') {
       setEmail('admin@attendai.com');
       setPassword('Admin@123');
@@ -92,9 +146,11 @@ export default function LoginPage() {
       setRegEmail('dean.academics@kit.ac.in');
       setRegPassword('Admin@123');
       setConfirmPassword('Admin@123');
+      setPhone('9898989898');
       setEmployeeCode('ADM-KIT-001');
       setAdminCode('ADMIN2026');
       setAdminBranch(COLLEGE_BRANCHES[0].name);
+      setAdminRoleType(ADMIN_ROLE_TYPES[0]);
     }
   }
 
@@ -210,10 +266,12 @@ export default function LoginPage() {
       name: name || (selectedRole === 'STUDENT' ? 'Aman Kumar' : selectedRole === 'TEACHER' ? 'Faculty Member' : 'Admin Staff'),
       email: regEmail || `${selectedRole.toLowerCase()}@attendai.com`,
       role: selectedRole,
-      student: selectedRole === 'STUDENT' ? { id: 1, sectionId: 1, rollNo: rollNo || '2101640100015' } : null,
-      teacher: selectedRole === 'TEACHER' ? { id: 1, departmentId: 1 } : null,
+      phone: phone || undefined,
+      student: selectedRole === 'STUDENT' ? { id: 1, sectionId: 1, rollNo: rollNo || '2101640100015', branch, academicYear, section, parentName, parentPhone } : null,
+      teacher: selectedRole === 'TEACHER' ? { id: 1, departmentId: 1, designation, isClassTeacher, classTeacherSection } : null,
       branch: selectedRole === 'ADMIN' ? adminBranch : branch,
       department: selectedRole === 'ADMIN' ? adminBranch : department,
+      adminRoleType: selectedRole === 'ADMIN' ? adminRoleType : undefined,
     };
 
     try {
@@ -222,9 +280,26 @@ export default function LoginPage() {
         email: fallbackUser.email,
         password: regPassword,
         role: selectedRole,
-        ...(selectedRole === 'STUDENT' ? { rollNo: rollNo || '2101640100015' } : {}),
-        ...(selectedRole === 'TEACHER' ? { employeeCode: employeeCode || 'FAC-KIT-204' } : {}),
-        ...(selectedRole === 'ADMIN' ? { adminCode: adminCode || 'ADMIN2026', branch: adminBranch } : {}),
+        phone: phone || undefined,
+        ...(selectedRole === 'STUDENT' ? {
+          rollNo: rollNo || '2101640100015',
+          branch,
+          semester: academicYear,
+          parentName,
+          parentPhone,
+        } : {}),
+        ...(selectedRole === 'TEACHER' ? {
+          employeeCode: employeeCode || 'FAC-KIT-204',
+          department,
+          designation,
+          isClassTeacher,
+        } : {}),
+        ...(selectedRole === 'ADMIN' ? {
+          employeeCode: employeeCode || 'ADM-KIT-001',
+          adminCode: adminCode || 'ADMIN2026',
+          branch: adminBranch,
+          adminRoleType,
+        } : {}),
       };
 
       const { data } = await api.post('/auth/register', payload);
@@ -676,24 +751,48 @@ export default function LoginPage() {
           </form>
         ) : (
           /* ─── TAB 2: REGISTER / SIGN UP FORM ─── */
-          <form onSubmit={handleRegisterSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            {/* Full Name */}
-            <div>
-              <input
-                id="reg-name"
-                type="text"
-                className="input"
-                placeholder="Full Name (e.g. Aman Kumar)"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-                disabled={loading}
-                style={{ height: 44 }}
-              />
+          <form onSubmit={handleRegisterSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+            {/* Basic Info: Full Name & Mobile */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '0.5rem' }}>
+              <div>
+                <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-text-muted)', marginBottom: '0.2rem', display: 'block' }}>
+                  👤 Full Name *
+                </label>
+                <input
+                  id="reg-name"
+                  type="text"
+                  className="input"
+                  placeholder="Full Name (e.g. Aman Kumar)"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                  disabled={loading}
+                  style={{ height: 42, fontSize: '0.85rem' }}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-text-muted)', marginBottom: '0.2rem', display: 'block' }}>
+                  📱 Mobile Number *
+                </label>
+                <input
+                  id="reg-phone"
+                  type="tel"
+                  className="input"
+                  placeholder="e.g. 9876543210"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  required
+                  disabled={loading}
+                  style={{ height: 42, fontSize: '0.85rem' }}
+                />
+              </div>
             </div>
 
             {/* Email */}
             <div>
+              <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-text-muted)', marginBottom: '0.2rem', display: 'block' }}>
+                ✉️ Institutional College Email *
+              </label>
               <input
                 id="reg-email"
                 type="email"
@@ -709,88 +808,289 @@ export default function LoginPage() {
                 onChange={(e) => setRegEmail(e.target.value)}
                 required
                 disabled={loading}
-                style={{ height: 44 }}
+                style={{ height: 42, fontSize: '0.85rem' }}
               />
             </div>
 
             {/* Role-Specific Fields */}
             {selectedRole === 'STUDENT' && (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
-                <input
-                  id="reg-rollno"
-                  type="text"
-                  className="input"
-                  placeholder="AKTU Roll No"
-                  value={rollNo}
-                  onChange={(e) => setRollNo(e.target.value)}
-                  required
-                  disabled={loading}
-                  style={{ height: 44, fontSize: '0.85rem' }}
-                />
-                <input
-                  id="reg-branch"
-                  type="text"
-                  className="input"
-                  placeholder="Branch & Year"
-                  value={branch}
-                  onChange={(e) => setBranch(e.target.value)}
-                  disabled={loading}
-                  style={{ height: 44, fontSize: '0.85rem' }}
-                />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {/* Roll No & Year */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                  <div>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-text-muted)', marginBottom: '0.2rem', display: 'block' }}>
+                      🎓 AKTU / University Roll No *
+                    </label>
+                    <input
+                      id="reg-rollno"
+                      type="text"
+                      className="input"
+                      placeholder="e.g. 2101640100015"
+                      value={rollNo}
+                      onChange={(e) => setRollNo(e.target.value)}
+                      required
+                      disabled={loading}
+                      style={{ height: 42, fontSize: '0.85rem' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-text-muted)', marginBottom: '0.2rem', display: 'block' }}>
+                      📅 Academic Year *
+                    </label>
+                    <select
+                      id="reg-student-year"
+                      className="input"
+                      value={academicYear}
+                      onChange={(e) => setAcademicYear(e.target.value)}
+                      disabled={loading}
+                      style={{ height: 42, fontSize: '0.82rem', background: '#FFF0EE', border: '1.5px solid #FFDCD7' }}
+                    >
+                      {ACADEMIC_YEARS.map((y) => (
+                        <option key={y} value={y} style={{ background: '#FFFFFF', color: '#1E293B' }}>
+                          {y}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Branch / Department Dropdown */}
+                <div>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-text-muted)', marginBottom: '0.2rem', display: 'block' }}>
+                    💻 Department / Branch *
+                  </label>
+                  <select
+                    id="reg-student-branch"
+                    className="input"
+                    value={branch}
+                    onChange={(e) => setBranch(e.target.value)}
+                    disabled={loading}
+                    style={{ height: 42, fontSize: '0.82rem', background: '#FFF0EE', border: '1.5px solid #FFDCD7' }}
+                  >
+                    {COLLEGE_BRANCHES.slice(1).map((b) => (
+                      <option key={b.id} value={b.name} style={{ background: '#FFFFFF', color: '#1E293B' }}>
+                        {b.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Assigned Section */}
+                <div>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-text-muted)', marginBottom: '0.2rem', display: 'block' }}>
+                    🏫 Assigned Section *
+                  </label>
+                  <select
+                    id="reg-student-section"
+                    className="input"
+                    value={section}
+                    onChange={(e) => setSection(e.target.value)}
+                    disabled={loading}
+                    style={{ height: 42, fontSize: '0.82rem', background: '#FFF0EE', border: '1.5px solid #FFDCD7' }}
+                  >
+                    {ACADEMIC_SECTIONS.map((s) => (
+                      <option key={s} value={s} style={{ background: '#FFFFFF', color: '#1E293B' }}>
+                        {s}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Parent / Guardian Alert Box */}
+                <div
+                  style={{
+                    background: 'rgba(255, 60, 40, 0.04)',
+                    border: '1px dashed var(--color-border)',
+                    borderRadius: '10px',
+                    padding: '0.65rem 0.75rem',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.5rem',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-primary)' }}>
+                      👨‍👩‍👧 Parent / Guardian Alerts
+                    </span>
+                    <span style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)' }}>Attendance & SMS</span>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                    <input
+                      id="reg-parent-name"
+                      type="text"
+                      className="input"
+                      placeholder="Parent / Guardian Name"
+                      value={parentName}
+                      onChange={(e) => setParentName(e.target.value)}
+                      disabled={loading}
+                      style={{ height: 38, fontSize: '0.8rem', background: '#FFFFFF' }}
+                    />
+                    <input
+                      id="reg-parent-phone"
+                      type="tel"
+                      className="input"
+                      placeholder="Parent Mobile Number"
+                      value={parentPhone}
+                      onChange={(e) => setParentPhone(e.target.value)}
+                      disabled={loading}
+                      style={{ height: 38, fontSize: '0.8rem', background: '#FFFFFF' }}
+                    />
+                  </div>
+                </div>
               </div>
             )}
 
             {selectedRole === 'TEACHER' && (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
-                <input
-                  id="reg-empcode"
-                  type="text"
-                  className="input"
-                  placeholder="Faculty ID (FAC-KIT-...)"
-                  value={employeeCode}
-                  onChange={(e) => setEmployeeCode(e.target.value)}
-                  required
-                  disabled={loading}
-                  style={{ height: 44, fontSize: '0.85rem' }}
-                />
-                <input
-                  id="reg-dept"
-                  type="text"
-                  className="input"
-                  placeholder="Department"
-                  value={department}
-                  onChange={(e) => setDepartment(e.target.value)}
-                  disabled={loading}
-                  style={{ height: 44, fontSize: '0.85rem' }}
-                />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {/* Faculty ID & Designation */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                  <div>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-text-muted)', marginBottom: '0.2rem', display: 'block' }}>
+                      🆔 Faculty Employee Code *
+                    </label>
+                    <input
+                      id="reg-empcode"
+                      type="text"
+                      className="input"
+                      placeholder="e.g. FAC-KIT-204"
+                      value={employeeCode}
+                      onChange={(e) => setEmployeeCode(e.target.value)}
+                      required
+                      disabled={loading}
+                      style={{ height: 42, fontSize: '0.85rem' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-text-muted)', marginBottom: '0.2rem', display: 'block' }}>
+                      👔 Designation / Post *
+                    </label>
+                    <select
+                      id="reg-teacher-designation"
+                      className="input"
+                      value={designation}
+                      onChange={(e) => setDesignation(e.target.value)}
+                      disabled={loading}
+                      style={{ height: 42, fontSize: '0.82rem', background: '#FFF0EE', border: '1.5px solid #FFDCD7' }}
+                    >
+                      {TEACHER_DESIGNATIONS.map((d) => (
+                        <option key={d} value={d} style={{ background: '#FFFFFF', color: '#1E293B' }}>
+                          {d}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Department Dropdown */}
+                <div>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-text-muted)', marginBottom: '0.2rem', display: 'block' }}>
+                    🏢 Academic Department *
+                  </label>
+                  <select
+                    id="reg-teacher-department"
+                    className="input"
+                    value={department}
+                    onChange={(e) => setDepartment(e.target.value)}
+                    disabled={loading}
+                    style={{ height: 42, fontSize: '0.82rem', background: '#FFF0EE', border: '1.5px solid #FFDCD7' }}
+                  >
+                    {COLLEGE_BRANCHES.slice(1).map((b) => (
+                      <option key={b.id} value={b.name} style={{ background: '#FFFFFF', color: '#1E293B' }}>
+                        {b.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Class Teacher Toggle */}
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.5rem',
+                    background: '#FFF0EE',
+                    border: '1px solid #FFDCD7',
+                    borderRadius: '8px',
+                    padding: '0.6rem 0.75rem',
+                  }}
+                >
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', margin: 0 }}>
+                    <input
+                      id="reg-class-teacher-toggle"
+                      type="checkbox"
+                      checked={isClassTeacher}
+                      onChange={(e) => setIsClassTeacher(e.target.checked)}
+                      disabled={loading}
+                      style={{ width: 16, height: 16, accentColor: 'var(--color-primary)' }}
+                    />
+                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--color-text)' }}>
+                      📌 Assigned as Class Teacher / Proctor
+                    </span>
+                  </label>
+                  {isClassTeacher && (
+                    <div style={{ marginTop: '0.25rem' }}>
+                      <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--color-primary)', display: 'block', marginBottom: '0.2rem' }}>
+                        Select Class Teacher Section:
+                      </label>
+                      <select
+                        id="reg-class-teacher-section"
+                        className="input"
+                        value={classTeacherSection}
+                        onChange={(e) => setClassTeacherSection(e.target.value)}
+                        disabled={loading}
+                        style={{ height: 38, fontSize: '0.8rem', background: '#FFFFFF' }}
+                      >
+                        {ACADEMIC_SECTIONS.map((s) => (
+                          <option key={s} value={s}>
+                            {s}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
             {selectedRole === 'ADMIN' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {/* Staff Code & Role Level */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
-                  <input
-                    id="reg-admcode"
-                    type="text"
-                    className="input"
-                    placeholder="Staff Code (ADM-...)"
-                    value={employeeCode}
-                    onChange={(e) => setEmployeeCode(e.target.value)}
-                    required
-                    disabled={loading}
-                    style={{ height: 44, fontSize: '0.85rem' }}
-                  />
-                  <input
-                    id="reg-adminpass"
-                    type="password"
-                    className="input"
-                    placeholder="Admin Code (ADMIN2026)"
-                    value={adminCode}
-                    onChange={(e) => setAdminCode(e.target.value)}
-                    required
-                    disabled={loading}
-                    style={{ height: 44, fontSize: '0.85rem' }}
-                  />
+                  <div>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-text-muted)', marginBottom: '0.2rem', display: 'block' }}>
+                      🆔 Admin Staff Code *
+                    </label>
+                    <input
+                      id="reg-admcode"
+                      type="text"
+                      className="input"
+                      placeholder="e.g. ADM-KIT-001"
+                      value={employeeCode}
+                      onChange={(e) => setEmployeeCode(e.target.value)}
+                      required
+                      disabled={loading}
+                      style={{ height: 42, fontSize: '0.85rem' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-text-muted)', marginBottom: '0.2rem', display: 'block' }}>
+                      🛡️ Admin Role Level *
+                    </label>
+                    <select
+                      id="reg-admin-role-type"
+                      className="input"
+                      value={adminRoleType}
+                      onChange={(e) => setAdminRoleType(e.target.value)}
+                      disabled={loading}
+                      style={{ height: 42, fontSize: '0.82rem', background: '#FFF0EE', border: '1.5px solid #FFDCD7' }}
+                    >
+                      {ADMIN_ROLE_TYPES.map((r) => (
+                        <option key={r} value={r} style={{ background: '#FFFFFF', color: '#1E293B' }}>
+                          {r}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
 
                 {/* College Branch Dropdown for Admin */}
@@ -801,14 +1101,13 @@ export default function LoginPage() {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
-                      fontSize: '0.75rem',
+                      fontSize: '0.72rem',
                       fontWeight: 700,
                       color: 'var(--color-text-muted)',
-                      marginBottom: '0.25rem',
+                      marginBottom: '0.2rem',
                     }}
                   >
-                    <span>🏛️ College Branch / Department</span>
-                    <span style={{ fontSize: '0.7rem', color: 'var(--color-primary)', fontWeight: 700 }}>Select Branch</span>
+                    <span>🏛️ College Branch / Campus Jurisdiction</span>
                   </label>
                   <select
                     id="reg-admin-branch"
@@ -817,8 +1116,8 @@ export default function LoginPage() {
                     onChange={(e) => setAdminBranch(e.target.value)}
                     disabled={loading}
                     style={{
-                      height: 44,
-                      fontSize: '0.85rem',
+                      height: 42,
+                      fontSize: '0.82rem',
                       fontWeight: 600,
                       color: 'var(--color-text)',
                       background: '#FFF0EE',
@@ -834,33 +1133,59 @@ export default function LoginPage() {
                     ))}
                   </select>
                 </div>
+
+                {/* Master Admin Security Code */}
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.2rem' }}>
+                    <label htmlFor="reg-adminpass" style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-primary)' }}>
+                      🔑 Master Admin Passcode *
+                    </label>
+                    <span style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)' }}>Authorized personnel only</span>
+                  </div>
+                  <input
+                    id="reg-adminpass"
+                    type="password"
+                    className="input"
+                    placeholder="Enter Master Code (Default: ADMIN2026)"
+                    value={adminCode}
+                    onChange={(e) => setAdminCode(e.target.value)}
+                    required
+                    disabled={loading}
+                    style={{ height: 42, fontSize: '0.85rem' }}
+                  />
+                </div>
               </div>
             )}
 
             {/* Passwords */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
-              <input
-                id="reg-password"
-                type="password"
-                className="input"
-                placeholder="Create Password"
-                value={regPassword}
-                onChange={(e) => setRegPassword(e.target.value)}
-                required
-                disabled={loading}
-                style={{ height: 44, fontSize: '0.85rem' }}
-              />
-              <input
-                id="reg-confirm-password"
-                type="password"
-                className="input"
-                placeholder="Confirm Password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-                disabled={loading}
-                style={{ height: 44, fontSize: '0.85rem' }}
-              />
+            <div>
+              <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-text-muted)', marginBottom: '0.2rem', display: 'block' }}>
+                🔒 Set Account Password *
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                <input
+                  id="reg-password"
+                  type="password"
+                  className="input"
+                  placeholder="Create Password"
+                  value={regPassword}
+                  onChange={(e) => setRegPassword(e.target.value)}
+                  required
+                  disabled={loading}
+                  style={{ height: 42, fontSize: '0.85rem' }}
+                />
+                <input
+                  id="reg-confirm-password"
+                  type="password"
+                  className="input"
+                  placeholder="Confirm Password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                  disabled={loading}
+                  style={{ height: 42, fontSize: '0.85rem' }}
+                />
+              </div>
             </div>
 
             {/* Register Submit Button */}
