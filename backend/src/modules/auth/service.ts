@@ -226,6 +226,7 @@ export async function registerService(input: RegisterInput) {
       passwordHash,
       role: input.role,
       status: 'ACTIVE',
+      phone: input.phone || undefined,
       ...(input.role === 'STUDENT' && sectionId
         ? {
             student: {
@@ -242,6 +243,7 @@ export async function registerService(input: RegisterInput) {
               create: {
                 employeeCode: input.employeeCode || `FAC${Date.now().toString().slice(-6)}`,
                 departmentId,
+                isClassTeacher: input.isClassTeacher ?? false,
               },
             },
           }
