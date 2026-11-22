@@ -26,88 +26,36 @@ const DAYS = [
   { id: 6, name: 'Saturday', short: 'Sat' },
 ];
 
-const PERIODS = [
-  { period: 1, startTime: '09:00', endTime: '09:55' },
-  { period: 2, startTime: '10:00', endTime: '10:55' },
-  { period: 3, startTime: '11:00', endTime: '11:55' },
-  { period: 4, startTime: '12:00', endTime: '12:55' },
-  { period: 5, startTime: '13:45', endTime: '14:40' },
-  { period: 6, startTime: '14:45', endTime: '15:40' },
-];
-
-const DEFAULT_SECTIONS = [
-  { id: 1, name: 'CSE-3A (3rd Year A)' },
-  { id: 2, name: 'CSE-3B (3rd Year B)' },
-  { id: 3, name: 'IT-3A (3rd Year)' },
-  { id: 4, name: 'ECE-2A (2nd Year)' },
-];
-
-const DEFAULT_SUBJECTS = [
-  { id: 1, name: 'Cloud Computing', code: 'KCS-601' },
-  { id: 2, name: 'Compiler Design', code: 'KCS-602' },
-  { id: 3, name: 'Web Technology Lab', code: 'KIT-CS31' },
-  { id: 4, name: 'Software Engineering', code: 'KCS-603' },
-  { id: 5, name: 'Discrete Mathematics', code: 'KAS-302' },
-];
-
-const DEFAULT_TEACHERS = [
-  { id: 1, name: 'Dr. Rajesh Sharma', code: 'FAC-101', dept: 'CSE' },
-  { id: 2, name: 'Prof. Sunita Verma', code: 'FAC-102', dept: 'CSE' },
-  { id: 3, name: 'Er. Vivek Kumar', code: 'FAC-103', dept: 'IT' },
-  { id: 4, name: 'Prof. Amit Srivastava', code: 'FAC-104', dept: 'CSE' },
-  { id: 5, name: 'Dr. Kavita Singh', code: 'FAC-105', dept: 'ECE' },
-];
-
-const INITIAL_SCHEDULE: TimetableSlotItem[] = [
-  // Monday
-  { id: 'tt-1', sectionId: 1, sectionName: 'CSE-3A (3rd Year A)', subjectId: 1, subjectName: 'Cloud Computing', subjectCode: 'KCS-601', teacherId: 1, teacherName: 'Dr. Rajesh Sharma', dayOfWeek: 1, period: 1, startTime: '09:00', endTime: '09:55', roomNo: 'Room 302' },
-  { id: 'tt-2', sectionId: 1, sectionName: 'CSE-3A (3rd Year A)', subjectId: 3, subjectName: 'Web Technology Lab', subjectCode: 'KIT-CS31', teacherId: 3, teacherName: 'Er. Vivek Kumar', dayOfWeek: 1, period: 2, startTime: '10:00', endTime: '10:55', roomNo: 'Lab-A' },
-  { id: 'tt-3', sectionId: 1, sectionName: 'CSE-3A (3rd Year A)', subjectId: 2, subjectName: 'Compiler Design', subjectCode: 'KCS-602', teacherId: 2, teacherName: 'Prof. Sunita Verma', dayOfWeek: 1, period: 3, startTime: '11:00', endTime: '11:55', roomNo: 'Room 302' },
-  { id: 'tt-4', sectionId: 1, sectionName: 'CSE-3A (3rd Year A)', subjectId: 4, subjectName: 'Software Engineering', subjectCode: 'KCS-603', teacherId: 4, teacherName: 'Prof. Amit Srivastava', dayOfWeek: 1, period: 4, startTime: '12:00', endTime: '12:55', roomNo: 'Room 204' },
-  // Tuesday
-  { id: 'tt-5', sectionId: 1, sectionName: 'CSE-3A (3rd Year A)', subjectId: 2, subjectName: 'Compiler Design', subjectCode: 'KCS-602', teacherId: 2, teacherName: 'Prof. Sunita Verma', dayOfWeek: 2, period: 1, startTime: '09:00', endTime: '09:55', roomNo: 'Room 302' },
-  { id: 'tt-6', sectionId: 1, sectionName: 'CSE-3A (3rd Year A)', subjectId: 1, subjectName: 'Cloud Computing', subjectCode: 'KCS-601', teacherId: 1, teacherName: 'Dr. Rajesh Sharma', dayOfWeek: 2, period: 2, startTime: '10:00', endTime: '10:55', roomNo: 'Room 302' },
-  { id: 'tt-7', sectionId: 1, sectionName: 'CSE-3A (3rd Year A)', subjectId: 4, subjectName: 'Software Engineering', subjectCode: 'KCS-603', teacherId: 4, teacherName: 'Prof. Amit Srivastava', dayOfWeek: 2, period: 3, startTime: '11:00', endTime: '11:55', roomNo: 'Room 204' },
-  { id: 'tt-8', sectionId: 1, sectionName: 'CSE-3A (3rd Year A)', subjectId: 3, subjectName: 'Web Technology Lab', subjectCode: 'KIT-CS31', teacherId: 3, teacherName: 'Er. Vivek Kumar', dayOfWeek: 2, period: 4, startTime: '12:00', endTime: '12:55', roomNo: 'Lab-A' },
-  // Wednesday
-  { id: 'tt-9', sectionId: 1, sectionName: 'CSE-3A (3rd Year A)', subjectId: 4, subjectName: 'Software Engineering', subjectCode: 'KCS-603', teacherId: 4, teacherName: 'Prof. Amit Srivastava', dayOfWeek: 3, period: 1, startTime: '09:00', endTime: '09:55', roomNo: 'Room 204' },
-  { id: 'tt-10', sectionId: 1, sectionName: 'CSE-3A (3rd Year A)', subjectId: 2, subjectName: 'Compiler Design', subjectCode: 'KCS-602', teacherId: 2, teacherName: 'Prof. Sunita Verma', dayOfWeek: 3, period: 2, startTime: '10:00', endTime: '10:55', roomNo: 'Room 302' },
-  { id: 'tt-11', sectionId: 1, sectionName: 'CSE-3A (3rd Year A)', subjectId: 1, subjectName: 'Cloud Computing', subjectCode: 'KCS-601', teacherId: 1, teacherName: 'Dr. Rajesh Sharma', dayOfWeek: 3, period: 3, startTime: '11:00', endTime: '11:55', roomNo: 'Room 302' },
-  // Thursday
-  { id: 'tt-12', sectionId: 1, sectionName: 'CSE-3A (3rd Year A)', subjectId: 3, subjectName: 'Web Technology Lab', subjectCode: 'KIT-CS31', teacherId: 3, teacherName: 'Er. Vivek Kumar', dayOfWeek: 4, period: 1, startTime: '09:00', endTime: '09:55', roomNo: 'Lab-A' },
-  { id: 'tt-13', sectionId: 1, sectionName: 'CSE-3A (3rd Year A)', subjectId: 1, subjectName: 'Cloud Computing', subjectCode: 'KCS-601', teacherId: 1, teacherName: 'Dr. Rajesh Sharma', dayOfWeek: 4, period: 2, startTime: '10:00', endTime: '10:55', roomNo: 'Room 302' },
-  { id: 'tt-14', sectionId: 1, sectionName: 'CSE-3A (3rd Year A)', subjectId: 2, subjectName: 'Compiler Design', subjectCode: 'KCS-602', teacherId: 2, teacherName: 'Prof. Sunita Verma', dayOfWeek: 4, period: 3, startTime: '11:00', endTime: '11:55', roomNo: 'Room 302' },
-  // Friday
-  { id: 'tt-15', sectionId: 1, sectionName: 'CSE-3A (3rd Year A)', subjectId: 1, subjectName: 'Cloud Computing', subjectCode: 'KCS-601', teacherId: 1, teacherName: 'Dr. Rajesh Sharma', dayOfWeek: 5, period: 1, startTime: '09:00', endTime: '09:55', roomNo: 'Room 302' },
-  { id: 'tt-16', sectionId: 1, sectionName: 'CSE-3A (3rd Year A)', subjectId: 4, subjectName: 'Software Engineering', subjectCode: 'KCS-603', teacherId: 4, teacherName: 'Prof. Amit Srivastava', dayOfWeek: 5, period: 2, startTime: '10:00', endTime: '10:55', roomNo: 'Room 204' },
-  { id: 'tt-17', sectionId: 1, sectionName: 'CSE-3A (3rd Year A)', subjectId: 3, subjectName: 'Web Technology Lab', subjectCode: 'KIT-CS31', teacherId: 3, teacherName: 'Er. Vivek Kumar', dayOfWeek: 5, period: 3, startTime: '11:00', endTime: '11:55', roomNo: 'Lab-A' },
-];
+const PERIODS = [1, 2, 3, 4, 5, 6, 7, 8];
 
 export default function LectureScheduleManager() {
-  const [schedule, setSchedule] = useState<TimetableSlotItem[]>(INITIAL_SCHEDULE);
+  const [schedule, setSchedule] = useState<TimetableSlotItem[]>([]);
 
   // Dynamic Academic Entities
   const [departments, setDepartments] = useState<any[]>([]);
-  const [sections, setSections] = useState<any[]>(DEFAULT_SECTIONS);
-  const [subjects, setSubjects] = useState<any[]>(DEFAULT_SUBJECTS);
-  const [teachers, setTeachers] = useState<any[]>(DEFAULT_TEACHERS);
+  const [sections, setSections] = useState<any[]>([]);
+  const [subjects, setSubjects] = useState<any[]>([]);
+  const [teachers, setTeachers] = useState<any[]>([]);
   const [selectedBranchFilter, setSelectedBranchFilter] = useState<number | 'ALL'>('ALL');
 
   // Form states
-  const [selectedSectionId, setSelectedSectionId] = useState<number>(1);
-  const [selectedSubjectId, setSelectedSubjectId] = useState<number>(1);
-  const [selectedTeacherId, setSelectedTeacherId] = useState<number>(1);
+  const [selectedSectionId, setSelectedSectionId] = useState<number | null>(null);
+  const [selectedSubjectId, setSelectedSubjectId] = useState<number | null>(null);
+  const [selectedTeacherId, setSelectedTeacherId] = useState<number | null>(null);
   const [selectedDay, setSelectedDay] = useState<number>(1);
   const [selectedPeriod, setSelectedPeriod] = useState<number>(1);
-  const [roomNo, setRoomNo] = useState<string>('Room 302');
+  const [startTime, setStartTime] = useState('');
+  const [endTime, setEndTime] = useState('');
+  const [roomNo, setRoomNo] = useState<string>('');
 
   // Matrix Filter states
   const [viewFilterMode, setViewFilterMode] = useState<'SECTION' | 'FACULTY'>('SECTION');
-  const [filterSectionId, setFilterSectionId] = useState<number>(1);
-  const [filterTeacherId, setFilterTeacherId] = useState<number>(1);
+  const [filterSectionId, setFilterSectionId] = useState<number | null>(null);
+  const [filterTeacherId, setFilterTeacherId] = useState<number | null>(null);
 
   // Status & Feedback
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [preGenerating, setPreGenerating] = useState(false);
 
   useEffect(() => {
@@ -117,66 +65,73 @@ export default function LectureScheduleManager() {
           api.get('/academic/departments'),
           api.get('/academic/sections'),
           api.get('/academic/subjects'),
-          api.get('/academic/teachers'),
+          api.get('/users/teachers'),
           api.get('/academic/timetable'),
         ]);
 
-        if (dRes.status === 'fulfilled' && dRes.value.data.data?.length) {
-          setDepartments(dRes.value.data.data);
-        }
-        if (sRes.status === 'fulfilled' && sRes.value.data.data?.length) {
-          const apiSections = sRes.value.data.data.map((s: any) => ({
+        const apiDepartments = dRes.status === 'fulfilled' ? dRes.value.data.data ?? [] : [];
+        const apiSections = sRes.status === 'fulfilled'
+          ? sRes.value.data.data.map((s: any) => ({
             id: s.id,
-            name: `${s.name} (${s.course?.code || 'Course'} Year ${s.year || s.academicYear || 3})`,
+            name: `${s.name} (${s.course?.code ?? ''} Year ${s.year})`,
             deptId: s.course?.departmentId || s.course?.department?.id || s.departmentId,
-            deptName: s.course?.department?.name || '',
-          }));
-          setSections(apiSections);
-          if (apiSections[0]) {
-            setSelectedSectionId(apiSections[0].id);
-            setFilterSectionId(apiSections[0].id);
-          }
-        }
-        if (subRes.status === 'fulfilled' && subRes.value.data.data?.length) {
-          setSubjects(subRes.value.data.data);
-          if (subRes.value.data.data[0]) setSelectedSubjectId(subRes.value.data.data[0].id);
-        }
-        if (tRes.status === 'fulfilled' && tRes.value.data.data?.length) {
-          const apiTeachers = tRes.value.data.data.map((t: any) => ({
+            deptName: s.course?.department?.name ?? '',
+            academicYearId: s.academicYearId,
+          }))
+          : [];
+        const apiSubjects = subRes.status === 'fulfilled' ? subRes.value.data.data ?? [] : [];
+        const apiTeachers = tRes.status === 'fulfilled'
+          ? tRes.value.data.data.map((t: any) => ({
             id: t.id,
-            name: t.user?.name || t.name,
-            code: t.employeeCode || `FAC-${t.id}`,
-            dept: t.department?.name || 'CSE',
-          }));
-          setTeachers(apiTeachers);
-          if (apiTeachers[0]) {
-            setSelectedTeacherId(apiTeachers[0].id);
-            setFilterTeacherId(apiTeachers[0].id);
-          }
+            name: t.user?.name ?? t.name ?? '',
+            code: t.employeeCode ?? '',
+            dept: t.department?.name ?? '',
+          }))
+          : [];
+        setDepartments(apiDepartments);
+        setSections(apiSections);
+        setSubjects(apiSubjects);
+        setTeachers(apiTeachers);
+        if (apiSections[0]) {
+          setSelectedSectionId(apiSections[0].id);
+          setFilterSectionId(apiSections[0].id);
         }
-        if (ttRes.status === 'fulfilled' && ttRes.value.data.data?.length) {
-          const apiSlots = ttRes.value.data.data.map((slot: any) => ({
+        if (apiSubjects[0]) setSelectedSubjectId(apiSubjects[0].id);
+        if (apiTeachers[0]) {
+          setSelectedTeacherId(apiTeachers[0].id);
+          setFilterTeacherId(apiTeachers[0].id);
+        }
+
+        if (ttRes.status === 'fulfilled') {
+          const apiSlots = (ttRes.value.data.data ?? []).map((slot: any) => ({
             id: `tt-${slot.id}`,
             sectionId: slot.sectionId,
-            sectionName: slot.section?.name || `Section ${slot.sectionId}`,
+            sectionName: slot.section?.name ?? '',
             subjectId: slot.subjectId,
-            subjectName: slot.subject?.name || `Subject ${slot.subjectId}`,
-            subjectCode: slot.subject?.code || '',
+            subjectName: apiSubjects.find((subject: any) => subject.id === slot.subjectId)?.name ?? '',
+            subjectCode: apiSubjects.find((subject: any) => subject.id === slot.subjectId)?.code ?? '',
             teacherId: slot.teacherId,
-            teacherName: slot.teacher?.user?.name || `Faculty ${slot.teacherId}`,
+            teacherName: apiTeachers.find((teacher: any) => teacher.id === slot.teacherId)?.name ?? '',
             dayOfWeek: slot.dayOfWeek,
             period: slot.period,
             startTime: slot.startTime,
             endTime: slot.endTime,
-            roomNo: slot.roomNo || 'Room 302',
+            roomNo: slot.roomNo ?? '',
           }));
-          if (apiSlots.length > 0) setSchedule(apiSlots);
+          setSchedule(apiSlots);
         }
-      } catch {
-        // keep fallback
+        const failedRequests = [dRes, sRes, subRes, tRes, ttRes].some((result) => result.status === 'rejected');
+        setLoadError(failedRequests ? 'Some timetable data could not be loaded. Check the server connection and refresh.' : null);
+      } catch (error: any) {
+        setLoadError(error.response?.data?.error?.message || 'Could not load timetable setup data.');
+        setDepartments([]);
+        setSections([]);
+        setSubjects([]);
+        setTeachers([]);
+        setSchedule([]);
       }
     }
-    loadData();
+    void loadData();
   }, []);
 
   function triggerToast(msg: string) {
@@ -225,56 +180,69 @@ export default function LectureScheduleManager() {
     return { hasClash: false, message: 'All clear! No schedule clashes detected.' };
   }
 
-  const clashStatus = checkClash(selectedDay, selectedPeriod, selectedSectionId, selectedTeacherId, roomNo);
+  const hasSelections = selectedSectionId !== null && selectedSubjectId !== null && selectedTeacherId !== null;
+  const clashStatus = hasSelections
+    ? checkClash(selectedDay, selectedPeriod, selectedSectionId, selectedTeacherId, roomNo)
+    : { hasClash: false, message: 'Load academic records and select a section, subject, and teacher.' };
 
   // Pre-Schedule Lecture handler
   async function handleScheduleLecture(e: React.FormEvent) {
     e.preventDefault();
 
+    if (!hasSelections) {
+      setLoadError('Select a section, subject, and teacher before scheduling.');
+      return;
+    }
+    if (!roomNo.trim() || !startTime || !endTime || startTime >= endTime) {
+      setLoadError('Enter a room and valid start/end times before scheduling.');
+      return;
+    }
     if (clashStatus.hasClash) {
-      alert(`⚠️ Cannot Schedule Lecture due to Conflict:\n\n${clashStatus.message}`);
+      alert(` Cannot Schedule Lecture due to Conflict:\n\n${clashStatus.message}`);
       return;
     }
 
-    const sectionObj = sections.find((s) => s.id === selectedSectionId) || { name: `Section ${selectedSectionId}` };
-    const subjectObj = subjects.find((s) => s.id === selectedSubjectId) || { name: `Subject ${selectedSubjectId}`, code: 'SUB' };
-    const teacherObj = teachers.find((t) => t.id === selectedTeacherId) || { name: `Faculty ${selectedTeacherId}` };
-    const periodObj = PERIODS.find((p) => p.period === selectedPeriod)!;
-
-    const newSlot: TimetableSlotItem = {
-      id: `tt-${Date.now()}`,
-      sectionId: selectedSectionId,
-      sectionName: sectionObj.name,
-      subjectId: selectedSubjectId,
-      subjectName: subjectObj.name,
-      subjectCode: subjectObj.code,
-      teacherId: selectedTeacherId,
-      teacherName: teacherObj.name,
-      dayOfWeek: selectedDay,
-      period: selectedPeriod,
-      startTime: periodObj.startTime,
-      endTime: periodObj.endTime,
-      roomNo: roomNo.trim() || 'Room 302',
-    };
+    const sectionObj = sections.find((section) => section.id === selectedSectionId);
+    const subjectObj = subjects.find((subject) => subject.id === selectedSubjectId);
+    const teacherObj = teachers.find((teacher) => teacher.id === selectedTeacherId);
+    if (!sectionObj || !subjectObj || !teacherObj || !sectionObj.academicYearId) {
+      setLoadError('The selected academic records are incomplete. Refresh the data before scheduling.');
+      return;
+    }
 
     try {
-      await api.post('/academic/timetable', {
+      const response = await api.post('/academic/timetable', {
         sectionId: selectedSectionId,
         subjectId: selectedSubjectId,
         teacherId: selectedTeacherId,
         dayOfWeek: selectedDay,
         period: selectedPeriod,
-        startTime: periodObj.startTime,
-        endTime: periodObj.endTime,
-        roomNo: newSlot.roomNo,
-        academicYearId: 1,
+        startTime,
+        endTime,
+        roomNo: roomNo.trim(),
+        academicYearId: sectionObj.academicYearId,
       });
-    } catch {
-      // Offline fallback
+      const savedSlot = response.data.data;
+      setSchedule((prev) => [...prev, {
+        id: `tt-${savedSlot.id}`,
+        sectionId: selectedSectionId,
+        sectionName: sectionObj.name,
+        subjectId: selectedSubjectId,
+        subjectName: subjectObj.name,
+        subjectCode: subjectObj.code,
+        teacherId: selectedTeacherId,
+        teacherName: teacherObj.name,
+        dayOfWeek: selectedDay,
+        period: selectedPeriod,
+        startTime: savedSlot.startTime,
+        endTime: savedSlot.endTime,
+        roomNo: savedSlot.roomNo ?? roomNo.trim(),
+      }]);
+      setLoadError(null);
+      triggerToast(`Scheduled "${subjectObj.name}" for ${sectionObj.name} with ${teacherObj.name} on ${DAYS.find((d) => d.id === selectedDay)?.name} (Period ${selectedPeriod}).`);
+    } catch (error: any) {
+      setLoadError(error.response?.data?.error?.message || 'Could not schedule the lecture.');
     }
-
-    setSchedule((prev) => [...prev, newSlot]);
-    triggerToast(`✓ Pre-Scheduled "${subjectObj.name}" for ${sectionObj.name} with ${teacherObj.name} on ${DAYS.find((d) => d.id === selectedDay)?.name} (Period ${selectedPeriod})!`);
   }
 
   // Delete slot handler
@@ -283,25 +251,23 @@ export default function LectureScheduleManager() {
 
     try {
       const numId = Number(slotId.replace('tt-', ''));
-      if (!isNaN(numId)) {
-        await api.delete(`/academic/timetable/${numId}`);
-      }
-    } catch {
-      // ignore
+      if (!Number.isInteger(numId)) throw new Error('Invalid timetable record ID.');
+      await api.delete(`/academic/timetable/${numId}`);
+      setSchedule((prev) => prev.filter((s) => s.id !== slotId));
+      triggerToast(`Removed lecture slot for "${subjectName}".`);
+    } catch (error: any) {
+      setLoadError(error.response?.data?.error?.message || 'Could not remove the lecture slot.');
     }
-
-    setSchedule((prev) => prev.filter((s) => s.id !== slotId));
-    triggerToast(`Removed lecture slot for "${subjectName}".`);
   }
 
   // Pre-generate today's attendance sessions for all teachers
   async function handlePreGenerateSessions() {
     setPreGenerating(true);
     try {
-      await api.post('/academic/timetable/pre-generate-sessions');
-      triggerToast('✓ Instant Success! Today\'s Attendance Sessions have been pre-generated for all Teachers across all sections!');
-    } catch {
-      triggerToast('✓ Attendance Sessions Pre-Generated! Teachers will now see today\'s classes pre-loaded in their Roll Call dashboard.');
+      const response = await api.post('/academic/timetable/pre-generate-sessions');
+      triggerToast(response.data.message || 'Attendance sessions were created.');
+    } catch (error: any) {
+      setLoadError(error.response?.data?.error?.message || 'Could not create today\'s attendance sessions.');
     } finally {
       setPreGenerating(false);
     }
@@ -351,7 +317,7 @@ export default function LectureScheduleManager() {
       >
         <div style={{ maxWidth: 700 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-            <span style={{ fontSize: '1.5rem' }}>🗓️</span>
+
             <h2 style={{ margin: 0, fontSize: '1.45rem', fontWeight: 800, color: 'var(--color-text)' }}>
               Institutional Master Lecture Scheduler & Timetable Engine
             </h2>
@@ -367,15 +333,15 @@ export default function LectureScheduleManager() {
             onClick={handleExportTimetableCsv}
             style={{ fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
           >
-            📥 Export Master Timetable (CSV)
+             Export Master Timetable (CSV)
           </button>
           <button
             className="btn btn--primary btn--sm"
             onClick={handlePreGenerateSessions}
-            disabled={preGenerating}
+            disabled={preGenerating || schedule.length === 0}
             style={{ fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '0.4rem', boxShadow: '0 4px 14px var(--color-primary-glow)' }}
           >
-            {preGenerating ? 'Generating Sessions...' : '⚡ Pre-Generate Today\'s Class Sessions'}
+            {preGenerating ? 'Generating Sessions...' : 'Pre-Generate Today\'s Class Sessions'}
           </button>
         </div>
       </div>
@@ -396,9 +362,10 @@ export default function LectureScheduleManager() {
             boxShadow: '0 4px 12px rgba(16,185,129,0.15)',
           }}
         >
-          <span>✅</span> {toastMessage}
+           {toastMessage}
         </div>
       )}
+      {loadError && <p className="alert alert--error" role="alert">{loadError}</p>}
 
       {/* ─── Schedule Form & Control Panel ───────────────────────── */}
       <div
@@ -412,7 +379,7 @@ export default function LectureScheduleManager() {
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
           <div>
-            <h3 style={{ margin: 0, fontSize: '1.15rem' }}>➕ Pre-Schedule New Lecture</h3>
+            <h3 style={{ margin: 0, fontSize: '1.15rem' }}> Pre-Schedule New Lecture</h3>
             <p className="text-xs text-muted" style={{ marginTop: '0.2rem' }}>
               Assign subject, instructor, room, and period slot with automatic clash detection
             </p>
@@ -427,7 +394,7 @@ export default function LectureScheduleManager() {
               padding: '0.35rem 0.75rem',
             }}
           >
-            {clashStatus.hasClash ? '⚠️ Conflict Detected' : '✓ Ready to Schedule'}
+            {clashStatus.hasClash ? 'Conflict detected' : hasSelections ? 'Ready to schedule' : 'Select academic records'}
           </span>
         </div>
 
@@ -447,15 +414,16 @@ export default function LectureScheduleManager() {
               </label>
               <select
                 className="input"
-                value={selectedSectionId}
+                value={selectedSectionId ?? ''}
                 onChange={(e) => setSelectedSectionId(Number(e.target.value))}
               >
+                <option value="" disabled>Select a section</option>
                 {departments.length > 0 ? (
                   departments.map((dept) => {
                     const deptSections = sections.filter((s) => s.deptId === dept.id);
                     if (deptSections.length === 0) return null;
                     return (
-                      <optgroup key={dept.id} label={`🏢 ${dept.name} (${dept.code})`}>
+                      <optgroup key={dept.id} label={` ${dept.name} (${dept.code})`}>
                         {deptSections.map((s) => (
                           <option key={s.id} value={s.id}>
                             {s.name}
@@ -481,9 +449,10 @@ export default function LectureScheduleManager() {
               </label>
               <select
                 className="input"
-                value={selectedSubjectId}
+                value={selectedSubjectId ?? ''}
                 onChange={(e) => setSelectedSubjectId(Number(e.target.value))}
               >
+                <option value="" disabled>Select a subject</option>
                 {subjects.map((sub) => (
                   <option key={sub.id} value={sub.id}>
                     {sub.name} ({sub.code})
@@ -499,12 +468,13 @@ export default function LectureScheduleManager() {
               </label>
               <select
                 className="input"
-                value={selectedTeacherId}
+                value={selectedTeacherId ?? ''}
                 onChange={(e) => setSelectedTeacherId(Number(e.target.value))}
               >
+                <option value="" disabled>Select a teacher</option>
                 {teachers.map((t) => (
                   <option key={t.id} value={t.id}>
-                    {t.name} ({t.dept || 'Faculty'})
+                    {t.name}{t.dept ? ` (${t.dept})` : ''}
                   </option>
                 ))}
               </select>
@@ -538,12 +508,26 @@ export default function LectureScheduleManager() {
                 value={selectedPeriod}
                 onChange={(e) => setSelectedPeriod(Number(e.target.value))}
               >
-                {PERIODS.map((p) => (
-                  <option key={p.period} value={p.period}>
-                    Period {p.period} ({p.startTime} - {p.endTime})
+                {PERIODS.map((period) => (
+                  <option key={period} value={period}>
+                    Period {period}
                   </option>
                 ))}
               </select>
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-muted" style={{ display: 'block', marginBottom: '0.35rem' }}>
+                Start Time
+              </label>
+              <input className="input" type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} required />
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-muted" style={{ display: 'block', marginBottom: '0.35rem' }}>
+                End Time
+              </label>
+              <input className="input" type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} required />
             </div>
 
             {/* Room */}
@@ -579,7 +563,7 @@ export default function LectureScheduleManager() {
                 gap: '0.5rem',
               }}
             >
-              <span>⚠️</span> {clashStatus.message}
+               {clashStatus.message}
             </div>
           ) : (
             <div
@@ -594,7 +578,9 @@ export default function LectureScheduleManager() {
                 marginBottom: '1.25rem',
               }}
             >
-              ✓ Verified: Section, Faculty, and Classroom are completely free at this time.
+              {hasSelections
+                ? 'No matching section, teacher, or room conflict was found in the loaded timetable.'
+                : clashStatus.message}
             </div>
           )}
 
@@ -602,7 +588,7 @@ export default function LectureScheduleManager() {
             <button
               type="submit"
               className="btn btn--primary"
-              disabled={clashStatus.hasClash}
+              disabled={clashStatus.hasClash || !hasSelections}
               style={{ fontWeight: 800, padding: '0.75rem 2rem' }}
             >
               ✓ Pre-Schedule Lecture Slot
@@ -615,7 +601,7 @@ export default function LectureScheduleManager() {
       <div className="card" style={{ padding: '2rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
           <div>
-            <h3 style={{ margin: 0, fontSize: '1.25rem' }}>📊 Master Timetable Matrix Grid</h3>
+            <h3 style={{ margin: 0, fontSize: '1.25rem' }}> Master Timetable Matrix Grid</h3>
             <p className="text-xs text-muted" style={{ marginTop: '0.25rem' }}>
               Showing {displayedSlots.length} active scheduled lectures
             </p>
@@ -663,7 +649,7 @@ export default function LectureScheduleManager() {
                   }
                 }}
               >
-                <option value="ALL">🌐 All Branches</option>
+                <option value="ALL"> All Branches</option>
                 {departments.map((d) => (
                   <option key={d.id} value={d.id}>
                     {d.name} ({d.code})
@@ -676,9 +662,10 @@ export default function LectureScheduleManager() {
               <select
                 className="input"
                 style={{ minHeight: 38, width: 220, padding: '0.4rem 0.75rem', fontSize: '0.85rem' }}
-                value={filterSectionId}
+                value={filterSectionId ?? ''}
                 onChange={(e) => setFilterSectionId(Number(e.target.value))}
               >
+                <option value="" disabled>Select a section</option>
                 {sections
                   .filter((s) => selectedBranchFilter === 'ALL' || s.deptId === selectedBranchFilter)
                   .map((s) => (
@@ -691,12 +678,13 @@ export default function LectureScheduleManager() {
               <select
                 className="input"
                 style={{ minHeight: 38, width: 240, padding: '0.4rem 0.75rem', fontSize: '0.85rem' }}
-                value={filterTeacherId}
+                value={filterTeacherId ?? ''}
                 onChange={(e) => setFilterTeacherId(Number(e.target.value))}
               >
+                <option value="" disabled>Select a teacher</option>
                 {teachers.map((t) => (
                   <option key={t.id} value={t.id}>
-                    {t.name} ({t.dept || 'Faculty'})
+                    {t.name}{t.dept ? ` (${t.dept})` : ''}
                   </option>
                 ))}
               </select>
@@ -710,12 +698,9 @@ export default function LectureScheduleManager() {
             <thead>
               <tr style={{ background: 'var(--color-surface-2)', borderBottom: '2px solid var(--color-border)' }}>
                 <th style={{ padding: '1rem', width: 120, fontSize: '0.85rem', fontWeight: 800 }}>Day</th>
-                {PERIODS.map((p) => (
-                  <th key={p.period} style={{ padding: '0.85rem', fontSize: '0.8rem', fontWeight: 800 }}>
-                    <div>Period {p.period}</div>
-                    <div className="text-xs text-muted" style={{ fontWeight: 500 }}>
-                      {p.startTime} - {p.endTime}
-                    </div>
+                {PERIODS.map((period) => (
+                  <th key={period} style={{ padding: '0.85rem', fontSize: '0.8rem', fontWeight: 800 }}>
+                    Period {period}
                   </th>
                 ))}
               </tr>
@@ -728,10 +713,10 @@ export default function LectureScheduleManager() {
                     <span className="text-xs text-muted">Weekly</span>
                   </td>
 
-                  {PERIODS.map((p) => {
-                    const slot = displayedSlots.find((s) => s.dayOfWeek === d.id && s.period === p.period);
+                  {PERIODS.map((period) => {
+                    const slot = displayedSlots.find((s) => s.dayOfWeek === d.id && s.period === period);
                     return (
-                      <td key={p.period} style={{ padding: '0.75rem', borderRight: '1px solid var(--color-border)', verticalAlign: 'top', minWidth: 145 }}>
+                      <td key={period} style={{ padding: '0.75rem', borderRight: '1px solid var(--color-border)', verticalAlign: 'top', minWidth: 145 }}>
                         {slot ? (
                           <div
                             style={{
@@ -766,7 +751,10 @@ export default function LectureScheduleManager() {
                               {slot.subjectName}
                             </div>
                             <div className="text-xs text-muted" style={{ marginBottom: '0.35rem' }}>
-                              👤 {slot.teacherName.replace('Prof. ', '').replace('Dr. ', '')}
+                              {slot.startTime}–{slot.endTime}
+                            </div>
+                            <div className="text-xs text-muted" style={{ marginBottom: '0.35rem' }}>
+                               {slot.teacherName.replace('Prof. ', '').replace('Dr. ', '')}
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                               <span
@@ -779,7 +767,7 @@ export default function LectureScheduleManager() {
                                   borderRadius: '6px',
                                 }}
                               >
-                                🏛️ {slot.roomNo}
+                                 {slot.roomNo}
                               </span>
                               <span className="text-xs text-muted" style={{ fontSize: '0.7rem' }}>
                                 {slot.sectionName.split(' ')[0]}
@@ -790,9 +778,9 @@ export default function LectureScheduleManager() {
                           <button
                             onClick={() => {
                               setSelectedDay(d.id);
-                              setSelectedPeriod(p.period);
-                              if (viewFilterMode === 'SECTION') setSelectedSectionId(filterSectionId);
-                              if (viewFilterMode === 'FACULTY') setSelectedTeacherId(filterTeacherId);
+                              setSelectedPeriod(period);
+                              if (viewFilterMode === 'SECTION' && filterSectionId !== null) setSelectedSectionId(filterSectionId);
+                              if (viewFilterMode === 'FACULTY' && filterTeacherId !== null) setSelectedTeacherId(filterTeacherId);
                               window.scrollTo({ top: 180, behavior: 'smooth' });
                             }}
                             style={{

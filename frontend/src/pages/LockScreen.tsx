@@ -18,13 +18,8 @@ export default function LockScreen() {
       const { data } = await api.post('/auth/refresh');
       setToken(data.accessToken);
       unlockApp();
-    } catch {
-      // In demo / offline mode, restore role demo token so subsequent requests don't fail with missing token
-      const currentToken = useAuthStore.getState().accessToken;
-      if (!currentToken && user?.role) {
-        setToken(`token-${user.role.toLowerCase()}-demo-attendai`);
-      }
-      unlockApp();
+    } catch (requestError: any) {
+      setError(requestError.response?.data?.error?.message || 'Could not refresh your session. Check your connection and sign in again.');
     } finally {
       setLoading(false);
     }
@@ -52,7 +47,7 @@ export default function LockScreen() {
       }}
     >
       <div className="container" style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🔒</div>
+        <div style={{ fontSize: '3rem', marginBottom: '1rem' }}></div>
         <h2 style={{ marginBottom: '0.5rem' }}>Screen Locked</h2>
         <p className="text-muted text-sm" style={{ marginBottom: '2rem' }}>
           {user?.name ?? 'Your session'} is locked due to inactivity
@@ -105,7 +100,7 @@ export default function LockScreen() {
 
         {error && (
           <div className="alert alert--error" style={{ marginBottom: '1rem' }}>
-            ⚠️ {error}
+             {error}
           </div>
         )}
 

@@ -12,6 +12,10 @@ import type {
 
 
 // ─── Departments ──────────────────────────────────────────────────
+export async function getAcademicYears() {
+  return prisma.academicYear.findMany({ orderBy: [{ isCurrent: 'desc' }, { startDate: 'desc' }] });
+}
+
 export async function getDepartments() {
   return prisma.department.findMany({
     include: {
@@ -102,6 +106,19 @@ export async function getTimetableSlots(sectionId?: number, teacherId?: number) 
 }
 
 export async function createTimetableSlot(data: TimetableSlotInput) {
+  const allocation = await prisma.teacherSubject.findUnique({
+    where: {
+      teacherId_subjectId_sectionId: {
+        teacherId: data.teacherId,
+        subjectId: data.subjectId,
+        sectionId: data.sectionId,
+      },
+    },
+  });
+  if (!allocation) {
+    throw { code: 'CLASS_NOT_ASSIGNED', status: 403, message: 'Assign this teacher to the selected subject and section before scheduling.' };
+  }
+
   // Check section slot conflict
   const existingSectionSlot = await prisma.timetableSlot.findFirst({
     where: {
@@ -126,6 +143,20 @@ export async function createTimetableSlot(data: TimetableSlotInput) {
   });
   if (existingTeacherSlot) {
     throw { code: 'TEACHER_CLASH', status: 409, message: 'Teacher already has another class scheduled at this period' };
+  }
+
+  if (data.roomNo) {
+    const existingRoomSlot = await prisma.timetableSlot.findFirst({
+      where: {
+        roomNo: { equals: data.roomNo, mode: 'insensitive' },
+        dayOfWeek: data.dayOfWeek,
+        period: data.period,
+        academicYearId: data.academicYearId,
+      },
+    });
+    if (existingRoomSlot) {
+      throw { code: 'ROOM_CLASH', status: 409, message: 'The selected room is already booked for this period.' };
+    }
   }
 
   return prisma.timetableSlot.create({ data });

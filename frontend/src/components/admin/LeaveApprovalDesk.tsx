@@ -29,94 +29,14 @@ interface StudentLeave {
   createdAt: string;
 }
 
-const DEFAULT_FACULTY_LEAVES: FacultyLeave[] = [
-  {
-    id: 'f-leave-1',
-    teacherName: 'Prof. Rajesh Sharma',
-    deptName: 'Computer Science & Engg',
-    empId: 'EMP-KIT-104',
-    type: 'DUTY',
-    fromDate: '2026-10-18',
-    toDate: '2026-10-19',
-    reason: 'AKTU Faculty Development Programme on AI & Machine Learning at IIT Kanpur',
-    status: 'PENDING',
-    createdAt: '2026-10-11',
-  },
-  {
-    id: 'f-leave-2',
-    teacherName: 'Dr. Sunita Verma',
-    deptName: 'Information Technology',
-    empId: 'EMP-KIT-109',
-    type: 'CASUAL',
-    fromDate: '2026-10-25',
-    toDate: '2026-10-25',
-    reason: 'Urgent family engagement out of station',
-    status: 'APPROVED',
-    decisionNote: 'Approved. Classes adjusted with Er. Vivek Kumar.',
-    createdAt: '2026-10-09',
-  },
-  {
-    id: 'f-leave-3',
-    teacherName: 'Er. Vivek Kumar',
-    deptName: 'Computer Science & Engg',
-    empId: 'EMP-KIT-118',
-    type: 'MEDICAL',
-    fromDate: '2026-10-04',
-    toDate: '2026-10-06',
-    reason: 'Viral fever and respiratory infection with doctor certificate',
-    status: 'APPROVED',
-    decisionNote: 'Medical leave sanctioned with fitness certificate on record.',
-    createdAt: '2026-10-03',
-  },
-];
-
-const DEFAULT_STUDENT_LEAVES: StudentLeave[] = [
-  {
-    id: 's-leave-1',
-    studentName: 'Aman Kumar',
-    rollNo: '2101640100015',
-    section: 'CSE-3A',
-    type: 'MEDICAL',
-    fromDate: '2026-10-14',
-    toDate: '2026-10-16',
-    reason: 'Undergoing dental surgery and post-op care as per prescription',
-    status: 'PENDING',
-    createdAt: '2026-10-11',
-  },
-  {
-    id: 's-leave-2',
-    studentName: 'Muskan Gupta',
-    rollNo: '2101640100018',
-    section: 'CSE-3A',
-    type: 'OD',
-    fromDate: '2026-10-20',
-    toDate: '2026-10-21',
-    reason: 'Representing KIT Kanpur at AKTU Zonal Hackathon 2026 in Lucknow',
-    status: 'PENDING',
-    createdAt: '2026-10-12',
-  },
-  {
-    id: 's-leave-3',
-    studentName: 'Deepak Yadav',
-    rollNo: '2101640100017',
-    section: 'CSE-3A',
-    type: 'EVENT',
-    fromDate: '2026-10-05',
-    toDate: '2026-10-06',
-    reason: 'Inter-college cricket championship match at Green Park',
-    status: 'APPROVED',
-    decisionNote: 'OD granted on recommendation of Sports Dean.',
-    createdAt: '2026-10-04',
-  },
-];
-
 export default function LeaveApprovalDesk() {
   const [activeSegment, setActiveSegment] = useState<'faculty' | 'student'>('faculty');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED'>('ALL');
 
-  const [facultyLeaves, setFacultyLeaves] = useState<FacultyLeave[]>(DEFAULT_FACULTY_LEAVES);
-  const [studentLeaves, setStudentLeaves] = useState<StudentLeave[]>(DEFAULT_STUDENT_LEAVES);
+  const [facultyLeaves, setFacultyLeaves] = useState<FacultyLeave[]>([]);
+  const [studentLeaves, setStudentLeaves] = useState<StudentLeave[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState('');
 
   // Decision Modal State
   const [modalItem, setModalItem] = useState<{ id: string; target: 'faculty' | 'student'; action: 'APPROVE' | 'REJECT'; name: string } | null>(null);
@@ -131,34 +51,32 @@ export default function LeaveApprovalDesk() {
     setLoading(true);
     try {
       const fRes = await api.get('/teacher-leaves/admin/all');
-      if (fRes.data?.data) {
-        setFacultyLeaves(fRes.data.data);
-      }
-    } catch {
-      // Keep rich default state if offline
+      setFacultyLeaves(fRes.data?.data ?? []);
+    } catch (error: any) {
+      setFacultyLeaves([]);
+      setLoadError(error.response?.data?.error?.message || 'Could not load faculty leave requests.');
     }
 
     try {
       const sRes = await api.get('/leaves');
-      if (sRes.data?.data) {
-        // If live leaves exist
-        const mapped = sRes.data.data.map((l: any) => ({
+      const mapped = (sRes.data?.data ?? []).map((l: any) => ({
           id: String(l.id),
-          studentName: l.student?.user?.name || 'Enrolled Student',
-          rollNo: l.student?.rollNo || '2101640100000',
-          section: 'CSE-3A',
+          studentName: l.student?.user?.name || '',
+          rollNo: l.student?.rollNo || '',
+          section: l.student?.section?.name || '',
           type: l.type,
-          fromDate: l.fromDate?.slice(0, 10) || '2026-10-12',
-          toDate: l.toDate?.slice(0, 10) || '2026-10-14',
+          fromDate: l.fromDate?.slice(0, 10) || '',
+          toDate: l.toDate?.slice(0, 10) || '',
           reason: l.reason,
           status: l.status,
           decisionNote: l.decisionNote,
-          createdAt: l.createdAt?.slice(0, 10) || '2026-10-12',
+          createdAt: l.createdAt?.slice(0, 10) || '',
         }));
-        if (mapped.length > 0) setStudentLeaves(mapped);
-      }
-    } catch {
-      // Keep rich default state
+      setStudentLeaves(mapped);
+      setLoadError('');
+    } catch (error: any) {
+      setStudentLeaves([]);
+      setLoadError(error.response?.data?.error?.message || 'Could not load student leave requests.');
     } finally {
       setLoading(false);
     }
@@ -188,8 +106,10 @@ export default function LeaveApprovalDesk() {
           decisionNote: decisionNote.trim() || (newStatus === 'APPROVED' ? 'Approved by Academic Dean' : 'Rejected'),
         });
       }
-    } catch {
-      // Simulate locally if offline
+    } catch (error: any) {
+      setLoadError(error.response?.data?.error?.message || 'Could not save this leave decision.');
+      setSubmittingDecision(false);
+      return;
     }
 
     if (modalItem.target === 'faculty') {
@@ -225,6 +145,7 @@ export default function LeaveApprovalDesk() {
 
   return (
     <div>
+      {loadError && <p role="alert" className="alert alert--error">{loadError}</p>}
       {/* Header Banner */}
       <div
         className="card"
@@ -242,7 +163,7 @@ export default function LeaveApprovalDesk() {
       >
         <div>
           <h2 style={{ fontSize: '1.35rem', margin: 0, fontWeight: 800 }}>
-            🏖️ Institutional Leave Approval Desk
+             Institutional Leave Approval Desk
           </h2>
           <p style={{ margin: '0.25rem 0 0 0', color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>
             Sanction faculty casual/duty leaves & student medical/on-duty requests with official audit remarks
@@ -286,7 +207,7 @@ export default function LeaveApprovalDesk() {
             className={`btn btn--sm ${activeSegment === 'faculty' ? 'btn--primary' : 'btn--ghost'}`}
             style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.4rem' }}
           >
-            👨‍🏫 Faculty Leaves
+             Faculty Leaves
             {pendingFaculty > 0 && (
               <span style={{ background: '#FFF', color: 'var(--color-primary)', borderRadius: '50%', padding: '0.05rem 0.4rem', fontSize: '0.7rem' }}>
                 {pendingFaculty}
@@ -298,7 +219,7 @@ export default function LeaveApprovalDesk() {
             className={`btn btn--sm ${activeSegment === 'student' ? 'btn--primary' : 'btn--ghost'}`}
             style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.4rem' }}
           >
-            🎓 Student Leaves
+             Student Leaves
             {pendingStudent > 0 && (
               <span style={{ background: '#FFF', color: 'var(--color-primary)', borderRadius: '50%', padding: '0.05rem 0.4rem', fontSize: '0.7rem' }}>
                 {pendingStudent}
@@ -512,7 +433,7 @@ export default function LeaveApprovalDesk() {
                                 fontWeight: 700,
                               }}
                             >
-                              🏥 Clinic Verified
+                               Clinic Verified
                             </span>
                           </div>
                         )}
@@ -558,7 +479,7 @@ export default function LeaveApprovalDesk() {
                                 style={{ background: '#EFF6FF', color: '#2563EB', border: '1px solid #BFDBFE', padding: '0.25rem 0.5rem', fontSize: '0.72rem', fontWeight: 700 }}
                                 title="One-click verify against Campus Clinic"
                               >
-                                🏥 Clinic Verify
+                                 Clinic Verify
                               </button>
                             )}
                             <button

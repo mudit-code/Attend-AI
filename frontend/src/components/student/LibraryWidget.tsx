@@ -19,43 +19,14 @@ interface LibraryData {
   books: Book[];
 }
 
-const DEFAULT_LIBRARY: LibraryData = {
-  activeBooks: 2,
-  totalFine: 4,
-  books: [
-    {
-      id: 1,
-      bookTitle: "Operating System Concepts (Silberschatz)",
-      bookCode: "LIB-CS-1042",
-      issuedAt: "2026-09-20T00:00:00.000Z",
-      dueDate: "2026-10-18T00:00:00.000Z",
-      returnedAt: null,
-      isOverdue: false,
-      daysOverdue: 0,
-      fine: 0,
-    },
-    {
-      id: 2,
-      bookTitle: "Introduction to Algorithms (Cormen)",
-      bookCode: "LIB-CS-2089",
-      issuedAt: "2026-09-10T00:00:00.000Z",
-      dueDate: "2026-10-10T00:00:00.000Z",
-      returnedAt: null,
-      isOverdue: true,
-      daysOverdue: 2,
-      fine: 4,
-    },
-  ],
-};
-
 export default function LibraryWidget() {
   const [data, setData] = useState<LibraryData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     api.get("/library/my")
-      .then((res) => setData(res.data.data || DEFAULT_LIBRARY))
-      .catch(() => setData(DEFAULT_LIBRARY))
+      .then((res) => setData(res.data.data || null))
+      .catch(() => setData(null))
       .finally(() => setLoading(false));
   }, []);
 
@@ -67,7 +38,7 @@ export default function LibraryWidget() {
     <div style={{ background: "var(--color-surface)", borderRadius: 16, border: `1px solid ${data.totalFine > 0 ? "#ef4444" : "var(--color-border)"}`, marginBottom: "1rem", overflow: "hidden" }}>
       <div style={{ padding: "0.875rem 1.25rem", display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid var(--color-border)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-          <span style={{ fontSize: "1.25rem" }}>📚</span>
+
           <div>
             <div style={{ fontWeight: 700, color: "var(--color-text)" }}>Library</div>
             <div style={{ fontSize: "0.75rem", color: "var(--color-muted)" }}>{data.activeBooks} book{data.activeBooks !== 1 ? "s" : ""} issued</div>

@@ -16,67 +16,13 @@ interface FeedbackItem {
   createdAt: string;
 }
 
-const DEFAULT_FEEDBACKS: FeedbackItem[] = [
-  {
-    id: 'fb-1',
-    senderName: 'Deepak Yadav',
-    senderEmail: 'deepak.yadav@aktu.ac.in',
-    senderRole: 'STUDENT',
-    senderIdentifier: 'Roll: 2101640100017 (CSE-3A)',
-    category: 'ATTENDANCE_TECH',
-    title: 'Offline Sync latency in Computer Lab 3',
-    description: 'During Friday 3rd period, the offline attendance sync took 4 minutes because WiFi signal dropped in Lab 3. Can an offline Bluetooth mesh or local beacon be configured?',
-    status: 'NEW',
-    createdAt: '2026-10-12 11:20 AM',
-  },
-  {
-    id: 'fb-2',
-    senderName: 'Prof. Rajesh Sharma',
-    senderEmail: 'rajesh.sharma@aktu.ac.in',
-    senderRole: 'TEACHER',
-    senderIdentifier: 'Faculty ID: EMP-KIT-104 (CSE Dept)',
-    category: 'ACADEMIC',
-    title: 'Request for Projector replacement in Lecture Hall 204',
-    description: 'The HDMI connection on LH-204 ceiling projector flickers during Cloud Computing slides. Kindly schedule IT maintenance.',
-    status: 'NEW',
-    createdAt: '2026-10-11 04:15 PM',
-  },
-  {
-    id: 'fb-3',
-    senderName: 'Muskan Gupta',
-    senderEmail: 'muskan.gupta@aktu.ac.in',
-    senderRole: 'STUDENT',
-    senderIdentifier: 'Roll: 2101640100018 (CSE-3A)',
-    category: 'INFRASTRUCTURE',
-    title: 'Digital Library reading room AC functioning',
-    description: 'The Central Library reading section AC was not cooling properly during weekend exam prep hours.',
-    status: 'RESOLVED',
-    adminReply: 'Estate maintenance inspected the HVAC compressor in Central Library on Oct 10 and resolved the filter blockage.',
-    repliedAt: '2026-10-10 03:00 PM',
-    createdAt: '2026-10-09 10:30 AM',
-  },
-  {
-    id: 'fb-4',
-    senderName: 'Dr. Sunita Verma',
-    senderEmail: 'sunita.verma@aktu.ac.in',
-    senderRole: 'TEACHER',
-    senderIdentifier: 'Faculty ID: EMP-KIT-109 (IT Dept)',
-    category: 'GENERAL',
-    title: 'Suggestion for automated attendance PDF email to parents',
-    description: 'If monthly aggregate report can automatically trigger an email to student guardian whenever attendance drops below 75%, it would save faculty counseling time.',
-    status: 'RESOLVED',
-    adminReply: 'Implemented in AttendAI auto-cron alerts engine under institutional preferences.',
-    repliedAt: '2026-10-08 05:40 PM',
-    createdAt: '2026-10-07 02:10 PM',
-  },
-];
-
 export default function InstitutionalFeedbackManager() {
-  const [feedbacks, setFeedbacks] = useState<FeedbackItem[]>(DEFAULT_FEEDBACKS);
+  const [feedbacks, setFeedbacks] = useState<FeedbackItem[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [selectedRole, setSelectedRole] = useState<string>('ALL');
   const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   // Reply Modal
   const [replyTarget, setReplyTarget] = useState<FeedbackItem | null>(null);
@@ -91,11 +37,10 @@ export default function InstitutionalFeedbackManager() {
     setLoading(true);
     try {
       const res = await api.get('/feedback/admin/inbox');
-      if (res.data?.data && res.data.data.length > 0) {
-        setFeedbacks(res.data.data);
-      }
-    } catch {
-      // Retain rich defaults
+      setFeedbacks(res.data?.data ?? []);
+    } catch (error: any) {
+      setFeedbacks([]);
+      setError(error.response?.data?.error?.message || 'Could not load feedback.');
     } finally {
       setLoading(false);
     }
@@ -113,8 +58,10 @@ export default function InstitutionalFeedbackManager() {
       await api.post(`/feedback/admin/${replyTarget.id}/reply`, {
         reply: replyText.trim(),
       });
-    } catch {
-      // Simulate locally
+    } catch (error: any) {
+      setError(error.response?.data?.error?.message || 'Could not submit the reply.');
+      setSubmittingReply(false);
+      return;
     }
 
     setFeedbacks((prev) =>
@@ -147,6 +94,7 @@ export default function InstitutionalFeedbackManager() {
 
   return (
     <div>
+      {error && <p role="alert" className="alert alert--error">{error}</p>}
       {/* Header */}
       <div
         className="card"
@@ -164,7 +112,7 @@ export default function InstitutionalFeedbackManager() {
       >
         <div>
           <h2 style={{ fontSize: '1.35rem', margin: 0, fontWeight: 800 }}>
-            💬 2-Way Institutional Feedback & Grievance Desk
+             2-Way Institutional Feedback & Grievance Desk
           </h2>
           <p style={{ margin: '0.25rem 0 0 0', color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>
             Direct communication channel connecting students, faculty, and administration with transparent resolution tracking
@@ -356,7 +304,7 @@ export default function InstitutionalFeedbackManager() {
                       border: '1px solid var(--color-border)',
                     }}
                   >
-                    🏷️ Category: {item.category.replace('_', ' ')}
+                     Category: {item.category.replace('_', ' ')}
                   </span>
                 </div>
 
@@ -373,7 +321,7 @@ export default function InstitutionalFeedbackManager() {
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
                       <strong style={{ color: '#1E293B', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                        <span>🏛️</span> Official Institutional Reply
+                         Official Institutional Reply
                       </strong>
                       <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)' }}>
                         {item.repliedAt}
@@ -393,7 +341,7 @@ export default function InstitutionalFeedbackManager() {
                       className="btn btn--primary btn--sm"
                       style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
                     >
-                      ✍️ Direct Reply & Resolve
+                       Direct Reply & Resolve
                     </button>
                   </div>
                 )}
@@ -433,7 +381,7 @@ export default function InstitutionalFeedbackManager() {
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
               <h3 style={{ margin: 0, fontSize: '1.15rem' }}>
-                ✍️ Post Institutional Reply
+                 Post Institutional Reply
               </h3>
               <button
                 onClick={() => setReplyTarget(null)}

@@ -52,7 +52,7 @@ export default function LeaveInbox() {
   return (
     <div style={{ background: "var(--color-surface)", borderRadius: 16, border: "1px solid #f59e0b44", marginBottom: "1rem", overflow: "hidden" }}>
       <div style={{ padding: "0.875rem 1.25rem", borderBottom: "1px solid var(--color-border)", display: "flex", alignItems: "center", gap: "0.5rem" }}>
-        <span style={{ fontSize: "1.25rem" }}>📋</span>
+
         <div>
           <div style={{ fontWeight: 700, color: "var(--color-text)" }}>Leave Requests</div>
           <div style={{ fontSize: "0.75rem", color: "#f59e0b", fontWeight: 600 }}>{leaves.length} pending approval</div>
@@ -69,18 +69,18 @@ export default function LeaveInbox() {
               <span style={{ fontSize: "0.7rem", background: "rgba(245,158,11,0.1)", color: "#f59e0b", padding: "2px 8px", borderRadius: 6, fontWeight: 600 }}>PENDING</span>
             </div>
             <div style={{ fontSize: "0.8rem", color: "var(--color-muted)", marginBottom: "0.6rem" }}>
-              📅 {new Date(leave.fromDate).toLocaleDateString("en-IN")} – {new Date(leave.toDate).toLocaleDateString("en-IN")}
-              <br />📝 {leave.reason}
+               {new Date(leave.fromDate).toLocaleDateString("en-IN")} – {new Date(leave.toDate).toLocaleDateString("en-IN")}
+              <br /> {leave.reason}
             </div>
             {leave.documentUrl && (
-              <a href={leave.documentUrl} target="_blank" rel="noreferrer" style={{ fontSize: "0.75rem", color: "#6366f1", fontWeight: 600 }}>📄 View Document</a>
+              <a href={leave.documentUrl} target="_blank" rel="noreferrer" style={{ fontSize: "0.75rem", color: "#6366f1", fontWeight: 600 }}> View Document</a>
             )}
             <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.6rem" }}>
               <button onClick={() => decide(leave.id, "APPROVED")} disabled={deciding === leave.id} style={{ flex: 1, padding: "0.5rem", background: "rgba(16,185,129,0.1)", color: "#10b981", border: "1px solid #10b98133", borderRadius: 8, fontWeight: 600, cursor: "pointer", fontSize: "0.85rem" }}>
-                ✅ Approve
+                 Approve
               </button>
               <button onClick={() => decide(leave.id, "REJECTED")} disabled={deciding === leave.id} style={{ flex: 1, padding: "0.5rem", background: "rgba(239,68,68,0.1)", color: "#ef4444", border: "1px solid #ef444433", borderRadius: 8, fontWeight: 600, cursor: "pointer", fontSize: "0.85rem" }}>
-                ❌ Reject
+                 Reject
               </button>
             </div>
           </div>

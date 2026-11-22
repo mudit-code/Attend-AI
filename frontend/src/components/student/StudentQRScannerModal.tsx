@@ -232,7 +232,7 @@ export default function StudentQRScannerModal({
         {/* Header */}
         <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ fontSize: '1.25rem' }}>📷</span>
+
             <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: 'var(--color-text)' }}>
               Scan Classroom QR
             </h3>
@@ -276,13 +276,13 @@ export default function StudentQRScannerModal({
         >
           {cameraError ? (
             <div style={{ padding: '1.5rem', textAlign: 'center', color: '#F87171' }}>
-              <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>⚠️</div>
+              <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}></div>
               <p style={{ fontSize: '0.875rem', lineHeight: 1.4, margin: '0 0 1rem' }}>{cameraError}</p>
               <label
                 className="btn btn--primary btn--sm"
                 style={{ cursor: 'pointer', display: 'inline-block' }}
               >
-                📁 Upload QR Screenshot
+                 Upload QR Screenshot
                 <input type="file" accept="image/*" onChange={handleImageUpload} style={{ display: 'none' }} />
               </label>
             </div>
@@ -359,7 +359,7 @@ export default function StudentQRScannerModal({
               onClick={() => setFacingMode((prev) => (prev === 'environment' ? 'user' : 'environment'))}
               style={{ fontSize: '0.8rem', fontWeight: 700 }}
             >
-              🔄 Flip Camera
+               Flip Camera
             </button>
           )}
 

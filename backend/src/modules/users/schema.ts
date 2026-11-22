@@ -6,7 +6,7 @@ export const createStudentSchema = z.object({
   phone: z.string().optional(),
   rollNo: z.string().min(2).max(20),
   sectionId: z.number().int().positive(),
-  password: z.string().min(6).default('Student@123'),
+  password: z.string().min(8),
 });
 
 export const createTeacherSchema = z.object({
@@ -17,7 +17,7 @@ export const createTeacherSchema = z.object({
   departmentId: z.number().int().positive(),
   isClassTeacher: z.boolean().default(false),
   classTeacherSectionId: z.number().int().positive().optional(),
-  password: z.string().min(6).default('Teacher@123'),
+  password: z.string().min(8),
 });
 
 export const bulkStudentSchema = z.object({
@@ -28,7 +28,7 @@ export const bulkStudentSchema = z.object({
       phone: z.string().optional(),
       rollNo: z.string().min(2).max(20),
       sectionId: z.number().int().positive(),
-      password: z.string().min(6).optional(),
+      password: z.string().min(8),
     })
   ).min(1).max(500),
 });

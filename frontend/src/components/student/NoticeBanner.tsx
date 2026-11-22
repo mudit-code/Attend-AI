@@ -11,32 +11,13 @@ interface Notice {
 }
 
 const CAT_COLORS: Record<string, { bg: string; text: string; icon: string }> = {
-  EXAM: { bg: "rgba(239,68,68,0.1)", text: "#ef4444", icon: "📝" },
-  FEE: { bg: "rgba(245,158,11,0.1)", text: "#f59e0b", icon: "💳" },
-  HOLIDAY: { bg: "rgba(16,185,129,0.1)", text: "#10b981", icon: "🏖️" },
-  EVENT: { bg: "rgba(99,102,241,0.1)", text: "#6366f1", icon: "🎉" },
-  DISCIPLINE: { bg: "rgba(239,68,68,0.1)", text: "#ef4444", icon: "⚠️" },
-  GENERAL: { bg: "rgba(107,114,128,0.1)", text: "#6b7280", icon: "📢" },
+  EXAM: { bg: "rgba(239,68,68,0.1)", text: "#ef4444", icon: "" },
+  FEE: { bg: "rgba(245,158,11,0.1)", text: "#f59e0b", icon: "" },
+  HOLIDAY: { bg: "rgba(16,185,129,0.1)", text: "#10b981", icon: "" },
+  EVENT: { bg: "rgba(99,102,241,0.1)", text: "#6366f1", icon: "" },
+  DISCIPLINE: { bg: "rgba(239,68,68,0.1)", text: "#ef4444", icon: "" },
+  GENERAL: { bg: "rgba(107,114,128,0.1)", text: "#6b7280", icon: "" },
 };
-
-const DEFAULT_NOTICES: Notice[] = [
-  {
-    id: 1,
-    title: "Odd Semester Sessional-II Examination & Admit Card Guidelines",
-    body: "All B.Tech students are informed that Sessional-II commences from 28th October. Ensure departmental No-Dues clearance is completed.",
-    category: "EXAM",
-    pdfUrl: null,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 2,
-    title: "Campus Placement Registration: TCS & Infosys Drives",
-    body: "T&P cell invites eligible candidates (min 75% attendance) to register for upcoming on-campus technical assessments.",
-    category: "EVENT",
-    pdfUrl: null,
-    createdAt: new Date().toISOString(),
-  },
-];
 
 interface NoticeBannerProps {
   branchName?: string;
@@ -44,15 +25,16 @@ interface NoticeBannerProps {
 }
 
 export default function NoticeBanner({ branchName, sectionName }: NoticeBannerProps) {
-  const [notices, setNotices] = useState<Notice[]>(DEFAULT_NOTICES);
+  const [notices, setNotices] = useState<Notice[]>([]);
   const [current, setCurrent] = useState(0);
   const [expanded, setExpanded] = useState(false);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     api.get("/notices")
       .then((res) => {
         const raw = res.data.data;
-        if (Array.isArray(raw) && raw.length > 0) {
+        if (Array.isArray(raw)) {
           const filtered = raw.filter((n: any) => {
             if (!n.audienceScope || n.audienceScope === 'CAMPUS') return true;
             if (n.audienceScope === 'BRANCH' && branchName) {
@@ -64,9 +46,14 @@ export default function NoticeBanner({ branchName, sectionName }: NoticeBannerPr
             return true;
           });
           setNotices(filtered.slice(0, 5));
+          setCurrent(0);
         }
+        setError(false);
       })
-      .catch(() => {});
+      .catch(() => {
+        setNotices([]);
+        setError(true);
+      });
   }, [branchName, sectionName]);
 
   useEffect(() => {
@@ -75,7 +62,10 @@ export default function NoticeBanner({ branchName, sectionName }: NoticeBannerPr
     return () => clearInterval(timer);
   }, [notices]);
 
-  if (notices.length === 0) return null;
+  if (notices.length === 0) {
+    if (!error) return null;
+    return <p className="alert alert--error" role="alert">Could not load notices from the server.</p>;
+  }
 
   const notice = notices[current];
   const colors = CAT_COLORS[notice.category] ?? CAT_COLORS.GENERAL;
@@ -110,7 +100,7 @@ export default function NoticeBanner({ branchName, sectionName }: NoticeBannerPr
           <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--color-text)", lineHeight: 1.5 }}>{notice.body}</p>
           {notice.pdfUrl && (
             <a href={notice.pdfUrl} target="_blank" rel="noreferrer" style={{ display: "inline-block", marginTop: 8, fontSize: "0.8rem", color: colors.text, fontWeight: 600, textDecoration: "none" }}>
-              📄 Download PDF →
+               Download PDF →
             </a>
           )}
         </div>

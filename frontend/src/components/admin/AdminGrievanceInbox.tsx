@@ -14,58 +14,22 @@ interface Ticket {
   resolution?: string;
 }
 
-const DEFAULT_TICKETS: Ticket[] = [
-  {
-    id: "t-101",
-    studentName: "Aman Kumar",
-    rollNo: "2101640100015",
-    category: "ATTENDANCE",
-    title: "Marked absent in AI lecture on 10th October despite being present",
-    description: "Sir, I attended the entire lecture in Room 302 and answered the roll-call. Please check the physical register sheet.",
-    isAnonymous: false,
-    status: "OPEN",
-    createdAt: "2026-10-10T14:30:00Z",
-  },
-  {
-    id: "t-102",
-    studentName: "Student",
-    rollNo: "—",
-    category: "FACILITIES",
-    title: "Air conditioning and projector not working in Computer Lab 3",
-    description: "The projector flickers continuously and lab is too humid to focus during programming sessions.",
-    isAnonymous: true,
-    status: "OPEN",
-    createdAt: "2026-10-11T11:20:00Z",
-  },
-  {
-    id: "t-103",
-    studentName: "Deepak Yadav",
-    rollNo: "2101640100017",
-    category: "MARKS",
-    title: "Sessional-1 marks not updated in portal",
-    description: "I received 21 marks on the evaluated answer sheet but portal still shows 0.",
-    isAnonymous: false,
-    status: "RESOLVED",
-    createdAt: "2026-10-08T09:00:00Z",
-    resolution: "Verified answer sheet with Prof. Gupta. Marks updated to 21.",
-  },
-];
-
 export default function AdminGrievanceInbox() {
-  const [tickets, setTickets] = useState<Ticket[]>(DEFAULT_TICKETS);
+  const [tickets, setTickets] = useState<Ticket[]>([]);
   const [filter, setFilter] = useState<string>("ALL");
   const [activeReplyId, setActiveReplyId] = useState<string | null>(null);
   const [resolutionText, setResolutionText] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
     api.get('/grievances/all')
       .then((res) => {
-        if (res.data?.data && res.data.data.length > 0) {
+        if (Array.isArray(res.data?.data)) {
           const mapped: Ticket[] = res.data.data.map((t: any) => ({
-            id: t.id,
-            studentName: t.isAnonymous ? 'Student' : (t.student?.user?.name || 'Enrolled Student'),
-            rollNo: t.isAnonymous ? '—' : (t.student?.rollNo || '2101640100000'),
+            id: String(t.id),
+            studentName: t.isAnonymous ? 'Anonymous' : (t.student?.user?.name || ''),
+            rollNo: t.isAnonymous ? '—' : (t.student?.rollNo || ''),
             category: t.category,
             title: t.title,
             description: t.description,
@@ -77,7 +41,10 @@ export default function AdminGrievanceInbox() {
           setTickets(mapped);
         }
       })
-      .catch(() => {});
+      .catch((error) => {
+        setTickets([]);
+        setLoadError(error.response?.data?.error?.message || 'Could not load grievances.');
+      });
   }, []);
 
   async function handleResolve(ticketId: string) {
@@ -86,8 +53,10 @@ export default function AdminGrievanceInbox() {
 
     try {
       await api.patch(`/grievances/${ticketId}/resolve`, { resolution: resolutionText });
-    } catch {
-      // offline fallback
+    } catch (error: any) {
+      setLoadError(error.response?.data?.error?.message || 'Could not resolve this grievance.');
+      setSubmitting(false);
+      return;
     }
 
     setTickets((prev) =>
@@ -112,10 +81,11 @@ export default function AdminGrievanceInbox() {
   return (
     <div style={{ maxWidth: 900, margin: "0 auto" }}>
       <div className="card" style={{ marginBottom: "1rem" }}>
+        {loadError && <p role="alert" className="alert alert--error">{loadError}</p>}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem", flexWrap: "wrap", gap: "0.5rem" }}>
           <div>
             <h2 style={{ fontSize: "1.3rem", fontWeight: 800, margin: 0 }}>
-              📮 Student Grievance Redressal Inbox
+               Student Grievance Redressal Inbox
             </h2>
             <p className="text-xs text-muted" style={{ marginTop: 2 }}>
               Review, address, and resolve issues submitted by students.
@@ -138,6 +108,7 @@ export default function AdminGrievanceInbox() {
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+        {filtered.length === 0 && !loadError && <p className="text-muted">No grievances match this filter.</p>}
         {filtered.map((t) => (
           <div
             key={t.id}
@@ -156,7 +127,7 @@ export default function AdminGrievanceInbox() {
                   </span>
                   {t.isAnonymous ? (
                     <span className="badge" style={{ background: "#FEF3C7", color: "#D97706", fontWeight: 700, fontSize: "0.7rem" }}>
-                      🔒 Anonymous Student
+                       Anonymous Student
                     </span>
                   ) : (
                     <span style={{ fontWeight: 700, fontSize: "0.85rem", color: "var(--color-text)" }}>
@@ -229,7 +200,7 @@ export default function AdminGrievanceInbox() {
                     onClick={() => { setActiveReplyId(t.id); setResolutionText(""); }}
                     style={{ fontWeight: 700, fontSize: "0.8rem" }}
                   >
-                    💬 Reply & Resolve Ticket
+                     Reply & Resolve Ticket
                   </button>
                 )}
               </div>

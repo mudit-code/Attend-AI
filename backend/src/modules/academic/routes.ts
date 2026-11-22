@@ -18,6 +18,15 @@ const router = Router();
 // All academic routes require authentication
 router.use(authenticate);
 
+router.get('/years', requireRole('ADMIN', 'HOD'), async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    const data = await academicService.getAcademicYears();
+    res.json({ data });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // ─── Departments ──────────────────────────────────────────────────
 router.get('/departments', async (_req: Request, res: Response, next: NextFunction) => {
   try {

@@ -20,47 +20,6 @@ interface TimetableData {
 
 const DAYS = ["", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
-const DEFAULT_TIMETABLE: TimetableData = {
-  dayOfWeek: 1,
-  currentTime: "10:15",
-  currentPeriod: 2,
-  nextPeriod: 3,
-  slots: [
-    {
-      period: 1,
-      startTime: "09:00",
-      endTime: "09:55",
-      roomNo: "Room 302",
-      subject: { id: 1, name: "Cloud Computing", code: "CS-601" },
-      teacher: { id: 1, name: "Dr. R. Sharma" },
-    },
-    {
-      period: 2,
-      startTime: "10:00",
-      endTime: "10:55",
-      roomNo: "Lab-A",
-      subject: { id: 2, name: "Web Technology Lab", code: "CS-603" },
-      teacher: { id: 2, name: "Er. P. Verma" },
-    },
-    {
-      period: 3,
-      startTime: "11:00",
-      endTime: "11:55",
-      roomNo: "Room 302",
-      subject: { id: 3, name: "Compiler Design", code: "CS-602" },
-      teacher: { id: 3, name: "Prof. A. Gupta" },
-    },
-    {
-      period: 4,
-      startTime: "12:00",
-      endTime: "12:55",
-      roomNo: "Room 204",
-      subject: { id: 4, name: "Software Engineering", code: "CS-604" },
-      teacher: { id: 4, name: "Dr. K. Singh" },
-    },
-  ],
-};
-
 export interface TodayAttendanceRecord {
   period: number;
   status: 'P' | 'A' | 'L' | 'OD' | 'LV';
@@ -79,11 +38,12 @@ interface TodayTimetableProps {
 export default function TodayTimetable({ onMarkLiveClass, todayRecords = [], onRaiseCorrection }: TodayTimetableProps) {
   const [data, setData] = useState<TimetableData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     api.get("/academic/timetable/today")
-      .then((res) => setData(res.data.data || DEFAULT_TIMETABLE))
-      .catch(() => setData(DEFAULT_TIMETABLE))
+      .then((res) => setData(res.data.data ?? null))
+      .catch(() => setError(true))
       .finally(() => setLoading(false));
   }, []);
 
@@ -93,11 +53,13 @@ export default function TodayTimetable({ onMarkLiveClass, todayRecords = [], onR
     </div>
   );
 
-  if (!data || data.slots.length === 0) return (
+  if (error || !data || data.slots.length === 0) return (
     <div style={{ background: "var(--color-surface)", borderRadius: 16, padding: "1.25rem", border: "1px solid var(--color-border)", marginBottom: "1rem", textAlign: "center" }}>
-      <div style={{ fontSize: "2rem" }}>🏖️</div>
-      <div style={{ fontWeight: 600, color: "var(--color-text)" }}>No classes today</div>
-      <div style={{ fontSize: "0.8rem", color: "var(--color-muted)" }}>{DAYS[data?.dayOfWeek ?? 0]} — You're free!</div>
+      <div style={{ fontSize: "2rem" }}></div>
+      <div style={{ fontWeight: 600, color: "var(--color-text)" }}>
+        {error ? 'Schedule unavailable' : data ? 'No classes scheduled today' : 'No timetable is configured'}
+      </div>
+      {data && <div style={{ fontSize: "0.8rem", color: "var(--color-muted)" }}>{DAYS[data.dayOfWeek]}</div>}
     </div>
   );
 
@@ -105,7 +67,7 @@ export default function TodayTimetable({ onMarkLiveClass, todayRecords = [], onR
     <div style={{ background: "var(--color-surface)", borderRadius: 16, border: "1px solid var(--color-border)", marginBottom: "1rem", overflow: "hidden" }}>
       <div style={{ padding: "1rem 1.25rem", borderBottom: "1px solid var(--color-border)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-          <span style={{ fontSize: "1.25rem" }}>📅</span>
+
           <div>
             <div style={{ fontWeight: 700, color: "var(--color-text)" }}>Today's Live Schedule</div>
             <div style={{ fontSize: "0.75rem", color: "var(--color-muted)" }}>{DAYS[data.dayOfWeek]} · {data.slots.length} periods today</div>
@@ -169,14 +131,14 @@ export default function TodayTimetable({ onMarkLiveClass, todayRecords = [], onR
                   </span>
                   {isLab && (
                     <span style={{ fontSize: "0.62rem", background: "#EEF2FF", color: "#4F46E5", padding: "1px 6px", borderRadius: 6, fontWeight: 700, border: "1px solid #C7D2FE" }}>
-                      🧪 2-Hour Lab (2x Credits)
+                       2-Hour Lab (2x Credits)
                     </span>
                   )}
                 </div>
                 <div style={{ fontSize: "0.73rem", color: "var(--color-muted)", marginTop: "2px" }}>
                   {slot.startTime} – {slot.endTime}
                   {slot.teacher && ` · ${slot.teacher.name}`}
-                  {slot.roomNo && ` · 🚪 ${slot.roomNo}`}
+                  {slot.roomNo && ` ·  ${slot.roomNo}`}
                 </div>
               </div>
 
@@ -244,7 +206,7 @@ export default function TodayTimetable({ onMarkLiveClass, todayRecords = [], onR
                           }}
                           title="If you were present, click to claim correction"
                         >
-                          🔔 Raise Claim
+                           Raise Claim
                         </button>
                       )}
                     </div>
@@ -254,13 +216,13 @@ export default function TodayTimetable({ onMarkLiveClass, todayRecords = [], onR
                     </span>
                   ) : (
                     <span style={{ background: "#FEF3C7", color: "#B45309", fontSize: "0.72rem", fontWeight: 800, padding: "0.25rem 0.65rem", borderRadius: "8px" }}>
-                      ⚠ LATE
+                       LATE
                     </span>
                   )
                 ) : isCurrent ? (
                   <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
                     <span style={{ background: "#EEF2FF", color: "#4F46E5", fontSize: "0.7rem", fontWeight: 800, padding: "0.2rem 0.5rem", borderRadius: "6px", border: "1px solid #C7D2FE" }}>
-                      ⚡ LIVE
+                       LIVE
                     </span>
                     {onMarkLiveClass && (
                       <button

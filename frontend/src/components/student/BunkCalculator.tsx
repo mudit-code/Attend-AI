@@ -34,69 +34,6 @@ const STATUS_COLORS = {
   DANGER: { bg: "rgba(239,68,68,0.1)", border: "#ef4444", text: "#ef4444", label: "DANGER" },
 };
 
-const DEFAULT_RECOVERY: RecoveryData = {
-  studentName: "Aman Kumar",
-  target: 75,
-  overall: {
-    attended: 46,
-    total: 153,
-    percentage: 30.1,
-    safeBunksAllowed: 0,
-    lecturesNeededToRecover: 192,
-    status: "DANGER",
-  },
-  subjectWise: [
-    {
-      subjectId: 1,
-      subjectName: "Cloud Computing",
-      subjectCode: "CS-601",
-      attended: 14,
-      total: 44,
-      percentage: 31.8,
-      target: 75,
-      status: "DANGER",
-      lecturesNeededToRecover: 58,
-      safeBunksAllowed: 0,
-    },
-    {
-      subjectId: 2,
-      subjectName: "Compiler Design",
-      subjectCode: "CS-602",
-      attended: 12,
-      total: 38,
-      percentage: 31.6,
-      target: 75,
-      status: "DANGER",
-      lecturesNeededToRecover: 51,
-      safeBunksAllowed: 0,
-    },
-    {
-      subjectId: 3,
-      subjectName: "Web Technology",
-      subjectCode: "CS-603",
-      attended: 11,
-      total: 35,
-      percentage: 31.4,
-      target: 75,
-      status: "DANGER",
-      lecturesNeededToRecover: 48,
-      safeBunksAllowed: 0,
-    },
-    {
-      subjectId: 4,
-      subjectName: "Software Engineering",
-      subjectCode: "CS-604",
-      attended: 9,
-      total: 36,
-      percentage: 25.0,
-      target: 75,
-      status: "DANGER",
-      lecturesNeededToRecover: 54,
-      safeBunksAllowed: 0,
-    },
-  ],
-};
-
 export default function BunkCalculator() {
   const [data, setData] = useState<RecoveryData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -104,8 +41,8 @@ export default function BunkCalculator() {
 
   useEffect(() => {
     api.get("/reports/recovery-stats")
-      .then((res) => setData(res.data.data || DEFAULT_RECOVERY))
-      .catch(() => setData(DEFAULT_RECOVERY))
+      .then((res) => setData(res.data.data || null))
+      .catch(() => setData(null))
       .finally(() => setLoading(false));
   }, []);
 
@@ -125,7 +62,7 @@ export default function BunkCalculator() {
       {/* Header */}
       <div style={{ background: c.bg, padding: "1rem 1.25rem", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }} onClick={() => setExpanded(!expanded)}>
         <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-          <div style={{ fontSize: "1.5rem" }}>{overall.status === "SAFE" ? "🎯" : overall.status === "WARNING" ? "⚠️" : "🚨"}</div>
+          <span className={`bunk-status bunk-status--${overall.status.toLowerCase()}`}>{overall.status}</span>
           <div>
             <div style={{ fontWeight: 700, fontSize: "1rem", color: "var(--color-text)" }}>
               Bunk / Recovery Calculator

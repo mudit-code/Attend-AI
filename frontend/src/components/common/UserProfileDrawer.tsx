@@ -138,7 +138,7 @@ export default function UserProfileDrawer({ isOpen, onClose }: UserProfileDrawer
           }}
         >
           <div className="flex items-center gap-2">
-            <span style={{ fontSize: '1.25rem' }}>👤</span>
+
             <div>
               <h2 style={{ fontSize: '1.05rem', margin: 0, fontWeight: 800 }}>Institutional Profile</h2>
               <p style={{ fontSize: '0.75rem', margin: 0, color: 'var(--color-text-muted)' }}>
@@ -188,7 +188,7 @@ export default function UserProfileDrawer({ isOpen, onClose }: UserProfileDrawer
                 {user?.name || 'Authorized Member'}
               </h3>
               <p style={{ fontSize: '0.82rem', margin: 0, color: 'var(--color-text-muted)', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {user?.email || 'user@aktu.ac.in'}
+                {user?.email || '—'}
               </p>
               <div className="flex items-center gap-2" style={{ marginTop: '0.35rem' }}>
                 <span
@@ -230,7 +230,7 @@ export default function UserProfileDrawer({ isOpen, onClose }: UserProfileDrawer
                 {roleName === 'STUDENT' ? 'ROLL NUMBER' : 'EMPLOYEE ID'}
               </span>
               <strong style={{ color: 'var(--color-text)' }}>
-                {user?.student?.rollNo || (roleName === 'STUDENT' ? '2101640100018' : 'EMP-KIT-4029')}
+                {user?.student?.rollNo || '—'}
               </strong>
             </div>
             <div>
@@ -279,7 +279,7 @@ export default function UserProfileDrawer({ isOpen, onClose }: UserProfileDrawer
               boxShadow: activeTab === 'profile' ? '0 1px 4px rgba(0,0,0,0.06)' : 'none',
             }}
           >
-            📋 Profile
+             Profile
           </button>
           <button
             onClick={() => setActiveTab('security')}
@@ -296,7 +296,7 @@ export default function UserProfileDrawer({ isOpen, onClose }: UserProfileDrawer
               boxShadow: activeTab === 'security' ? '0 1px 4px rgba(0,0,0,0.06)' : 'none',
             }}
           >
-            🔒 Security
+             Security
           </button>
           <button
             onClick={() => setActiveTab('preferences')}
@@ -313,7 +313,7 @@ export default function UserProfileDrawer({ isOpen, onClose }: UserProfileDrawer
               boxShadow: activeTab === 'preferences' ? '0 1px 4px rgba(0,0,0,0.06)' : 'none',
             }}
           >
-            ⚙️ Preferences
+             Preferences
           </button>
         </div>
 
@@ -422,7 +422,7 @@ export default function UserProfileDrawer({ isOpen, onClose }: UserProfileDrawer
                 className="btn btn--primary"
                 style={{ marginTop: '0.5rem', width: '100%' }}
               >
-                {isSaving ? 'Updating...' : '💾 Save Profile Details'}
+                {isSaving ? 'Updating...' : ' Save Profile Details'}
               </button>
             </form>
           )}
@@ -439,7 +439,7 @@ export default function UserProfileDrawer({ isOpen, onClose }: UserProfileDrawer
                   lineHeight: 1.4,
                 }}
               >
-                🔐 Passwords must be at least 6 characters and protect your institutional attendance & grading privileges.
+                 Passwords must be at least 6 characters and protect your institutional attendance & grading privileges.
               </div>
 
               <div>
@@ -505,7 +505,7 @@ export default function UserProfileDrawer({ isOpen, onClose }: UserProfileDrawer
                 className="btn btn--primary"
                 style={{ marginTop: '0.5rem', width: '100%' }}
               >
-                {isSaving ? 'Verifying...' : '🔑 Update Institutional Password'}
+                {isSaving ? 'Verifying...' : ' Update Institutional Password'}
               </button>
             </form>
           )}
@@ -580,7 +580,7 @@ export default function UserProfileDrawer({ isOpen, onClose }: UserProfileDrawer
                   color: '#92400E',
                 }}
               >
-                ℹ️ Preferences are synchronized across devices linked with your institutional UID.
+                 Preferences are synchronized across devices linked with your institutional UID.
               </div>
             </div>
           )}
@@ -615,7 +615,7 @@ export default function UserProfileDrawer({ isOpen, onClose }: UserProfileDrawer
               fontWeight: 700,
             }}
           >
-            🚪 Logout
+             Logout
           </button>
         </div>
       </div>

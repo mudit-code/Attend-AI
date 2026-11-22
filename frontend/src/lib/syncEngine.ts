@@ -1,5 +1,6 @@
 import { db } from '../lib/db';
 import { api } from '../lib/api';
+import { useAuthStore } from '../stores/useAuthStore';
 import { useSyncStore } from '../stores/useSyncStore';
 import { flushOfflineErrors } from '../lib/errorLogger';
 
@@ -130,6 +131,7 @@ let syncLock = false;
 
 export async function runSync(): Promise<void> {
   if (syncLock) return; // Only one sync at a time
+  if (!useAuthStore.getState().accessToken) return;
   if (!(await isServerReachable())) return;
 
   syncLock = true;

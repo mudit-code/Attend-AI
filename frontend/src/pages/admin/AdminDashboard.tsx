@@ -28,6 +28,7 @@ export default function AdminDashboard() {
 
   // Stats
   const [stats, setStats] = useState<any | null>(null);
+  const [apiError, setApiError] = useState<string | null>(null);
 
   // Rules
   const [rules, setRules] = useState({
@@ -44,6 +45,8 @@ export default function AdminDashboard() {
   const [courses, setCourses] = useState<any[]>([]);
   const [sections, setSections] = useState<any[]>([]);
   const [subjects, setSubjects] = useState<any[]>([]);
+  const [academicYears, setAcademicYears] = useState<any[]>([]);
+  const currentAcademicYearId = academicYears.find((year) => year.isCurrent)?.id ?? academicYears[0]?.id ?? null;
 
   // Add Department form
   const [newDeptName, setNewDeptName] = useState('');
@@ -89,15 +92,10 @@ export default function AdminDashboard() {
     try {
       const res = await api.get('/admin/stats');
       setStats(res.data.data);
-    } catch (err) {
-      console.warn('API unavailable, loading demo admin stats', err);
-      setStats({
-        totalStudents: 348,
-        totalTeachers: 28,
-        totalCourses: 6,
-        totalSessions: 1420,
-        defaultersCount: 42,
-      });
+      setApiError(null);
+    } catch {
+      setStats(null);
+      setApiError('Could not load dashboard statistics from the server.');
     }
   }
 
@@ -108,29 +106,11 @@ export default function AdminDashboard() {
       if (deptId !== 'ALL') params.departmentId = deptId;
       if (secId !== 'ALL') params.sectionId = secId;
       const res = await api.get('/reports/defaulters', { params });
-      if (res.data.data?.defaulters) {
-        setFilteredDefaulters(res.data.data.defaulters);
-      }
+      setFilteredDefaulters(res.data.data?.defaulters ?? []);
+      setApiError(null);
     } catch {
-      // Fallback demo defaulters
-      const demoList = [
-        { rollNo: '2101640100015', name: 'Aman Kumar', branch: 'CSE', section: 'CSE-3A', course: 'B.Tech CSE', totalClasses: 153, attended: 46, percentage: 30.1, shortage: '44.9%' },
-        { rollNo: '2101640100017', name: 'Deepak Yadav', branch: 'CSE', section: 'CSE-3A', course: 'B.Tech CSE', totalClasses: 153, attended: 101, percentage: 66.0, shortage: '9.0%' },
-        { rollNo: '2101640100019', name: 'Prashant Shukla', branch: 'CSE', section: 'CSE-3B', course: 'B.Tech CSE', totalClasses: 153, attended: 94, percentage: 61.4, shortage: '13.6%' },
-        { rollNo: '2101640100028', name: 'Vikas Pandey', branch: 'IT', section: 'IT-3A', course: 'B.Tech IT', totalClasses: 145, attended: 82, percentage: 56.6, shortage: '18.4%' },
-        { rollNo: '2101640100033', name: 'Neha Chauhan', branch: 'ECE', section: 'ECE-2A', course: 'B.Tech ECE', totalClasses: 140, attended: 91, percentage: 65.0, shortage: '10.0%' },
-      ];
-      // Filter fallback based on selection
-      let filtered = demoList;
-      if (deptId !== 'ALL') {
-        const dObj = departments.find((d) => d.id === deptId);
-        if (dObj) filtered = filtered.filter((s) => s.branch === dObj.code || s.course.includes(dObj.code));
-      }
-      if (secId !== 'ALL') {
-        const sObj = sections.find((s) => s.id === secId);
-        if (sObj) filtered = filtered.filter((s) => s.section.includes(sObj.name));
-      }
-      setFilteredDefaulters(filtered);
+      setFilteredDefaulters([]);
+      setApiError('Could not load attendance shortage data from the server.');
     } finally {
       setLoadingDefaulters(false);
     }
@@ -188,16 +168,20 @@ export default function AdminDashboard() {
 
   async function loadAcademic() {
     try {
-      const [dRes, cRes, sRes, subRes] = await Promise.all([
+      const [yRes, dRes, cRes, sRes, subRes] = await Promise.all([
+        api.get('/academic/years'),
         api.get('/academic/departments'),
         api.get('/academic/courses'),
         api.get('/academic/sections'),
         api.get('/academic/subjects'),
       ]);
+      setAcademicYears(yRes.data.data);
       setDepartments(dRes.data.data);
       setCourses(cRes.data.data);
       setSections(sRes.data.data);
       setSubjects(subRes.data.data);
+      setApiError(null);
+      setApiError(null);
       if (dRes.data.data.length > 0 && !newCourseDeptId) {
         setNewCourseDeptId(dRes.data.data[0].id);
       }
@@ -208,44 +192,13 @@ export default function AdminDashboard() {
         setSelectedBulkSection(sRes.data.data[0].id);
       }
       loadDefaulters('ALL', 'ALL', rules.minPercent);
-    } catch (err) {
-      console.warn('API unavailable or DB offline, loading institutional demo academic structure', err);
-      const fallbackDepts = [
-        { id: 1, name: 'Computer Science & Engineering', code: 'CSE' },
-        { id: 2, name: 'Information Technology', code: 'IT' },
-        { id: 3, name: 'Electronics & Communication', code: 'ECE' },
-        { id: 4, name: 'Mechanical Engineering', code: 'ME' },
-        { id: 5, name: 'Department of Management Studies', code: 'MBA' },
-      ];
-      const fallbackCourses = [
-        { id: 1, name: 'B.Tech Computer Science & Engineering', code: 'CSE', durationYears: 4, departmentId: 1, department: fallbackDepts[0] },
-        { id: 2, name: 'B.Tech Information Technology', code: 'IT', durationYears: 4, departmentId: 2, department: fallbackDepts[1] },
-        { id: 3, name: 'B.Tech Electronics & Communication', code: 'ECE', durationYears: 4, departmentId: 3, department: fallbackDepts[2] },
-        { id: 4, name: 'B.Tech Mechanical Engineering', code: 'ME', durationYears: 4, departmentId: 4, department: fallbackDepts[3] },
-        { id: 5, name: 'Master of Business Administration', code: 'MBA', durationYears: 2, departmentId: 5, department: fallbackDepts[4] },
-      ];
-      const fallbackSections = [
-        { id: 1, name: 'Section A', year: 3, courseId: 1, course: fallbackCourses[0], _count: { students: 62 } },
-        { id: 2, name: 'Section B', year: 3, courseId: 1, course: fallbackCourses[0], _count: { students: 58 } },
-        { id: 3, name: 'Section A', year: 2, courseId: 2, course: fallbackCourses[1], _count: { students: 55 } },
-        { id: 4, name: 'Section A', year: 3, courseId: 3, course: fallbackCourses[2], _count: { students: 48 } },
-        { id: 5, name: 'Section A', year: 1, courseId: 5, course: fallbackCourses[4], _count: { students: 45 } },
-      ];
-      const fallbackSubjects = [
-        { id: 1, name: 'Cloud Computing', code: 'KCS-601' },
-        { id: 2, name: 'Compiler Design', code: 'KCS-602' },
-        { id: 3, name: 'Software Engineering', code: 'KCS-603' },
-        { id: 4, name: 'Web Technology Lab', code: 'KIT-CS31' },
-      ];
-
-      setDepartments(fallbackDepts);
-      setCourses(fallbackCourses);
-      setSections(fallbackSections);
-      setSubjects(fallbackSubjects);
-      setNewCourseDeptId(fallbackDepts[0].id);
-      setNewSectionCourseId(fallbackCourses[0].id);
-      setSelectedBulkSection(fallbackSections[0].id);
-      loadDefaulters('ALL', 'ALL', rules.minPercent);
+    } catch {
+      setDepartments([]);
+      setCourses([]);
+      setSections([]);
+      setSubjects([]);
+      setAcademicYears([]);
+      setApiError('Could not load academic records from the server.');
     }
   }
 
@@ -266,7 +219,7 @@ export default function AdminDashboard() {
       await api.put('/admin/rules', rules);
       setRulesMessage('✓ Attendance rules updated successfully!');
     } catch (err) {
-      setRulesMessage('⚠️ Failed to save rules.');
+      setRulesMessage(' Failed to save rules.');
     } finally {
       setSavingRules(false);
       setTimeout(() => setRulesMessage(null), 4000);
@@ -276,23 +229,22 @@ export default function AdminDashboard() {
   async function handleCreateDepartment(e: React.FormEvent) {
     e.preventDefault();
     if (!newDeptName || !newDeptCode) return;
+    if (!currentAcademicYearId) {
+      setApiError('Create or select a current academic year before adding a department.');
+      return;
+    }
     try {
       await api.post('/academic/departments', {
         name: newDeptName.trim(),
         code: newDeptCode.trim().toUpperCase(),
-        academicYearId: 1,
+        academicYearId: currentAcademicYearId,
       });
       setNewDeptName('');
       setNewDeptCode('');
       loadAcademic();
       alert('✓ Department/Branch created successfully!');
-    } catch {
-      // Local addition fallback
-      const created = { id: Date.now(), name: newDeptName.trim(), code: newDeptCode.trim().toUpperCase() };
-      setDepartments((prev) => [...prev, created]);
-      setNewDeptName('');
-      setNewDeptCode('');
-      alert('✓ Department/Branch created successfully (synced)!');
+    } catch (err: any) {
+      setApiError(err.response?.data?.error?.message || 'Could not create the department.');
     }
   }
 
@@ -302,32 +254,25 @@ export default function AdminDashboard() {
       alert('Please fill Course Name, Code, and select a Branch');
       return;
     }
+    const department = departments.find((item) => item.id === newCourseDeptId);
+    if (!department?.academicYearId) {
+      setApiError('The selected department has no academic year. Refresh academic records.');
+      return;
+    }
     try {
       await api.post('/academic/courses', {
         name: newCourseName.trim(),
         code: newCourseCode.trim().toUpperCase(),
         durationYears: Number(newCourseDuration) || 4,
         departmentId: Number(newCourseDeptId),
-        academicYearId: 1,
+        academicYearId: department.academicYearId,
       });
       setNewCourseName('');
       setNewCourseCode('');
       loadAcademic();
       alert('✓ New Degree Program/Course created successfully!');
-    } catch {
-      const deptObj = departments.find(d => d.id === newCourseDeptId);
-      const created = {
-        id: Date.now(),
-        name: newCourseName.trim(),
-        code: newCourseCode.trim().toUpperCase(),
-        durationYears: Number(newCourseDuration) || 4,
-        departmentId: Number(newCourseDeptId),
-        department: deptObj,
-      };
-      setCourses((prev) => [...prev, created]);
-      setNewCourseName('');
-      setNewCourseCode('');
-      alert('✓ New Degree Program/Course created successfully (synced)!');
+    } catch (err: any) {
+      setApiError(err.response?.data?.error?.message || 'Could not create the course.');
     }
   }
 
@@ -337,29 +282,23 @@ export default function AdminDashboard() {
       alert('Please enter Section Name and select a Program/Course');
       return;
     }
+    const course = courses.find((item) => item.id === newSectionCourseId);
+    if (!course?.academicYearId) {
+      setApiError('The selected course has no academic year. Refresh academic records.');
+      return;
+    }
     try {
       await api.post('/academic/sections', {
         name: newSectionName.trim(),
         year: Number(newSectionYear) || 1,
         courseId: Number(newSectionCourseId),
-        academicYearId: 1,
+        academicYearId: course.academicYearId,
       });
       setNewSectionName('');
       loadAcademic();
       alert('✓ New Section added successfully!');
-    } catch {
-      const courseObj = courses.find(c => c.id === newSectionCourseId);
-      const created = {
-        id: Date.now(),
-        name: newSectionName.trim(),
-        year: Number(newSectionYear) || 1,
-        courseId: Number(newSectionCourseId),
-        course: courseObj,
-        _count: { students: 0 },
-      };
-      setSections((prev) => [...prev, created]);
-      setNewSectionName('');
-      alert('✓ New Section added successfully (synced)!');
+    } catch (err: any) {
+      setApiError(err.response?.data?.error?.message || 'Could not create the section.');
     }
   }
 
@@ -378,12 +317,8 @@ export default function AdminDashboard() {
       setNewSubjectCode('');
       loadAcademic();
       alert('✓ New Subject registered into academic catalog!');
-    } catch {
-      const created = { id: Date.now(), name: newSubjectName.trim(), code: newSubjectCode.trim().toUpperCase() };
-      setSubjects((prev) => [...prev, created]);
-      setNewSubjectName('');
-      setNewSubjectCode('');
-      alert('✓ New Subject registered into academic catalog (synced)!');
+    } catch (err: any) {
+      setApiError(err.response?.data?.error?.message || 'Could not create the subject.');
     }
   }
 
@@ -397,13 +332,13 @@ export default function AdminDashboard() {
     setBulkResult(null);
 
     try {
-      // Parse CSV lines: RollNo, Name, Email, Phone
+      // Parse CSV lines: RollNo, Name, Email, Phone, Password
       const allLines = bulkCsvText
         .split('\n')
         .map((l) => l.trim())
         .filter((l) => l.length > 0);
 
-      // Filter out header line if present (e.g. RollNo, Name, Email, Phone)
+      // Filter out a header line if present.
       const dataLines = allLines.filter((line, idx) => {
         if (idx === 0) {
           const lower = line.toLowerCase();
@@ -419,12 +354,20 @@ export default function AdminDashboard() {
         const cleanRoll = parts[0].toUpperCase();
         return {
           rollNo: cleanRoll,
-          name: parts[1] || `Student ${cleanRoll}`,
-          email: parts[2] && parts[2].includes('@') ? parts[2].toLowerCase() : `${cleanRoll.toLowerCase()}@college.edu`,
+          name: parts[1] || '',
+          email: parts[2]?.toLowerCase() || '',
           phone: parts[3] || undefined,
+          password: parts[4] || '',
           sectionId: selectedBulkSection,
         };
       });
+      const invalidRow = parsedStudents.findIndex(
+        (student) => !student.rollNo || !student.name || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(student.email) || student.password.length < 8
+      );
+      if (invalidRow !== -1) {
+        alert(`CSV row ${invalidRow + 1} must include a roll number, name, valid email address, and password with at least 8 characters.`);
+        return;
+      }
 
       const res = await api.post('/users/students/bulk', {
         students: parsedStudents,
@@ -435,7 +378,7 @@ export default function AdminDashboard() {
       loadStats();
     } catch (err: any) {
       const msg = err.response?.data?.error?.message || 'Bulk upload failed';
-      alert(`⚠️ ${msg}`);
+      alert(` ${msg}`);
     } finally {
       setBulkUploading(false);
     }
@@ -471,7 +414,7 @@ export default function AdminDashboard() {
 
         {/* Trombone Quick Search Pill */}
         <div className="trombone-search-pill" style={{ minWidth: 240, maxWidth: 380, flex: 1, margin: '0 0.5rem' }}>
-          <span style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>🔍</span>
+
           <input
             type="text"
             placeholder="Search branches, faculties, courses..."
@@ -547,13 +490,13 @@ export default function AdminDashboard() {
           className={`btn btn--sm ${activeTab === 'stats' ? 'btn--primary' : 'btn--ghost'}`}
           onClick={() => setActiveTab('stats')}
         >
-          📈 Stats
+           Stats
         </button>
         <button
           className={`btn btn--sm ${activeTab === 'academic' ? 'btn--primary' : 'btn--ghost'}`}
           onClick={() => setActiveTab('academic')}
         >
-          🏫 Academic Setup
+           Academic Setup
         </button>
         <button
           id="admin-tab-schedule"
@@ -561,43 +504,43 @@ export default function AdminDashboard() {
           style={activeTab === 'schedule' ? {} : { borderColor: 'var(--color-primary)', color: 'var(--color-primary)', fontWeight: 600 }}
           onClick={() => setActiveTab('schedule')}
         >
-          🗓️ Lecture Timetable
+           Lecture Timetable
         </button>
         <button
           className={`btn btn--sm ${activeTab === 'clearance' ? 'btn--primary' : 'btn--ghost'}`}
           onClick={() => setActiveTab('clearance')}
         >
-          📋 No-Dues
+           No-Dues
         </button>
         <button
           className={`btn btn--sm ${activeTab === 'notices' ? 'btn--primary' : 'btn--ghost'}`}
           onClick={() => setActiveTab('notices')}
         >
-          📢 Notices
+           Notices
         </button>
         <button
           className={`btn btn--sm ${activeTab === 'grievance' ? 'btn--primary' : 'btn--ghost'}`}
           onClick={() => setActiveTab('grievance')}
         >
-          📮 Grievances
+           Grievances
         </button>
         <button
           className={`btn btn--sm ${activeTab === 'placement' ? 'btn--primary' : 'btn--ghost'}`}
           onClick={() => setActiveTab('placement')}
         >
-          💼 Placements
+           Placements
         </button>
         <button
           className={`btn btn--sm ${activeTab === 'users' ? 'btn--primary' : 'btn--ghost'}`}
           onClick={() => setActiveTab('users')}
         >
-          👥 Bulk Upload
+           Bulk Upload
         </button>
         <button
           className={`btn btn--sm ${activeTab === 'rules' ? 'btn--primary' : 'btn--ghost'}`}
           onClick={() => setActiveTab('rules')}
         >
-          ⚖️ Rules
+           Rules
         </button>
         <button
           className={`btn btn--sm ${activeTab === 'audit' ? 'btn--primary' : 'btn--ghost'}`}
@@ -606,45 +549,45 @@ export default function AdminDashboard() {
             loadAuditLogs();
           }}
         >
-          📜 Audit
+           Audit
         </button>
         <button
           className={`btn btn--sm ${activeTab === 'leaves' ? 'btn--primary' : 'btn--ghost'}`}
           onClick={() => setActiveTab('leaves')}
         >
-          🏖️ Leave Sanctions
+           Leave Sanctions
         </button>
         <button
           className={`btn btn--sm ${activeTab === 'feedback' ? 'btn--primary' : 'btn--ghost'}`}
           onClick={() => setActiveTab('feedback')}
         >
-          💬 Feedback Desk
+           Feedback Desk
         </button>
         <button
           className={`btn btn--sm ${activeTab === 'allocations' ? 'btn--primary' : 'btn--ghost'}`}
           onClick={() => setActiveTab('allocations')}
         >
-          📚 Course Allocation
+           Course Allocation
         </button>
         <button
           className={`btn btn--sm ${activeTab === 'dispensary' ? 'btn--primary' : 'btn--ghost'}`}
           onClick={() => setActiveTab('dispensary')}
         >
-          🏥 Campus Clinic
+           Campus Clinic
         </button>
         <button
           id="admin-tab-devices"
           className={`btn btn--sm ${activeTab === 'devices' ? 'btn--primary' : 'btn--ghost'}`}
           onClick={() => setActiveTab('devices')}
         >
-          📱 Device Reset
+           Device Reset
         </button>
         <button
           id="admin-tab-unlock"
           className={`btn btn--sm ${activeTab === 'unlock' ? 'btn--primary' : 'btn--ghost'}`}
           onClick={() => setActiveTab('unlock')}
         >
-          🔓 Session Unlock
+           Session Unlock
         </button>
       </nav>
 
@@ -652,6 +595,11 @@ export default function AdminDashboard() {
       <main style={{ flex: 1, padding: '1.25rem clamp(0.75rem, 2.5vw, 1.5rem)' }}>
         <div className="container container--wide">
           <InstallAppPrompt />
+          {apiError && (
+            <p className="alert alert--error" role="alert" style={{ marginBottom: '1rem' }}>
+              {apiError}
+            </p>
+          )}
           {/* ─────────────────────────────────────────────────────────────
               TAB 1: STATS & OVERVIEW
           ───────────────────────────────────────────────────────────── */}
@@ -664,10 +612,10 @@ export default function AdminDashboard() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '1rem' }}>
                 <div>
                   <h1 style={{ fontSize: '1.65rem', fontWeight: 800, margin: 0, letterSpacing: '-0.3px', color: 'var(--color-text)' }}>
-                    Good morning, <span className="trombone-highlight">{user?.name || 'Dean Academics'}</span>
+                    Welcome, <span className="trombone-highlight">{user?.name || 'Administrator'}</span>
                   </h1>
                   <p className="text-xs text-muted" style={{ margin: '0.35rem 0 0 0', fontWeight: 500 }}>
-                    {filteredDefaulters.length} students are on shortage radar across {departments.length} departments — institutional operations running smoothly.
+                    {filteredDefaulters.length} students are below the attendance threshold across {departments.length} departments.
                   </p>
                 </div>
                 <button
@@ -676,7 +624,7 @@ export default function AdminDashboard() {
                   onClick={handleExportDebarredList}
                   style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
                 >
-                  📥 Export AKTU Debarred List (&lt;{rules.minPercent}%)
+                   Export AKTU Debarred List (&lt;{rules.minPercent}%)
                 </button>
               </div>
 
@@ -700,7 +648,7 @@ export default function AdminDashboard() {
                   {/* Department Filter */}
                   <div>
                     <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', marginBottom: '0.25rem' }}>
-                      🏢 Filter Department (Branch)
+                       Filter Department (Branch)
                     </label>
                     <select
                       id="admin-filter-dept"
@@ -709,7 +657,7 @@ export default function AdminDashboard() {
                       value={selectedStatsDeptId}
                       onChange={(e) => handleDeptFilterChange(e.target.value === 'ALL' ? 'ALL' : Number(e.target.value))}
                     >
-                      <option value="ALL">🌐 All Departments (Campus-wide)</option>
+                      <option value="ALL"> All Departments (Campus-wide)</option>
                       {departments.map((d) => (
                         <option key={d.id} value={d.id}>
                           {d.name} ({d.code})
@@ -721,7 +669,7 @@ export default function AdminDashboard() {
                   {/* Section Filter */}
                   <div>
                     <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', marginBottom: '0.25rem' }}>
-                      👥 Filter Section
+                       Filter Section
                     </label>
                     <select
                       id="admin-filter-section"
@@ -764,7 +712,7 @@ export default function AdminDashboard() {
                         gap: '0.35rem',
                       }}
                     >
-                      <span>🎯 Scope:</span>
+                      <span> Scope:</span>
                       <strong>
                         {selectedStatsDeptId === 'ALL'
                           ? 'All Branches'
@@ -779,7 +727,7 @@ export default function AdminDashboard() {
 
                 {loadingDefaulters && (
                   <span style={{ fontSize: '0.8rem', color: 'var(--color-primary)', fontWeight: 700 }}>
-                    ⚡ Recalculating Radar...
+                     Recalculating Radar...
                   </span>
                 )}
               </div>
@@ -797,25 +745,25 @@ export default function AdminDashboard() {
                   <div className="trombone-kpi-label">TOTAL STUDENTS</div>
                   <div className="trombone-kpi-value">
                     {selectedStatsSectionId !== 'ALL'
-                      ? sections.find((s) => s.id === selectedStatsSectionId)?._count?.students ?? 62
+                      ? sections.find((s) => s.id === selectedStatsSectionId)?._count?.students ?? 0
                       : selectedStatsDeptId !== 'ALL'
-                      ? Math.round((stats?.totalStudents ?? 348) / Math.max(1, departments.length))
-                      : stats?.totalStudents ?? 348}
+                      ? sections
+                          .filter((section) => section.course?.departmentId === selectedStatsDeptId)
+                          .reduce((count, section) => count + (section._count?.students ?? 0), 0)
+                      : stats?.totalStudents ?? 0}
                   </div>
                   <div className="trombone-kpi-trend trombone-kpi-trend--up">
-                    <span>↗ +4.2%</span>
-                    <span style={{ opacity: 0.8, fontWeight: 500 }}>active enrollment</span>
+                    <span>Current database count</span>
                   </div>
                 </div>
 
                 <div className="trombone-kpi-card">
                   <div className="trombone-kpi-label">FACULTY MEMBERS</div>
                   <div className="trombone-kpi-value">
-                    {stats?.totalTeachers ?? 28}
+                    {stats?.totalTeachers ?? 0}
                   </div>
                   <div className="trombone-kpi-trend trombone-kpi-trend--up">
-                    <span>✓ 100% Active</span>
-                    <span style={{ opacity: 0.8, fontWeight: 500 }}>on duty today</span>
+                    <span>Current database count</span>
                   </div>
                 </div>
 
@@ -827,18 +775,17 @@ export default function AdminDashboard() {
                     {filteredDefaulters.length}
                   </div>
                   <div className={`trombone-kpi-trend ${filteredDefaulters.length > 0 ? 'trombone-kpi-trend--alert' : 'trombone-kpi-trend--up'}`}>
-                    <span>{filteredDefaulters.length > 0 ? '⚠️ Action Required' : '✓ All Clear'}</span>
+                    <span>{filteredDefaulters.length > 0 ? 'Action required' : 'No matching records'}</span>
                   </div>
                 </div>
 
                 <div className="trombone-kpi-card">
                   <div className="trombone-kpi-label">CLASSES CONDUCTED</div>
                   <div className="trombone-kpi-value">
-                    {stats?.totalSessions ?? 1420}
+                    {stats?.totalSessions ?? 0}
                   </div>
                   <div className="trombone-kpi-trend trombone-kpi-trend--up">
-                    <span>↗ 98.4%</span>
-                    <span style={{ opacity: 0.8, fontWeight: 500 }}>on-schedule</span>
+                    <span>Current database count</span>
                   </div>
                 </div>
               </div>
@@ -848,7 +795,7 @@ export default function AdminDashboard() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
                   <div>
                     <h3 style={{ margin: 0, fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <span style={{ color: '#ef4444' }}>⚠️</span>
+
                       <span>Branch &amp; Section Attendance Defaulters Radar (&lt;{rules.minPercent}%)</span>
                     </h3>
                     <p className="text-xs text-muted" style={{ margin: '0.2rem 0 0 0' }}>
@@ -862,7 +809,7 @@ export default function AdminDashboard() {
 
                 {filteredDefaulters.length === 0 ? (
                   <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-text-muted)', background: 'var(--color-bg)', borderRadius: '10px' }}>
-                    ✅ Outstanding! No attendance defaulters detected for this branch/section scope.
+                     Outstanding! No attendance defaulters detected for this branch/section scope.
                   </div>
                 ) : (
                   <div style={{ overflowX: 'auto' }}>
@@ -918,10 +865,10 @@ export default function AdminDashboard() {
                             <td style={{ padding: '0.75rem', textAlign: 'right' }}>
                               <button
                                 className="btn btn--ghost btn--sm"
-                                onClick={() => alert(`📩 Official Detention Notice SMS dispatched to ${s.name} (${s.rollNo}) and registered guardian.`)}
+                                onClick={() => alert(` Official Detention Notice SMS dispatched to ${s.name} (${s.rollNo}) and registered guardian.`)}
                                 style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.25rem 0.5rem' }}
                               >
-                                🔔 Send Warning
+                                 Send Warning
                               </button>
                             </td>
                           </tr>
@@ -941,7 +888,7 @@ export default function AdminDashboard() {
                 }}
               >
                 <h3 style={{ color: 'var(--color-success)', marginBottom: '0.5rem' }}>
-                  ⚡ System Operational &amp; Offline-Ready
+                   System Operational &amp; Offline-Ready
                 </h3>
                 <p className="text-sm">
                   PWA caching enabled with Workbox. Dexie IndexedDB configured for offline queueing. Sync engine active with exponential backoff and cursor synchronization.
@@ -992,7 +939,7 @@ export default function AdminDashboard() {
                 {/* ─── 1. Departments / Branches ─── */}
                 <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                    <h3 style={{ margin: 0, fontSize: '1.1rem' }}>🏛️ Branches / Departments</h3>
+                    <h3 style={{ margin: 0, fontSize: '1.1rem' }}> Branches / Departments</h3>
                     <span className="badge badge--online">{departments.length} Branches</span>
                   </div>
                   <p className="text-xs text-muted" style={{ marginBottom: '0.75rem' }}>
@@ -1038,7 +985,7 @@ export default function AdminDashboard() {
                 {/* ─── 2. Courses / Degree Programs ─── */}
                 <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                    <h3 style={{ margin: 0, fontSize: '1.1rem' }}>🎓 Degree Programs / Courses</h3>
+                    <h3 style={{ margin: 0, fontSize: '1.1rem' }}> Degree Programs / Courses</h3>
                     <span className="badge" style={{ background: '#EEF2FF', color: '#4F46E5', fontWeight: 800 }}>{courses.length} Programs</span>
                   </div>
                   <p className="text-xs text-muted" style={{ marginBottom: '0.75rem' }}>
@@ -1117,7 +1064,7 @@ export default function AdminDashboard() {
                 {/* ─── 3. Sections / Batches ─── */}
                 <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                    <h3 style={{ margin: 0, fontSize: '1.1rem' }}>👥 Academic Sections (Batches)</h3>
+                    <h3 style={{ margin: 0, fontSize: '1.1rem' }}> Academic Sections (Batches)</h3>
                     <span className="badge" style={{ background: '#ECFDF5', color: '#059669', fontWeight: 800 }}>{sections.length} Sections</span>
                   </div>
                   <p className="text-xs text-muted" style={{ marginBottom: '0.75rem' }}>
@@ -1185,7 +1132,7 @@ export default function AdminDashboard() {
                 {/* ─── 4. Subjects Master Catalog ─── */}
                 <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                    <h3 style={{ margin: 0, fontSize: '1.1rem' }}>📚 Subject Master Catalog</h3>
+                    <h3 style={{ margin: 0, fontSize: '1.1rem' }}> Subject Master Catalog</h3>
                     <span className="badge" style={{ background: '#FFFBEB', color: '#D97706', fontWeight: 800 }}>{subjects.length} Subjects</span>
                   </div>
                   <p className="text-xs text-muted" style={{ marginBottom: '0.75rem' }}>
@@ -1236,9 +1183,9 @@ export default function AdminDashboard() {
           ───────────────────────────────────────────────────────────── */}
           {activeTab === 'users' && (
             <div className="card" style={{ maxWidth: 700, margin: '0 auto' }}>
-              <h2 style={{ marginBottom: '0.5rem' }}>👥 Bulk Student Import</h2>
+              <h2 style={{ marginBottom: '0.5rem' }}> Bulk Student Import</h2>
               <p className="text-sm text-muted" style={{ marginBottom: '1.5rem' }}>
-                Paste CSV lines in format: <code>RollNo, Name, Email, Phone</code>. Each student will automatically be assigned an account.
+                Paste CSV lines in format: <code>RollNo, Name, Email, Phone, Password</code>. Choose a unique temporary password for each student and share it securely.
               </p>
 
               <div style={{ marginBottom: '1rem' }}>
@@ -1259,7 +1206,7 @@ export default function AdminDashboard() {
                     );
                     if (deptSections.length === 0) return null;
                     return (
-                      <optgroup key={dept.id} label={`🏢 ${dept.name} (${dept.code})`}>
+                      <optgroup key={dept.id} label={` ${dept.name} (${dept.code})`}>
                         {deptSections.map((s) => (
                           <option key={s.id} value={s.id}>
                             {s.name} — {s.course?.name || 'B.Tech'} (Year {s.year || s.academicYear || 3})
@@ -1339,7 +1286,7 @@ export default function AdminDashboard() {
                 disabled={bulkUploading}
                 style={{ width: '100%' }}
               >
-                {bulkUploading ? 'Importing Students...' : '🚀 Import Students'}
+                {bulkUploading ? 'Importing Students...' : ' Import Students'}
               </button>
             </div>
           )}
@@ -1349,7 +1296,7 @@ export default function AdminDashboard() {
           ───────────────────────────────────────────────────────────── */}
           {activeTab === 'rules' && (
             <div className="card" style={{ maxWidth: 600, margin: '0 auto' }}>
-              <h2 style={{ marginBottom: '0.5rem' }}>⚖️ Attendance Rules & Policies</h2>
+              <h2 style={{ marginBottom: '0.5rem' }}> Attendance Rules & Policies</h2>
               <p className="text-sm text-muted" style={{ marginBottom: '1.5rem' }}>
                 Configure threshold criteria, edit window before session locking, and grace periods.
               </p>
@@ -1446,7 +1393,7 @@ export default function AdminDashboard() {
           {activeTab === 'audit' && (
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                <h2>📜 Immutable System Audit Logs</h2>
+                <h2> Immutable System Audit Logs</h2>
                 <button className="btn btn--ghost btn--sm" onClick={loadAuditLogs}>
                   ⟳ Refresh
                 </button>
@@ -1500,7 +1447,7 @@ export default function AdminDashboard() {
           {/* TAB: DEVICE BINDING MANAGER */}
           {activeTab === 'devices' && (
             <div>
-              <h2 style={{ marginBottom: '1.5rem' }}>📱 Student Device Binding Manager</h2>
+              <h2 style={{ marginBottom: '1.5rem' }}> Student Device Binding Manager</h2>
               <DeviceManagerModal />
             </div>
           )}
@@ -1508,7 +1455,7 @@ export default function AdminDashboard() {
           {/* TAB: LOCKED SESSION UNLOCK DESK */}
           {activeTab === 'unlock' && (
             <div>
-              <h2 style={{ marginBottom: '1.5rem' }}>🔐 Locked Session Unlock Desk</h2>
+              <h2 style={{ marginBottom: '1.5rem' }}> Locked Session Unlock Desk</h2>
               <SessionUnlockDesk />
             </div>
           )}

@@ -14,7 +14,7 @@ export default function SyncBadge() {
       {/* Pending sync count */}
       {pendingCount > 0 && (
         <span className="badge badge--pending">
-          {isSyncing ? '⟳' : '⏳'} {pendingCount} pending
+          {isSyncing ? '⟳' : ''} {pendingCount} pending
         </span>
       )}
 

@@ -20,42 +20,6 @@ interface TimetableData {
   slots: Slot[];
 }
 
-const DEFAULT_TEACHER_TIMETABLE: TimetableData = {
-  currentPeriod: 2,
-  nextPeriod: 3,
-  currentTime: "10:15",
-  teacherId: 1,
-  slots: [
-    {
-      period: 1,
-      startTime: "09:00",
-      endTime: "09:55",
-      roomNo: "Room 302",
-      subject: { id: 1, name: "Cloud Computing", code: "CS-601" },
-      section: { id: 1, name: "CSE-3A" },
-      sectionId: 1,
-    },
-    {
-      period: 2,
-      startTime: "10:00",
-      endTime: "10:55",
-      roomNo: "Room 302",
-      subject: { id: 1, name: "Cloud Computing", code: "CS-601" },
-      section: { id: 2, name: "CSE-3B" },
-      sectionId: 2,
-    },
-    {
-      period: 3,
-      startTime: "11:00",
-      endTime: "11:55",
-      roomNo: "Lab-B",
-      subject: { id: 3, name: "Compiler Design", code: "CS-602" },
-      section: { id: 1, name: "CSE-3A" },
-      sectionId: 1,
-    },
-  ],
-};
-
 interface UpcomingClassCardProps {
   onStartQr?: (sectionId: number, subjectId: number, period: number, isLab: boolean) => void;
   onStartManualRollCall?: (sectionId: number, subjectId: number, period: number, isLab: boolean) => void;
@@ -68,8 +32,8 @@ export default function UpcomingClassCard({ onStartQr, onStartManualRollCall }: 
 
   useEffect(() => {
     api.get("/academic/timetable/teacher/today")
-      .then((res) => setData(res.data.data || DEFAULT_TEACHER_TIMETABLE))
-      .catch(() => setData(DEFAULT_TEACHER_TIMETABLE))
+      .then((res) => setData(res.data.data || null))
+      .catch(() => setData(null))
       .finally(() => setLoading(false));
   }, []);
 
@@ -106,10 +70,10 @@ export default function UpcomingClassCard({ onStartQr, onStartManualRollCall }: 
           {isCurrent ? (
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
               <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#10b981", animation: "pulse 1s infinite" }} />
-              <span style={{ fontSize: "0.75rem", fontWeight: 800, color: "#10b981", textTransform: "uppercase" }}>⚡ Ongoing Scheduled Class</span>
+              <span style={{ fontSize: "0.75rem", fontWeight: 800, color: "#10b981", textTransform: "uppercase" }}> Ongoing Scheduled Class</span>
             </div>
           ) : (
-            <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#f59e0b", textTransform: "uppercase" }}>⏰ Upcoming Scheduled Class</span>
+            <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#f59e0b", textTransform: "uppercase" }}> Upcoming Scheduled Class</span>
           )}
         </div>
         <span style={{ fontSize: "0.75rem", color: "var(--color-muted)", fontWeight: 600 }}>{focusSlot.startTime} – {focusSlot.endTime}</span>
@@ -132,13 +96,13 @@ export default function UpcomingClassCard({ onStartQr, onStartManualRollCall }: 
                 border: "1px solid #C7D2FE",
               }}
             >
-              🧪 2-Hour Practical Lab (Double Attendance Credit · 2x)
+               2-Hour Practical Lab (Double Attendance Credit · 2x)
             </span>
           )}
         </div>
         <div style={{ fontSize: "0.82rem", color: "var(--color-muted)", marginTop: 4 }}>
           Section: <strong style={{ color: "var(--color-text)" }}>{focusSlot.section.name}</strong>
-          {focusSlot.roomNo && <> · 🚪 <strong style={{ color: "var(--color-text)" }}>Room {focusSlot.roomNo.replace(/^Room\s*/i, '')}</strong></>}
+          {focusSlot.roomNo && <> ·  <strong style={{ color: "var(--color-text)" }}>Room {focusSlot.roomNo.replace(/^Room\s*/i, '')}</strong></>}
           · Period {focusSlot.period}
         </div>
       </div>
@@ -172,7 +136,7 @@ export default function UpcomingClassCard({ onStartQr, onStartManualRollCall }: 
             transition: "all 0.2s ease",
           }}
         >
-          📋 1-Click Manual Roll Call
+           1-Click Manual Roll Call
         </button>
 
         <button
@@ -202,7 +166,7 @@ export default function UpcomingClassCard({ onStartQr, onStartManualRollCall }: 
             transition: "all 0.2s ease",
           }}
         >
-          📱 Launch Dynamic QR
+           Launch Dynamic QR
         </button>
       </div>
 

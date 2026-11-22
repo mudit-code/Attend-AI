@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { api } from '../../lib/api';
 
 interface LedgerRecord {
@@ -9,126 +9,16 @@ interface LedgerRecord {
   subjectCode: string;
   subjectName: string;
   faculty: string;
-  status: 'PRESENT' | 'ABSENT' | 'LEAVE' | 'OD';
+  status: 'PRESENT' | 'ABSENT' | 'LEAVE' | 'LATE' | 'OD';
   verificationMethod: 'DYNAMIC_QR' | 'MANUAL_ROSTER' | 'BIOMETRIC_SYNC';
 }
 
-const SAMPLE_LEDGER_DATA: LedgerRecord[] = [
-  {
-    id: 'rec-1',
-    date: '2026-10-12',
-    day: 'Monday',
-    period: 'Period 1 (09:00 - 10:00)',
-    subjectCode: 'KCS-601',
-    subjectName: 'Cloud Computing',
-    faculty: 'Prof. Rajesh Sharma',
-    status: 'PRESENT',
-    verificationMethod: 'DYNAMIC_QR',
-  },
-  {
-    id: 'rec-2',
-    date: '2026-10-12',
-    day: 'Monday',
-    period: 'Period 2 (10:00 - 11:00)',
-    subjectCode: 'KCS-602',
-    subjectName: 'Compiler Design',
-    faculty: 'Dr. Sunita Verma',
-    status: 'PRESENT',
-    verificationMethod: 'DYNAMIC_QR',
-  },
-  {
-    id: 'rec-3',
-    date: '2026-10-11',
-    day: 'Sunday',
-    period: 'Weekend Extra Class',
-    subjectCode: 'KCS-603',
-    subjectName: 'Software Engineering',
-    faculty: 'Prof. Amit Srivastava',
-    status: 'OD',
-    verificationMethod: 'MANUAL_ROSTER',
-  },
-  {
-    id: 'rec-4',
-    date: '2026-10-10',
-    day: 'Saturday',
-    period: 'Period 3 (11:15 - 12:15)',
-    subjectCode: 'KIT-CS31',
-    subjectName: 'Web Technology',
-    faculty: 'Er. Vivek Kumar',
-    status: 'ABSENT',
-    verificationMethod: 'MANUAL_ROSTER',
-  },
-  {
-    id: 'rec-5',
-    date: '2026-10-09',
-    day: 'Friday',
-    period: 'Period 1 (09:00 - 10:00)',
-    subjectCode: 'KCS-601',
-    subjectName: 'Cloud Computing',
-    faculty: 'Prof. Rajesh Sharma',
-    status: 'PRESENT',
-    verificationMethod: 'DYNAMIC_QR',
-  },
-  {
-    id: 'rec-6',
-    date: '2026-10-09',
-    day: 'Friday',
-    period: 'Period 4 (12:15 - 01:15)',
-    subjectCode: 'KCS-602',
-    subjectName: 'Compiler Design',
-    faculty: 'Dr. Sunita Verma',
-    status: 'LEAVE',
-    verificationMethod: 'MANUAL_ROSTER',
-  },
-  {
-    id: 'rec-7',
-    date: '2026-10-08',
-    day: 'Thursday',
-    period: 'Period 2 (10:00 - 11:00)',
-    subjectCode: 'KIT-CS31',
-    subjectName: 'Web Technology',
-    faculty: 'Er. Vivek Kumar',
-    status: 'PRESENT',
-    verificationMethod: 'DYNAMIC_QR',
-  },
-  {
-    id: 'rec-8',
-    date: '2026-10-07',
-    day: 'Wednesday',
-    period: 'Period 1 (09:00 - 10:00)',
-    subjectCode: 'KCS-603',
-    subjectName: 'Software Engineering',
-    faculty: 'Prof. Amit Srivastava',
-    status: 'PRESENT',
-    verificationMethod: 'DYNAMIC_QR',
-  },
-  {
-    id: 'rec-9',
-    date: '2026-10-06',
-    day: 'Tuesday',
-    period: 'Period 3 (11:15 - 12:15)',
-    subjectCode: 'KCS-601',
-    subjectName: 'Cloud Computing',
-    faculty: 'Prof. Rajesh Sharma',
-    status: 'ABSENT',
-    verificationMethod: 'MANUAL_ROSTER',
-  },
-  {
-    id: 'rec-10',
-    date: '2026-10-05',
-    day: 'Monday',
-    period: 'Period 2 (10:00 - 11:00)',
-    subjectCode: 'KCS-602',
-    subjectName: 'Compiler Design',
-    faculty: 'Dr. Sunita Verma',
-    status: 'PRESENT',
-    verificationMethod: 'DYNAMIC_QR',
-  },
-];
-
 export default function AttendanceLedgerWidget() {
+  const [records, setRecords] = useState<LedgerRecord[]>([]);
+  const [loadError, setLoadError] = useState('');
+  const [loading, setLoading] = useState(true);
   const [selectedSubject, setSelectedSubject] = useState<string>('ALL');
-  const [dateFilterPreset, setDateFilterPreset] = useState<'7D' | '30D' | 'OCT' | 'ALL'>('ALL');
+  const [dateFilterPreset, setDateFilterPreset] = useState<'7D' | '30D' | 'ALL'>('ALL');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'PRESENT' | 'ABSENT' | 'LEAVE'>('ALL');
 
   // Discrepancy modal state
@@ -136,24 +26,72 @@ export default function AttendanceLedgerWidget() {
   const [disputeReason, setDisputeReason] = useState('');
   const [disputeSuccess, setDisputeSuccess] = useState(false);
 
+  useEffect(() => {
+    let active = true;
+    api.get('/reports/my-report')
+      .then(({ data }) => {
+        if (!active) return;
+        const report = data.data;
+        const subjectByName = new Map((report.subjects || []).map((subject: any) => [subject.subjectName, subject]));
+        const mapped: LedgerRecord[] = (report.history || []).map((record: any) => {
+          const subject = subjectByName.get(record.subject) as any;
+          return {
+            id: String(record.sessionId),
+            date: new Date(record.date).toISOString().slice(0, 10),
+            day: new Date(record.date).toLocaleDateString(undefined, { weekday: 'long' }),
+            period: `Period ${record.period}`,
+            subjectCode: subject?.subjectCode || '',
+            subjectName: record.subject,
+            faculty: record.teacher,
+            status: record.status === 'P' ? 'PRESENT'
+              : record.status === 'A' ? 'ABSENT'
+              : record.status === 'OD' ? 'OD'
+              : record.status === 'L' ? 'LATE'
+              : 'LEAVE',
+            verificationMethod: record.method === 'QR' ? 'DYNAMIC_QR'
+              : record.method === 'FACE' ? 'BIOMETRIC_SYNC'
+              : 'MANUAL_ROSTER',
+          };
+        });
+        setRecords(mapped);
+        setLoadError('');
+      })
+      .catch((error: any) => {
+        if (!active) return;
+        setRecords([]);
+        setLoadError(error.response?.data?.error?.message || 'Could not load your attendance history.');
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => { active = false; };
+  }, []);
+
   // Filtered dataset
   const filteredRecords = useMemo(() => {
-    return SAMPLE_LEDGER_DATA.filter((r) => {
+    const now = new Date();
+    return records.filter((r) => {
       if (selectedSubject !== 'ALL' && r.subjectCode !== selectedSubject) return false;
       if (statusFilter !== 'ALL') {
         if (statusFilter === 'LEAVE' && r.status !== 'LEAVE' && r.status !== 'OD') return false;
         if (statusFilter !== 'LEAVE' && r.status !== statusFilter) return false;
       }
+      if (dateFilterPreset !== 'ALL') {
+        const cutoff = new Date(now);
+        cutoff.setDate(now.getDate() - (dateFilterPreset === '7D' ? 7 : 30));
+        if (new Date(r.date) < cutoff) return false;
+      }
       return true;
     });
-  }, [selectedSubject, statusFilter, dateFilterPreset]);
+  }, [records, selectedSubject, statusFilter, dateFilterPreset]);
 
   // Statistics
   const totalInFilter = filteredRecords.length;
   const presentCount = filteredRecords.filter((r) => r.status === 'PRESENT' || r.status === 'OD').length;
   const absentCount = filteredRecords.filter((r) => r.status === 'ABSENT').length;
   const leaveCount = filteredRecords.filter((r) => r.status === 'LEAVE').length;
-  const percentage = totalInFilter > 0 ? Math.round((presentCount / totalInFilter) * 100) : 100;
+  const percentage = totalInFilter > 0 ? Math.round((presentCount / totalInFilter) * 100) : null;
 
   function handleExportCsv() {
     let csv = 'Date,Day,Period,Subject Code,Subject Name,Faculty,Attendance Status,Verification Type\n';
@@ -176,15 +114,15 @@ export default function AttendanceLedgerWidget() {
       return;
     }
     try {
-      if (disputeRecord) {
-        await api.post('/correction-requests', {
-          sessionId: disputeRecord.id,
-          requestedStatus: 'P',
-          reason: disputeReason.trim(),
-        });
-      }
-    } catch {
-      // Graceful offline fallback
+      if (!disputeRecord) return;
+      await api.post('/correction-requests', {
+        sessionId: Number(disputeRecord.id),
+        requestedStatus: 'P',
+        reason: disputeReason.trim(),
+      });
+    } catch (error: any) {
+      setLoadError(error.response?.data?.error?.message || 'Could not submit the correction request.');
+      return;
     }
     setDisputeSuccess(true);
     setTimeout(() => {
@@ -197,10 +135,12 @@ export default function AttendanceLedgerWidget() {
   return (
     <div className="card" style={{ marginBottom: '1.5rem', padding: '1.25rem' }}>
       {/* Header */}
+      {loadError && <p role="alert" className="alert alert--error">{loadError}</p>}
+      {loading && <p className="text-muted">Loading attendance history...</p>}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1rem' }}>
         <div>
           <h3 style={{ fontSize: '1.15rem', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
-            <span>📜</span> Date-Range Attendance Audit Ledger
+             Date-Range Attendance Audit Ledger
           </h3>
           <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', margin: '0.2rem 0 0 0' }}>
             Day-by-day institutional lecture record with time-stamped QR & biometric verification logs
@@ -212,7 +152,7 @@ export default function AttendanceLedgerWidget() {
           className="btn btn--ghost btn--sm"
           style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
         >
-          📥 Download CSV Ledger
+           Download CSV Ledger
         </button>
       </div>
 
@@ -245,10 +185,9 @@ export default function AttendanceLedgerWidget() {
             }}
           >
             <option value="ALL">All Subjects</option>
-            <option value="KCS-601">Cloud Computing (KCS-601)</option>
-            <option value="KCS-602">Compiler Design (KCS-602)</option>
-            <option value="KIT-CS31">Web Technology (KIT-CS31)</option>
-            <option value="KCS-603">Software Engineering (KCS-603)</option>
+            {[...new Map(records.map((record) => [record.subjectCode, record.subjectName])).entries()].map(([code, name]) => (
+              <option key={code} value={code}>{name} ({code})</option>
+            ))}
           </select>
         </div>
 
@@ -357,9 +296,9 @@ export default function AttendanceLedgerWidget() {
           <span style={{ fontSize: '0.7rem', color: '#B45309', display: 'block' }}>Leaves / OD</span>
           <strong style={{ fontSize: '1.25rem', color: '#92400E' }}>{leaveCount} Days</strong>
         </div>
-        <div style={{ padding: '0.75rem', background: percentage >= 75 ? '#ECFDF5' : '#FEF2F2', borderRadius: 'var(--radius-sm)', border: `1px solid ${percentage >= 75 ? '#A7F3D0' : '#FECACA'}` }}>
-          <span style={{ fontSize: '0.7rem', color: percentage >= 75 ? '#047857' : '#B91C1C', display: 'block' }}>Filtered Attendance</span>
-          <strong style={{ fontSize: '1.25rem', color: percentage >= 75 ? '#065F46' : '#991B1B' }}>{percentage}%</strong>
+        <div style={{ padding: '0.75rem', background: percentage !== null && percentage >= 75 ? '#ECFDF5' : '#FEF2F2', borderRadius: 'var(--radius-sm)', border: `1px solid ${percentage !== null && percentage >= 75 ? '#A7F3D0' : '#FECACA'}` }}>
+          <span style={{ fontSize: '0.7rem', color: percentage !== null && percentage >= 75 ? '#047857' : '#B91C1C', display: 'block' }}>Filtered Attendance</span>
+          <strong style={{ fontSize: '1.25rem', color: percentage !== null && percentage >= 75 ? '#065F46' : '#991B1B' }}>{percentage === null ? '—' : `${percentage}%`}</strong>
         </div>
       </div>
 
@@ -420,12 +359,12 @@ export default function AttendanceLedgerWidget() {
                         {r.status === 'PRESENT' && '✓ Present'}
                         {r.status === 'ABSENT' && '✗ Absent'}
                         {r.status === 'OD' && '★ On-Duty'}
-                        {r.status === 'LEAVE' && '🏖️ Leave'}
+                        {r.status === 'LEAVE' && ' Leave'}
                       </span>
                     </td>
                     <td style={{ padding: '0.65rem 0.75rem' }}>
                       <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', display: 'block' }}>
-                        {r.verificationMethod === 'DYNAMIC_QR' ? '📱 10s Live QR' : '📋 Faculty Roster'}
+                        {r.verificationMethod === 'DYNAMIC_QR' ? ' 10s Live QR' : ' Faculty Roster'}
                       </span>
                     </td>
                     <td style={{ padding: '0.65rem 0.75rem', textAlign: 'right' }}>
@@ -486,7 +425,7 @@ export default function AttendanceLedgerWidget() {
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <h3 style={{ margin: 0, fontSize: '1.1rem' }}>⚠️ Report Attendance Discrepancy</h3>
+              <h3 style={{ margin: 0, fontSize: '1.1rem' }}> Report Attendance Discrepancy</h3>
               <button
                 onClick={() => setDisputeRecord(null)}
                 style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '1.2rem', color: 'var(--color-text-muted)' }}

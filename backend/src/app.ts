@@ -25,6 +25,7 @@ import teacherLeaveRouter from './modules/leaves/routes';
 import feedbackRouter from './modules/feedback/routes';
 import communicationRouter from './modules/communication/routes';
 import dispensaryRouter from './modules/dispensary/routes';
+import assignmentsRouter from './modules/assignments/routes';
 
 
 const app = express();
@@ -107,6 +108,7 @@ app.use('/api/v1/teacher-leaves', teacherLeaveRouter);
 app.use('/api/v1/feedback', feedbackRouter);
 app.use('/api/v1/communication', communicationRouter);
 app.use('/api/v1/dispensary', dispensaryRouter);
+app.use('/api/v1/assignments', assignmentsRouter);
 
 // 404 handler
 app.use((_req, res) => {

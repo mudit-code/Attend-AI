@@ -5,10 +5,12 @@ import { api } from '../../lib/api';
 import { db } from '../../lib/db';
 import { runSync } from '../../lib/syncEngine';
 import { useNavigate } from 'react-router-dom';
+import { QRCodeSVG } from 'qrcode.react';
 import SyncBadge from '../../components/SyncBadge';
 import RealtimeInsightCard from '../../components/RealtimeInsightCard';
 import UpcomingClassCard from '../../components/teacher/UpcomingClassCard';
 import MarksEntryTab from '../../components/teacher/MarksEntryTab';
+import AssignmentsTab from '../../components/teacher/AssignmentsTab';
 import { TeacherLeaveTab } from '../../components/teacher/TeacherLeaveTab';
 import DefaulterEmailManager from '../../components/teacher/DefaulterEmailManager';
 import SingleDateAttendanceSnapshot from '../../components/teacher/SingleDateAttendanceSnapshot';
@@ -28,7 +30,6 @@ interface SectionItem {
   id: number;
   name: string;
   year: number;
-  courseId: number;
   courseName: string;
   courseCode: string;
   departmentName?: string;
@@ -58,7 +59,7 @@ export default function TeacherDashboard() {
   const { isOnline, pendingCount, isSyncing } = useSyncStore();
   const navigate = useNavigate();
 
-  const [activeTab, setActiveTab] = useState<'mark' | 'qr' | 'marks' | 'approvals' | 'reports' | 'leaves'>('mark');
+  const [activeTab, setActiveTab] = useState<'mark' | 'qr' | 'marks' | 'assignments' | 'approvals' | 'reports' | 'leaves'>('mark');
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   // Academic data
@@ -72,6 +73,8 @@ export default function TeacherDashboard() {
 
   // Branch filter & quick-switch chips
   const [assignedChips, setAssignedChips] = useState<AssignedChip[]>([]);
+  const [assignedClassesLoading, setAssignedClassesLoading] = useState(true);
+  const [assignedClassesError, setAssignedClassesError] = useState<string | null>(null);
   const [filterBranchCode, setFilterBranchCode] = useState<string>('ALL');
   const [activeChipKey, setActiveChipKey] = useState<string | null>(null);
 
@@ -85,8 +88,8 @@ export default function TeacherDashboard() {
   const [qrToken, setQrToken] = useState<string>('');
   const [qrSecondsLeft, setQrSecondsLeft] = useState<number>(10);
   const [qrActive, setQrActive] = useState(false);
+  const [qrError, setQrError] = useState<string | null>(null);
   const [projectorMode, setProjectorMode] = useState(false);
-  const [liveScanToast, setLiveScanToast] = useState<string | null>(null);
   const qrScannedCount = students.filter((s) => s.status === 'P').length;
 
   // Approvals
@@ -98,97 +101,55 @@ export default function TeacherDashboard() {
   const [classReport, setClassReport] = useState<any | null>(null);
   const [defaulters, setDefaulters] = useState<any[]>([]);
   const [loadingReport, setLoadingReport] = useState(false);
+  const [reportError, setReportError] = useState<string | null>(null);
 
   // Initial load: fetch bootstrap data
   useEffect(() => {
-    loadInitialData();
     loadAssignedChips();
   }, []);
 
   async function loadAssignedChips() {
     try {
       const res = await api.get('/academic/teacher/assigned-classes');
-      if (res.data.data && res.data.data.length > 0) {
-        setAssignedChips(res.data.data);
-        return;
+      const assignments: AssignedChip[] = Array.isArray(res.data.data) ? res.data.data : [];
+      setAssignedChips(assignments);
+      const sectionMap = new Map<number, SectionItem>();
+      const subjectMap = new Map<number, SubjectItem>();
+      for (const assignment of assignments) {
+        sectionMap.set(assignment.sectionId, {
+          id: assignment.sectionId,
+          name: assignment.sectionName,
+          year: assignment.sectionYear,
+          courseName: assignment.courseName,
+          courseCode: assignment.courseCode,
+          departmentName: assignment.departmentName,
+        });
+        subjectMap.set(assignment.subjectId, {
+          id: assignment.subjectId,
+          name: assignment.subjectName,
+          code: assignment.subjectCode,
+        });
       }
-    } catch {
-      // Backend unavailable: fallback to default assigned chips
-    }
-    setAssignedChips([
-      {
-        sectionId: 1,
-        sectionName: 'Sec 3A',
-        sectionYear: 3,
-        courseCode: 'CSE',
-        courseName: 'Computer Science & Engineering',
-        departmentName: 'Computer Science',
-        subjectId: 1,
-        subjectName: 'Data Structures & Algorithms',
-        subjectCode: 'CS501',
-      },
-      {
-        sectionId: 2,
-        sectionName: 'Sec 3B',
-        sectionYear: 3,
-        courseCode: 'CSE',
-        courseName: 'Computer Science & Engineering',
-        departmentName: 'Computer Science',
-        subjectId: 2,
-        subjectName: 'Database Management Systems',
-        subjectCode: 'CS502',
-      },
-    ]);
-  }
-
-  async function loadInitialData() {
-    try {
-      if (isOnline) {
-        try {
-          const res = await api.get('/sync/bootstrap');
-          const data = res.data.data;
-          if (data.sections?.length > 0) {
-            setSections(data.sections);
-            setSelectedSection(data.sections[0].id);
-          }
-          if (data.subjects?.length > 0) {
-            setSubjects(data.subjects);
-            setSelectedSubject(data.subjects[0].id);
-          }
-          return;
-        } catch {
-          // Backend or DB sync failed, falling back to local or demo
-        }
+      const assignedSections = [...sectionMap.values()];
+      const assignedSubjects = [...subjectMap.values()];
+      setSections(assignedSections);
+      setSubjects(assignedSubjects);
+      if (assignments[0]) {
+        setSelectedSection(assignments[0].sectionId);
+        setSelectedSubject(assignments[0].subjectId);
+        setActiveChipKey(`${assignments[0].sectionId}-${assignments[0].subjectId}`);
       }
-      // Load from IndexedDB
-      const localSections = await db.sections.toArray();
-      const localSubjects = await db.subjects.toArray();
-      if (localSections.length > 0) {
-        setSections(localSections);
-        setSelectedSection(localSections[0].id);
-      } else {
-        const defaultSections: SectionItem[] = [
-          { id: 1, name: 'Sec 3A', year: 3, courseId: 1, courseName: 'Computer Science & Engineering', courseCode: 'CSE' },
-          { id: 2, name: 'Sec 3B', year: 3, courseId: 1, courseName: 'Computer Science & Engineering', courseCode: 'CSE' },
-          { id: 3, name: 'Sec 4A (Final Year)', year: 4, courseId: 1, courseName: 'Computer Science & Engineering', courseCode: 'CSE' },
-        ];
-        setSections(defaultSections);
-        setSelectedSection(defaultSections[0].id);
-      }
-      if (localSubjects.length > 0) {
-        setSubjects(localSubjects);
-        setSelectedSubject(localSubjects[0].id);
-      } else {
-        const defaultSubjects: SubjectItem[] = [
-          { id: 1, name: 'Data Structures & Algorithms', code: 'CS501' },
-          { id: 2, name: 'Database Management Systems', code: 'CS502' },
-          { id: 3, name: 'Operating Systems', code: 'CS503' },
-        ];
-        setSubjects(defaultSubjects);
-        setSelectedSubject(defaultSubjects[0].id);
-      }
-    } catch (err) {
-      console.error('Failed to load initial teacher data', err);
+      setAssignedClassesError(null);
+    } catch (requestError: unknown) {
+      const response = typeof requestError === 'object' && requestError !== null && 'response' in requestError
+        ? (requestError as { response?: { data?: { error?: { message?: string } } } }).response
+        : undefined;
+      setAssignedChips([]);
+      setAssignedClassesError(
+        response?.data?.error?.message || 'Could not load your assigned classes. Check the backend connection and refresh.'
+      );
+    } finally {
+      setAssignedClassesLoading(false);
     }
   }
 
@@ -213,27 +174,14 @@ export default function TeacherDashboard() {
         stList = await db.students.where('sectionId').equals(sectionId).toArray();
       }
 
-      if (!stList || stList.length === 0) {
-        stList = [
-          { id: 1, rollNo: '2101640100015', name: 'Aman Kumar' },
-          { id: 2, rollNo: '2101640100016', name: 'Ananya Sharma' },
-          { id: 3, rollNo: '2101640100017', name: 'Devendra Verma' },
-          { id: 4, rollNo: '2101640100018', name: 'Ishita Gupta' },
-          { id: 5, rollNo: '2101640100019', name: 'Karan Mehra' },
-          { id: 6, rollNo: '2101640100020', name: 'Megha Singh' },
-          { id: 7, rollNo: '2101640100021', name: 'Nikhil Saxena' },
-          { id: 8, rollNo: '2101640100022', name: 'Pooja Pandey' },
-          { id: 9, rollNo: '2101640100023', name: 'Rahul Chaudhary' },
-          { id: 10, rollNo: '2101640100024', name: 'Riya Tripathi' },
-        ];
-      }
+      if (!stList) stList = [];
 
       setStudents(
         stList.map((s) => ({
           id: s.id,
           rollNo: s.rollNo,
-          name: s.user?.name || s.name || `Student ${s.rollNo}`,
-          status: 'P', // Default to Present
+          name: s.user?.name || s.name || s.rollNo,
+          status: 'A',
         }))
       );
     } catch (err) {
@@ -348,16 +296,16 @@ export default function TeacherDashboard() {
           await db.outbox.bulkAdd([...outboxItems, ...outboxItems2]);
           useSyncStore.getState().incrementPending();
           useSyncStore.getState().incrementPending();
-          setSaveMessage('⚡ Lab Attendance saved locally for 2 continuous periods (2x Credit)! Will auto-sync.');
+          setSaveMessage(' Lab Attendance saved locally for 2 continuous periods (2x Credit)! Will auto-sync.');
         } else {
           await db.outbox.bulkAdd(outboxItems);
           useSyncStore.getState().incrementPending();
-          setSaveMessage('⚡ Saved locally! Will auto-sync when internet reconnects.');
+          setSaveMessage(' Saved locally! Will auto-sync when internet reconnects.');
         }
       }
     } catch (err: any) {
       console.error('Failed to save attendance', err);
-      setSaveMessage('⚠️ Error saving attendance. Please try again.');
+      setSaveMessage(' Error saving attendance. Please try again.');
     } finally {
       setSaving(false);
       setTimeout(() => setSaveMessage(null), 5000);
@@ -366,42 +314,29 @@ export default function TeacherDashboard() {
 
   // Live QR Attendance logic
   async function handleStartQr(customSecId?: number, customSubId?: number, customPeriod?: number) {
-    const targetSection = customSecId || selectedSection || (sections[0]?.id ?? 1);
-    const targetSubject = customSubId || selectedSubject || (subjects[0]?.id ?? 1);
-    const targetPeriod = customPeriod || period || 1;
+    const targetSection = customSecId ?? selectedSection;
+    const targetSubject = customSubId ?? selectedSubject;
+    const targetPeriod = customPeriod ?? period;
 
-    if (!selectedSection && targetSection) setSelectedSection(targetSection);
-    if (!selectedSubject && targetSubject) setSelectedSubject(targetSubject);
-    if (!period && targetPeriod) setPeriod(targetPeriod);
+    if (!targetSection || !targetSubject) {
+      setQrError('Select an assigned section and subject before starting attendance.');
+      return;
+    }
 
+    setQrError(null);
     try {
-      if (isOnline) {
-        try {
-          const sessionRes = await api.post('/attendance/sessions', {
-            sectionId: targetSection,
-            subjectId: targetSubject,
-            date,
-            period: targetPeriod,
-          });
-          const sId = sessionRes.data?.data?.id;
-          if (sId) {
-            setQrSessionId(sId);
-            setQrActive(true);
-            return;
-          }
-        } catch (apiErr) {
-          console.warn('API session create failed, using dynamic local/demo QR session', apiErr);
-        }
-      }
-      // Offline / Local Dynamic QR session ID
-      const localSessionId = `SES-${targetSection}-${targetSubject}-P${targetPeriod}-${Date.now().toString(36).toUpperCase()}`;
-      setQrSessionId(localSessionId);
+      const sessionRes = await api.post('/attendance/sessions', {
+        sectionId: targetSection,
+        subjectId: targetSubject,
+        date,
+        period: targetPeriod,
+      });
+      const sessionId = sessionRes.data?.data?.id;
+      if (!sessionId) throw new Error('The server did not return an attendance session ID.');
+      setQrSessionId(sessionId);
       setQrActive(true);
-    } catch (err) {
-      console.error('Failed to start QR session', err);
-      const fallbackSessionId = `SES-${targetSection}-${targetSubject}-P${targetPeriod}`;
-      setQrSessionId(fallbackSessionId);
-      setQrActive(true);
+    } catch (requestError) {
+      setQrError(requestError instanceof Error ? requestError.message : 'Could not start the QR attendance session.');
     }
   }
 
@@ -410,78 +345,49 @@ export default function TeacherDashboard() {
     if (qrActive && qrSessionId) {
       const updateToken = async () => {
         try {
-          if (isOnline) {
-            try {
-              const res = await api.get(`/qr/token/${qrSessionId}`);
-              if (res.data?.data?.token) {
-                setQrToken(res.data.data.token);
-                setQrSecondsLeft(res.data.data.secondsRemaining || 10);
-                return;
-              }
-            } catch {
-              // API endpoint down or session not in backend DB, fallback to client rotating algorithm
-            }
-          }
-        } catch {
-          // ignore
+          const res = await api.get(`/qr/token/${qrSessionId}`);
+          if (!res.data?.data?.token) throw new Error('The server did not return an attendance token.');
+          setQrToken(res.data.data.token);
+          setQrSecondsLeft(res.data.data.secondsRemaining);
+          setQrError(null);
+        } catch (requestError) {
+          setQrToken('');
+          setQrError(requestError instanceof Error ? requestError.message : 'Could not refresh the QR attendance token.');
         }
-
-        // Client-side 10-second rotating HMAC-like token algorithm
-        const QR_WINDOW = 10;
-        const currentWindow = Math.floor(Date.now() / 1000 / QR_WINDOW);
-        const secondsRemaining = QR_WINDOW - (Math.floor(Date.now() / 1000) % QR_WINDOW);
-        let hash = 0;
-        const str = `${qrSessionId}:${currentWindow}`;
-        for (let i = 0; i < str.length; i++) {
-          hash = (hash << 5) - hash + str.charCodeAt(i);
-          hash |= 0;
-        }
-        const clientToken = Math.abs(hash).toString(16).padStart(8, '0').slice(0, 8).toUpperCase();
-        setQrToken(clientToken);
-        setQrSecondsLeft(secondsRemaining);
       };
 
       updateToken();
       interval = setInterval(updateToken, 1000);
     }
     return () => clearInterval(interval);
-  }, [qrActive, qrSessionId, isOnline]);
+  }, [qrActive, qrSessionId]);
 
-  // Real-time Live Attendance Listener (cross-tab / cross-device QR scanning)
   useEffect(() => {
-    let channel: BroadcastChannel | null = null;
-    try {
-      channel = new BroadcastChannel('attendai_qr_sync');
-      channel.onmessage = (event) => {
-        const msg = event.data;
-        if (msg && msg.type === 'QR_SCANNED') {
-          // Immediately flip the scanned student to Present in real time!
-          setStudents((prev) =>
-            prev.map((s) => {
-              if (
-                s.id === msg.studentId ||
-                s.rollNo === msg.rollNo ||
-                s.name.toLowerCase().includes(msg.studentName.toLowerCase()) ||
-                msg.studentName.toLowerCase().includes(s.name.toLowerCase())
-              ) {
-                return { ...s, status: 'P' };
-              }
-              return s;
-            })
-          );
-
-          setLiveScanToast(`✓ ${msg.studentName} (${msg.rollNo}) marked Present via QR!`);
-          setTimeout(() => setLiveScanToast(null), 4500);
-        }
-      };
-    } catch (err) {
-      console.warn('BroadcastChannel not supported in this environment', err);
-    }
-
-    return () => {
-      channel?.close();
+    if (!qrActive || !qrSessionId) return;
+    let active = true;
+    const refreshRecords = async () => {
+      try {
+        const res = await api.get(`/attendance/sessions/${qrSessionId}`);
+        if (!active) return;
+        const records = res.data.data?.records ?? [];
+        const recordedStatuses = new Map<number, StudentItem['status']>(
+          records.map((record: any) => [record.studentId, record.status])
+        );
+        setStudents((current) => current.map((student) => ({
+          ...student,
+          status: recordedStatuses.get(student.id) ?? student.status,
+        })));
+      } catch {
+        if (active) setQrError('Could not refresh attendance records from the server.');
+      }
     };
-  }, []);
+    void refreshRecords();
+    const intervalId = setInterval(refreshRecords, 3000);
+    return () => {
+      active = false;
+      clearInterval(intervalId);
+    };
+  }, [qrActive, qrSessionId]);
 
   // Approvals logic
   async function loadApprovals() {
@@ -520,48 +426,37 @@ export default function TeacherDashboard() {
 
   // Reports logic
   async function loadReports() {
+    if (!selectedSection) {
+      setClassReport(null);
+      setDefaulters([]);
+      setReportError('No assigned section is available for reporting.');
+      return;
+    }
+
     setLoadingReport(true);
     try {
-      const secId = selectedSection || 1;
       const [repRes, defRes] = await Promise.all([
-        api.get(`/reports/class?sectionId=${secId}`),
-        api.get(`/reports/defaulters?sectionId=${secId}`),
+        api.get(`/reports/class?sectionId=${selectedSection}`),
+        api.get(`/reports/defaulters?sectionId=${selectedSection}`),
       ]);
       setClassReport(repRes.data.data);
       setDefaulters(defRes.data.data.defaulters);
-    } catch (err) {
-      console.warn('API unavailable, loading demo class attendance report', err);
-      setClassReport({
-        classAverage: 68.4,
-        totalStudents: 6,
-        students: [
-          { studentId: 1, rollNo: '2101640100015', name: 'Aman Kumar', totalClasses: 44, present: 14, percentage: 31.8 },
-          { studentId: 2, rollNo: '2101640100016', name: 'Ananya Dixit', totalClasses: 44, present: 39, percentage: 88.6 },
-          { studentId: 3, rollNo: '2101640100017', name: 'Deepak Yadav', totalClasses: 44, present: 29, percentage: 65.9 },
-          { studentId: 4, rollNo: '2101640100018', name: 'Muskan Gupta', totalClasses: 44, present: 41, percentage: 93.2 },
-          { studentId: 5, rollNo: '2101640100019', name: 'Prashant Shukla', totalClasses: 44, present: 27, percentage: 61.4 },
-          { studentId: 6, rollNo: '2101640100020', name: 'Rishabh Tripathi', totalClasses: 44, present: 36, percentage: 81.8 },
-        ],
-      });
-      setDefaulters([
-        { studentId: 1, rollNo: '2101640100015', name: 'Aman Kumar', percentage: 31.8, shortage: '19 classes' },
-        { studentId: 3, rollNo: '2101640100017', name: 'Deepak Yadav', percentage: 65.9, shortage: '4 classes' },
-        { studentId: 5, rollNo: '2101640100019', name: 'Prashant Shukla', percentage: 61.4, shortage: '6 classes' },
-      ]);
+      setReportError(null);
+    } catch {
+      setClassReport(null);
+      setDefaulters([]);
+      setReportError('Could not load class reports from the server.');
     } finally {
       setLoadingReport(false);
     }
   }
 
   async function handleExportCSV() {
-    const rows = classReport?.students || [
-      { rollNo: '2101640100015', name: 'Aman Kumar', totalClasses: 44, present: 14, percentage: 31.8 },
-      { rollNo: '2101640100016', name: 'Ananya Dixit', totalClasses: 44, present: 39, percentage: 88.6 },
-      { rollNo: '2101640100017', name: 'Deepak Yadav', totalClasses: 44, present: 29, percentage: 65.9 },
-      { rollNo: '2101640100018', name: 'Muskan Gupta', totalClasses: 44, present: 41, percentage: 93.2 },
-      { rollNo: '2101640100019', name: 'Prashant Shukla', totalClasses: 44, present: 27, percentage: 61.4 },
-      { rollNo: '2101640100020', name: 'Rishabh Tripathi', totalClasses: 44, present: 36, percentage: 81.8 },
-    ];
+    const rows = classReport?.students ?? [];
+    if (rows.length === 0) {
+      alert('There are no report records to export.');
+      return;
+    }
     let csv = 'Roll No,Student Name,Total Classes,Classes Attended,Attendance %,Status\n';
     rows.forEach((s: any) => {
       csv += `${s.rollNo},"${s.name}",${s.totalClasses},${s.present},${s.percentage}%,${s.percentage >= 75 ? 'ELIGIBLE' : 'DEFAULTER'}\n`;
@@ -570,7 +465,7 @@ export default function TeacherDashboard() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `AKTU_Attendance_Register_Section_${selectedSection || 'CSE-3A'}_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `Attendance_Register_Section_${selectedSection}_${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -588,32 +483,6 @@ export default function TeacherDashboard() {
 
   return (
     <div className="page">
-      {/* Floating Live Realtime QR Scan Toast Notification */}
-      {liveScanToast && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 24,
-            right: 24,
-            zIndex: 10000,
-            background: 'linear-gradient(135deg, #059669 0%, #10B981 100%)',
-            color: '#FFFFFF',
-            padding: '0.85rem 1.4rem',
-            borderRadius: 14,
-            boxShadow: '0 12px 32px rgba(5, 150, 105, 0.45)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.75rem',
-            fontWeight: 800,
-            fontSize: '0.92rem',
-            animation: 'fadeIn 0.25s ease',
-          }}
-        >
-          <span style={{ fontSize: '1.35rem' }}>📱</span>
-          <span>{liveScanToast}</span>
-        </div>
-      )}
-
       {/* Header */}
       <header
         style={{
@@ -636,7 +505,7 @@ export default function TeacherDashboard() {
 
         {/* Trombone Quick Search Pill */}
         <div className="trombone-search-pill" style={{ minWidth: 220, maxWidth: 360, flex: 1, margin: '0 0.5rem' }}>
-          <span style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>🔍</span>
+
           <input
             type="text"
             placeholder="Quick search student or subject..."
@@ -716,20 +585,28 @@ export default function TeacherDashboard() {
           className={`btn btn--sm ${activeTab === 'mark' ? 'btn--primary' : 'btn--ghost'}`}
           onClick={() => setActiveTab('mark')}
         >
-          ✏️ Mark Attendance
+           Mark Attendance
         </button>
         <button
           className={`btn btn--sm ${activeTab === 'qr' ? 'btn--primary' : 'btn--ghost'}`}
           onClick={() => setActiveTab('qr')}
         >
-          📱 Live QR Code
+           Live QR Code
         </button>
         <button
           className={`btn btn--sm ${activeTab === 'marks' ? 'btn--primary' : 'btn--ghost'}`}
           onClick={() => setActiveTab('marks')}
         >
-          📝 Internal Marks
+          Internal Marks
         </button>
+        {user?.role === 'TEACHER' && (
+          <button
+            className={`btn btn--sm ${activeTab === 'assignments' ? 'btn--primary' : 'btn--ghost'}`}
+            onClick={() => setActiveTab('assignments')}
+          >
+            Assignments
+          </button>
+        )}
         <button
           className={`btn btn--sm ${activeTab === 'approvals' ? 'btn--primary' : 'btn--ghost'}`}
           onClick={() => {
@@ -737,7 +614,7 @@ export default function TeacherDashboard() {
             loadApprovals();
           }}
         >
-          📑 Approvals ({leaves.length + corrections.length})
+           Approvals ({leaves.length + corrections.length})
         </button>
         <button
           className={`btn btn--sm ${activeTab === 'reports' ? 'btn--primary' : 'btn--ghost'}`}
@@ -746,13 +623,13 @@ export default function TeacherDashboard() {
             loadReports();
           }}
         >
-          📊 Class Reports
+           Class Reports
         </button>
         <button
           className={`btn btn--sm ${activeTab === 'leaves' ? 'btn--primary' : 'btn--ghost'}`}
           onClick={() => setActiveTab('leaves')}
         >
-          🏖️ Faculty Leaves
+           Faculty Leaves
         </button>
       </nav>
 
@@ -803,7 +680,7 @@ export default function TeacherDashboard() {
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.625rem' }}>
                     <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                      🎯 My Assigned Classes
+                       My Assigned Classes
                     </span>
                     <span style={{ fontSize: '0.7rem', background: 'var(--color-primary)', color: '#fff', borderRadius: '999px', padding: '0.1rem 0.5rem', fontWeight: 700 }}>
                       {assignedChips.length}
@@ -864,7 +741,7 @@ export default function TeacherDashboard() {
                 {/* Branch Filter */}
                 <div>
                   <label className="text-xs text-muted" style={{ display: 'block', marginBottom: '0.25rem', fontWeight: 700 }}>
-                    🏛️ Filter by Branch
+                     Filter by Branch
                   </label>
                   <select
                     className="input"
@@ -875,7 +752,7 @@ export default function TeacherDashboard() {
                     }}
                     style={{ height: 44, fontWeight: 600, background: 'var(--color-surface-2)' }}
                   >
-                    <option value="ALL">🌐 All Branches</option>
+                    <option value="ALL"> All Branches</option>
                     {Array.from(new Set(sections.filter(s => s.courseCode).map(s => s.courseCode))).map((code) => {
                       const sec = sections.find(s => s.courseCode === code)!;
                       return (
@@ -890,21 +767,28 @@ export default function TeacherDashboard() {
                 {/* Grouped Section Selector */}
                 <div>
                   <label className="text-xs text-muted" style={{ display: 'block', marginBottom: '0.25rem', fontWeight: 700 }}>
-                    📋 Section
+                     Section
                   </label>
                   <select
                     className="input"
                     value={selectedSection || ''}
                     onChange={(e) => {
-                      setSelectedSection(Number(e.target.value));
-                      setActiveChipKey(null);
+                      const sectionId = Number(e.target.value);
+                      const assignment = assignedChips.find((chip) => chip.sectionId === sectionId);
+                      setSelectedSection(sectionId);
+                      if (assignment) {
+                        setSelectedSubject(assignment.subjectId);
+                        setActiveChipKey(`${assignment.sectionId}-${assignment.subjectId}`);
+                      } else {
+                        setActiveChipKey(null);
+                      }
                     }}
                     style={{ height: 44 }}
                   >
                     {filterBranchCode === 'ALL' ? (
                       // Grouped by course
                       Array.from(new Set(sections.map(s => s.courseCode || 'Other'))).map((code) => (
-                        <optgroup key={code} label={`📚 ${code}`}>
+                        <optgroup key={code} label={` ${code}`}>
                           {sections.filter(s => (s.courseCode || 'Other') === code).map((s) => (
                             <option key={s.id} value={s.id}>
                               {s.name} {s.year ? `(Year ${s.year})` : ''}
@@ -934,15 +818,18 @@ export default function TeacherDashboard() {
                     onChange={(e) => {
                       const subId = Number(e.target.value);
                       setSelectedSubject(subId);
+                      setActiveChipKey(`${selectedSection}-${subId}`);
                       const subObj = subjects.find(s => s.id === subId);
                       if (subObj && (subObj.name.toLowerCase().includes('lab') || subObj.code.toLowerCase().includes('lab'))) {
                         setIsLabClass(true);
                       }
                     }}
                   >
-                    {subjects.map((sub) => (
-                      <option key={sub.id} value={sub.id}>
-                        {sub.name} ({sub.code})
+                    {assignedChips
+                      .filter((chip) => chip.sectionId === selectedSection)
+                      .map((chip) => (
+                      <option key={chip.subjectId} value={chip.subjectId}>
+                        {chip.subjectName} ({chip.subjectCode})
                       </option>
                     ))}
                   </select>
@@ -998,7 +885,7 @@ export default function TeacherDashboard() {
                     />
                     <div style={{ lineHeight: 1.2 }}>
                       <span style={{ fontSize: '0.78rem', fontWeight: 800, color: isLabClass ? '#4F46E5' : 'var(--color-text)', display: 'block' }}>
-                        🧪 Lab Practical
+                         Lab Practical
                       </span>
                       <span style={{ fontSize: '0.65rem', color: isLabClass ? '#6366F1' : 'var(--color-muted)' }}>
                         {isLabClass ? `Double Period (P${period} & P${period + 1} · 2x)` : '1 Period (1x)'}
@@ -1029,7 +916,7 @@ export default function TeacherDashboard() {
                   >
                     <div>
                       <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.25rem' }}>
-                        🏛️ {sec.departmentName || sec.courseName || sec.courseCode || 'Department'}
+                         {sec.departmentName || sec.courseName || sec.courseCode || 'Department'}
                       </div>
                       <div style={{ fontWeight: 800, fontSize: '1.05rem', color: 'var(--color-text)' }}>
                         {sec.courseName || sec.courseCode} — {sec.name}
@@ -1081,7 +968,7 @@ export default function TeacherDashboard() {
                     onClick={handleSaveAttendance}
                     disabled={saving || students.length === 0}
                   >
-                    {saving ? 'Saving...' : '💾 Save Attendance'}
+                    {saving ? 'Saving...' : ' Save Attendance'}
                   </button>
                 </div>
               </div>
@@ -1195,10 +1082,11 @@ export default function TeacherDashboard() {
                 />
               )}
               <div className="card">
-                <h2 style={{ marginBottom: '0.5rem' }}>📱 Rotating QR Attendance</h2>
+                <h2 style={{ marginBottom: '0.5rem' }}> Rotating QR Attendance</h2>
                 <p className="text-sm text-muted" style={{ marginBottom: '1.5rem' }}>
                   Students scan this QR with their AttendAI app. Rotates every 10 seconds to eliminate proxy attendance.
                 </p>
+                {qrError && <p className="alert alert--error" role="alert">{qrError}</p>}
 
                 {!qrActive ? (
                   <button className="btn btn--primary" onClick={() => handleStartQr()}>
@@ -1218,18 +1106,11 @@ export default function TeacherDashboard() {
                         border: '2px solid var(--color-border)',
                       }}
                     >
-                      <img
-                        src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(
-                          JSON.stringify({ s: qrSessionId, t: qrToken })
-                        )}`}
-                        alt="Dynamic Classroom QR"
-                        style={{
-                          width: 220,
-                          height: 220,
-                          display: 'block',
-                          margin: '0 auto',
-                          borderRadius: 10,
-                        }}
+                      <QRCodeSVG
+                        value={JSON.stringify({ s: qrSessionId, t: qrToken })}
+                        size={220}
+                        level="M"
+                        style={{ display: 'block', margin: '0 auto' }}
                       />
                       <div
                         style={{
@@ -1285,7 +1166,7 @@ export default function TeacherDashboard() {
                         onClick={() => setProjectorMode(true)}
                         title="Display QR fullscreen on projector / smartboard"
                       >
-                        📽️ Projector Fullscreen Mode
+                         Projector Fullscreen Mode
                       </button>
                       <button
                         className="btn btn--ghost btn--sm"
@@ -1312,6 +1193,14 @@ export default function TeacherDashboard() {
             </div>
           )}
 
+          {user?.role === 'TEACHER' && activeTab === 'assignments' && (
+            <AssignmentsTab
+              classes={assignedChips}
+              classesError={assignedClassesError}
+              classesLoading={assignedClassesLoading}
+            />
+          )}
+
           {/* ─────────────────────────────────────────────────────────────
               TAB 3: LEAVE & CORRECTION APPROVALS
           ───────────────────────────────────────────────────────────── */}
@@ -1326,7 +1215,7 @@ export default function TeacherDashboard() {
 
               {/* Leaves Section */}
               <h3 style={{ marginTop: '1.5rem', marginBottom: '0.75rem' }}>
-                🏖️ Leave Applications ({leaves.length})
+                 Leave Applications ({leaves.length})
               </h3>
               {leaves.length === 0 ? (
                 <p className="text-sm text-muted">No pending leave applications.</p>
@@ -1370,7 +1259,7 @@ export default function TeacherDashboard() {
 
               {/* Corrections Section */}
               <h3 style={{ marginTop: '2rem', marginBottom: '0.75rem' }}>
-                ✏️ Attendance Correction Requests ({corrections.length})
+                 Attendance Correction Requests ({corrections.length})
               </h3>
               {corrections.length === 0 ? (
                 <p className="text-sm text-muted">No pending correction requests.</p>
@@ -1440,7 +1329,7 @@ export default function TeacherDashboard() {
                     <p className="text-sm text-muted">
                       Class Average:{' '}
                       <strong style={{ color: 'var(--color-primary)' }}>
-                        {classReport?.classAverage || 0}%
+                        {classReport ? `${classReport.classAverage}%` : '—'}
                       </strong>
                     </p>
                   </div>
@@ -1449,10 +1338,11 @@ export default function TeacherDashboard() {
                     <button className="btn btn--ghost btn--sm" onClick={loadReports} disabled={loadingReport}>
                       ⟳ Refresh
                     </button>
-                    <button className="btn btn--primary btn--sm" onClick={handleExportCSV}>
-                      📥 Export CSV
+                    <button className="btn btn--primary btn--sm" onClick={handleExportCSV} disabled={!classReport?.students?.length}>
+                       Export CSV
                     </button>
                   </div>
+                  {reportError && <p className="alert alert--error" role="alert">{reportError}</p>}
                 </div>
 
                 {/* Defaulter Alert Box */}
@@ -1466,7 +1356,7 @@ export default function TeacherDashboard() {
                     }}
                   >
                     <h3 style={{ color: 'var(--color-danger)', marginBottom: '0.5rem' }}>
-                      ⚠️ {defaulters.length} Defaulters Below 75%
+                       {defaulters.length} Defaulters Below 75%
                     </h3>
                     <div style={{ display: 'grid', gap: '0.5rem' }}>
                       {defaulters.map((d) => (

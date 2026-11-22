@@ -1,0 +1,130 @@
+AttendAI - Setup and Role Workflow
+==================================
+
+This guide describes the current database-backed flows. It does not replace
+institutional identity verification or production security configuration.
+
+1. Start the application
+------------------------
+
+Requirements:
+- Node.js compatible with the repository's package manifests
+- A PostgreSQL database (Neon is supported)
+- Redis is optional for basic operation; QR/caching features may require it
+
+Configure backend/.env locally with the database URL, JWT secrets, frontend
+origin, and any optional service URLs. Never commit or share this file.
+
+From PowerShell:
+
+  cd "D:\Projects\Fun Projects\AttendAI\backend"
+  npm install
+  npx prisma generate
+  npm run db:migrate:deploy
+  npm run dev
+
+In another terminal:
+
+  cd "D:\Projects\Fun Projects\AttendAI\frontend"
+  npm install
+  npm run dev
+
+The frontend development server proxies API requests to the backend on port
+4000. A running backend does not guarantee database connectivity; check its
+startup logs and the /health endpoint if database-backed screens fail.
+
+2. Development seed accounts
+----------------------------
+
+The backend seed command is:
+
+  cd "D:\Projects\Fun Projects\AttendAI\backend"
+  npm run db:seed
+
+For a fresh seeded development database, the seed script creates:
+
+  Administrator: admin@attendai.com / Admin@123
+  Teacher:       teacher1@attendai.com / Teacher@123
+  Student:       student1@attendai.com / Student@123
+
+These are development-only credentials. Change them before any shared or
+production deployment. The seed uses upserts that do not reset existing
+passwords, so running it again does not guarantee that an older account's
+password is reset to the value shown above. Never run the seed against a
+production database.
+
+3. Administrator setup
+----------------------
+
+1. Sign in with an administrator account. Administrator accounts are not
+   created through the public registration form.
+2. Create and verify the institution's academic year, departments, courses,
+   sections, and subjects in the academic setup screens. Dropdowns should
+   reflect records stored in the database; create the records before assigning
+   users to them.
+3. In the academic structure / teacher management screen, create a teacher
+   account using the teacher's actual name, email, employee code, department,
+   and a unique temporary password. Share the temporary password privately.
+4. Allocate each teacher to the actual subject and section they teach. An
+   unallocated teacher cannot create an attendance session for that class.
+5. Add students to their actual section either through the student import
+   screen or the student registration form. Imports require a unique roll
+   number, name, email, and a password of at least eight characters per row.
+   Share initial passwords securely.
+6. Configure timetable slots and institutional rules using real records. Do
+   not rely on placeholder or assumed section, subject, or year IDs.
+
+4. Teacher workflow
+------------------
+
+1. Sign in with the account provisioned by the administrator.
+2. Confirm that the assigned section and subject appear in the teacher
+   dashboard. If they do not, ask the administrator to create the missing
+   allocation.
+3. Start an attendance session for the allocated subject and section. The
+   backend creates the session and issues its QR token; the QR code is rendered
+   in the app. Do not treat an unissued or expired token as a valid session.
+4. Use the marks screen to enter assessment marks for students actually
+   enrolled in the selected class. Marks are saved through the backend and can
+   be approved by an HOD or administrator.
+5. Create assignments for an allocated class and subject. Students submit a
+   Google Drive PDF link; the teacher can review submissions, enter marks and
+   feedback, and sign off the submission.
+6. Submit leave requests and use the attendance correction flow when needed.
+   Corrections and session unlocks require backend confirmation; a failed
+   request is not considered successful.
+
+5. Student workflow
+-------------------
+
+1. If student self-registration is enabled, use the registration form with the
+   student's official roll number and choose a class from the database-backed
+   class list. Otherwise, use the account created by the administrator.
+2. Sign in with the registered email and password. The dashboard loads
+   attendance, marks, assignments, notices, and timetable data from the
+   backend. Empty or failed API results should not be interpreted as records.
+3. To mark attendance, scan the current session QR code or enter its token
+   when that option is available. The backend verifies the session and that
+   the student belongs to its section.
+4. Open Assignments, submit an accessible Google Drive PDF link before the
+   deadline, and review the teacher's score and feedback after grading.
+5. Submit leave requests through the leave screen. Use the correction request
+   flow for a genuine attendance discrepancy.
+
+6. Account and data notes
+-------------------------
+
+- Password-based login is the supported sign-in flow. Google OAuth is not
+  configured and must not be used as an authentication shortcut.
+- Teacher and administrator accounts should be provisioned by an administrator.
+- Student registration currently checks that the selected class exists and
+  that the roll number is unique. It does not verify institutional identity or
+  email ownership; an institution requiring verified enrollment should use
+  administrator-provisioned accounts until an invitation or email-verification
+  flow is configured.
+- The application has no working payment or official marksheet integration.
+  Do not treat removed sample receipts, grades, or other demonstration
+  content as institutional records.
+- A UI feature only works end to end when its API and database tables are
+  configured and reachable. A visible screen is not proof that its underlying
+  workflow is deployed.

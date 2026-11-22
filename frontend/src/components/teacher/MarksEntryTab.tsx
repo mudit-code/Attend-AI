@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { api } from "../../lib/api";
 
 interface StudentMarkRow {
@@ -17,30 +17,68 @@ const EXAM_TYPES = [
   { key: "PRACTICAL", label: "Lab Practical", max: 30 },
 ] as const;
 
-const DEFAULT_STUDENTS: StudentMarkRow[] = [
-  { studentId: 1, rollNo: "2101640100015", name: "Aman Kumar", marks: "22" },
-  { studentId: 2, rollNo: "2101640100016", name: "Ananya Dixit", marks: "24" },
-  { studentId: 3, rollNo: "2101640100017", name: "Deepak Yadav", marks: "19" },
-  { studentId: 4, rollNo: "2101640100018", name: "Muskan Gupta", marks: "25" },
-  { studentId: 5, rollNo: "2101640100019", name: "Prashant Shukla", marks: "18" },
-  { studentId: 6, rollNo: "2101640100020", name: "Rishabh Tripathi", marks: "21" },
-];
-
 export default function MarksEntryTab({
-  sections = [{ id: 1, name: "CSE-3A" }, { id: 2, name: "CSE-3B" }],
-  subjects = [{ id: 1, name: "Cloud Computing", code: "CS-601" }, { id: 2, name: "Compiler Design", code: "CS-602" }],
+  sections = [],
+  subjects = [],
 }: {
   sections?: { id: number; name: string }[];
   subjects?: { id: number; name: string; code: string }[];
 }) {
-  const [selectedSection, setSelectedSection] = useState<number>(sections[0]?.id ?? 1);
-  const [selectedSubject, setSelectedSubject] = useState<number>(subjects[0]?.id ?? 1);
+  const [selectedSection, setSelectedSection] = useState<number | ''>(sections[0]?.id ?? '');
+  const [selectedSubject, setSelectedSubject] = useState<number | ''>(subjects[0]?.id ?? '');
   const [selectedExam, setSelectedExam] = useState<typeof EXAM_TYPES[number]["key"]>("SESSIONAL_1");
-  const [students, setStudents] = useState<StudentMarkRow[]>(DEFAULT_STUDENTS);
+  const [students, setStudents] = useState<StudentMarkRow[]>([]);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [messageIsError, setMessageIsError] = useState(false);
 
   const currentExamInfo = EXAM_TYPES.find((e) => e.key === selectedExam) ?? EXAM_TYPES[0];
+
+  useEffect(() => {
+    setSelectedSection(sections[0]?.id ?? '');
+  }, [sections]);
+
+  useEffect(() => {
+    setSelectedSubject(subjects[0]?.id ?? '');
+  }, [subjects]);
+
+  useEffect(() => {
+    if (!selectedSection || !selectedSubject) {
+      setStudents([]);
+      return;
+    }
+
+    let active = true;
+    setLoading(true);
+    setMessage(null);
+    api.get(`/marks/section/${selectedSection}?subjectId=${selectedSubject}`)
+      .then(({ data }) => {
+        if (!active) return;
+        const rows: StudentMarkRow[] = (data.data || []).map((student: any) => {
+          const currentMark = student.marks?.find((mark: any) => mark.markType === selectedExam);
+          return {
+            studentId: student.studentId,
+            rollNo: student.rollNo,
+            name: student.name,
+            marks: currentMark ? String(currentMark.marks) : '',
+          };
+        });
+        setStudents(rows);
+      })
+      .catch((error: any) => {
+        if (active) {
+          setStudents([]);
+          setMessageIsError(true);
+          setMessage(error.response?.data?.error?.message || 'Could not load the enrolled students for this class.');
+        }
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => { active = false; };
+  }, [selectedSection, selectedSubject, selectedExam]);
 
   function handleMarkChange(studentId: number, value: string) {
     const num = Number(value);
@@ -58,8 +96,14 @@ export default function MarksEntryTab({
 
   async function handleSaveMarks(e: React.FormEvent) {
     e.preventDefault();
+    if (!selectedSection || !selectedSubject || students.length === 0) {
+      setMessageIsError(true);
+      setMessage("Select an assigned class and subject with enrolled students before saving.");
+      return;
+    }
     setSaving(true);
     setMessage(null);
+    setMessageIsError(false);
 
     const payload = {
       sectionId: selectedSection,
@@ -75,9 +119,9 @@ export default function MarksEntryTab({
     try {
       await api.post("/marks/bulk", payload);
       setMessage("✓ Marks saved and submitted for HOD approval!");
-    } catch {
-      // Fallback: local simulated save for demo mode
-      setMessage("✓ Marks saved locally (Submitted for HOD Review)!");
+    } catch (error: any) {
+      setMessageIsError(true);
+      setMessage(error.response?.data?.error?.message || "Could not save marks. Please try again.");
     } finally {
       setSaving(false);
     }
@@ -89,7 +133,7 @@ export default function MarksEntryTab({
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
           <div>
             <h2 style={{ fontSize: "1.3rem", fontWeight: 800, margin: 0 }}>
-              📝 Internal & Sessional Marks Entry
+               Internal & Sessional Marks Entry
             </h2>
             <p className="text-xs text-muted" style={{ marginTop: 4 }}>
               Enter evaluation marks for assignments, sessionals, and lab practicals.
@@ -115,7 +159,7 @@ export default function MarksEntryTab({
             </label>
             <select
               value={selectedSection}
-              onChange={(e) => setSelectedSection(Number(e.target.value))}
+              onChange={(e) => setSelectedSection(e.target.value ? Number(e.target.value) : '')}
               style={{
                 width: "100%",
                 padding: "0.6rem",
@@ -140,7 +184,7 @@ export default function MarksEntryTab({
             </label>
             <select
               value={selectedSubject}
-              onChange={(e) => setSelectedSubject(Number(e.target.value))}
+              onChange={(e) => setSelectedSubject(e.target.value ? Number(e.target.value) : '')}
               style={{
                 width: "100%",
                 padding: "0.6rem",
@@ -229,6 +273,7 @@ export default function MarksEntryTab({
 
       {/* Marks Table */}
       <form onSubmit={handleSaveMarks}>
+        {loading && <p className="text-muted">Loading enrolled students and saved marks...</p>}
         <div className="card" style={{ padding: 0, overflow: "hidden", marginBottom: "1rem" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: "0.875rem" }}>
             <thead>
@@ -242,6 +287,9 @@ export default function MarksEntryTab({
               </tr>
             </thead>
             <tbody>
+              {!loading && students.length === 0 && (
+                <tr><td colSpan={4} style={{ padding: '1.5rem', textAlign: 'center' }}>No enrolled students found for this class and subject.</td></tr>
+              )}
               {students.map((st, idx) => (
                 <tr
                   key={st.studentId}
@@ -285,9 +333,9 @@ export default function MarksEntryTab({
             style={{
               padding: "0.75rem 1rem",
               borderRadius: 10,
-              background: "#ECFDF5",
-              color: "#059669",
-              border: "1px solid #A7F3D0",
+              background: messageIsError ? "#FEF2F2" : "#ECFDF5",
+              color: messageIsError ? "#B42318" : "#059669",
+              border: `1px solid ${messageIsError ? "#FECACA" : "#A7F3D0"}`,
               fontWeight: 700,
               fontSize: "0.875rem",
               marginBottom: "1rem",
@@ -301,10 +349,10 @@ export default function MarksEntryTab({
           <button
             type="submit"
             className="btn btn--primary"
-            disabled={saving}
+            disabled={saving || loading || students.length === 0}
             style={{ padding: "0.75rem 2rem", fontWeight: 800 }}
           >
-            {saving ? "Saving..." : "💾 Submit Marks to HOD"}
+            {saving ? "Saving..." : " Submit Marks to HOD"}
           </button>
         </div>
       </form>

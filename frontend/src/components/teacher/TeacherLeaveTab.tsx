@@ -12,30 +12,8 @@ interface LeaveItem {
   createdAt: string;
 }
 
-const DEFAULT_TEACHER_LEAVES: LeaveItem[] = [
-  {
-    id: 'leave-1',
-    type: 'DUTY',
-    fromDate: '2026-10-18',
-    toDate: '2026-10-19',
-    reason: 'AKTU Faculty Development Programme on AI & Machine Learning',
-    status: 'APPROVED',
-    decisionNote: 'Approved for professional development. Please submit certificate post-event.',
-    createdAt: '2026-10-08',
-  },
-  {
-    id: 'leave-2',
-    type: 'CASUAL',
-    fromDate: '2026-10-25',
-    toDate: '2026-10-25',
-    reason: 'Family engagement out of station',
-    status: 'PENDING',
-    createdAt: '2026-10-11',
-  },
-];
-
 export function TeacherLeaveTab() {
-  const [leaves, setLeaves] = useState<LeaveItem[]>(DEFAULT_TEACHER_LEAVES);
+  const [leaves, setLeaves] = useState<LeaveItem[]>([]);
   const [leaveType, setLeaveType] = useState('CASUAL');
   const [duration, setDuration] = useState('FULL_DAY');
   const [fromDate, setFromDate] = useState('');
@@ -43,6 +21,7 @@ export function TeacherLeaveTab() {
   const [reason, setReason] = useState('');
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState('');
+  const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
     let isMounted = true;
@@ -50,7 +29,7 @@ export function TeacherLeaveTab() {
       .get('/teacher-leaves/teacher/my')
       .then((res) => {
         const fetched = res.data?.leaves || res.data?.data;
-        if (isMounted && Array.isArray(fetched) && fetched.length > 0) {
+        if (isMounted && Array.isArray(fetched)) {
           const formatted = fetched.map((item: any) => ({
             id: String(item.id),
             type: item.type || 'CASUAL',
@@ -64,8 +43,11 @@ export function TeacherLeaveTab() {
           setLeaves(formatted);
         }
       })
-      .catch(() => {
-        // Fallback to DEFAULT_TEACHER_LEAVES in demo or offline mode
+      .catch((error: any) => {
+        if (isMounted) {
+          setLeaves([]);
+          setLoadError(error.response?.data?.error?.message || 'Could not load leave requests.');
+        }
       });
     return () => {
       isMounted = false;
@@ -82,40 +64,41 @@ export function TeacherLeaveTab() {
     setLoading(true);
     setMsg('');
 
-    const newLeave: LeaveItem = {
-      id: 'leave-' + Date.now(),
-      type: leaveType,
-      fromDate,
-      toDate,
-      reason,
-      status: 'PENDING',
-      createdAt: new Date().toISOString().split('T')[0],
-    };
-
     try {
-      await api.post('/teacher-leaves/teacher/apply', {
+      const { data } = await api.post('/teacher-leaves/teacher/apply', {
         fromDate,
         toDate,
         type: leaveType,
         reason,
       });
-      setLeaves([newLeave, ...leaves]);
+      if (data?.data) {
+        const created = data.data;
+        setLeaves((previous) => [{
+          id: String(created.id),
+          type: created.type,
+          fromDate: String(created.fromDate).slice(0, 10),
+          toDate: String(created.toDate).slice(0, 10),
+          reason: created.reason,
+          status: created.status,
+          createdAt: String(created.createdAt).slice(0, 10),
+        }, ...previous]);
+      }
+      setLoadError('');
       setMsg('✓ Leave application submitted to Dean Office!');
-    } catch {
-      // Graceful offline fallback
-      setLeaves([newLeave, ...leaves]);
-      setMsg('✓ Leave application submitted successfully (Offline mode)!');
-    } finally {
-      setLoading(false);
       setFromDate('');
       setToDate('');
       setReason('');
+    } catch (error: any) {
+      setMsg(error.response?.data?.error?.message || 'Could not submit the leave application.');
+    } finally {
+      setLoading(false);
       setTimeout(() => setMsg(''), 4000);
     }
   }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+      {loadError && <p role="alert" className="alert alert--error">{loadError}</p>}
       {/* ─── Leave Balance Summary ─── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
         <div
@@ -129,10 +112,10 @@ export function TeacherLeaveTab() {
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: '0.825rem', fontWeight: 700, color: '#1E40AF' }}>Casual Leave (CL)</span>
-            <span style={{ fontSize: '1.2rem' }}>🌴</span>
+
           </div>
           <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#1E3A8A', marginTop: '0.35rem' }}>
-            8 <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#64748B' }}>/ 12 Remaining</span>
+            Not configured
           </div>
           <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '0.25rem' }}>Personal & urgent work</div>
         </div>
@@ -148,10 +131,10 @@ export function TeacherLeaveTab() {
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: '0.825rem', fontWeight: 700, color: '#065F46' }}>Medical Leave (ML)</span>
-            <span style={{ fontSize: '1.2rem' }}>🩺</span>
+
           </div>
           <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#064E3B', marginTop: '0.35rem' }}>
-            10 <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#64748B' }}>/ 10 Remaining</span>
+            Not configured
           </div>
           <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '0.25rem' }}>Requires medical certificate</div>
         </div>
@@ -167,10 +150,10 @@ export function TeacherLeaveTab() {
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: '0.825rem', fontWeight: 700, color: '#9A3412' }}>Duty Leave (OD)</span>
-            <span style={{ fontSize: '1.2rem' }}>🎖️</span>
+
           </div>
           <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#7C2D12', marginTop: '0.35rem' }}>
-            5 <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#64748B' }}>/ 5 Remaining</span>
+            Not configured
           </div>
           <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '0.25rem' }}>Conferences, FDP & Exam duties</div>
         </div>
@@ -188,7 +171,7 @@ export function TeacherLeaveTab() {
         }}
       >
         <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#1C1C26', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <span>📝</span> Apply for Faculty Leave
+           Apply for Faculty Leave
         </h3>
 
         {msg && (
@@ -220,9 +203,9 @@ export function TeacherLeaveTab() {
                 onChange={(e) => setLeaveType(e.target.value)}
                 style={{ height: 44, width: '100%', borderRadius: '10px' }}
               >
-                <option value="CASUAL">🌴 Casual Leave (CL)</option>
-                <option value="MEDICAL">🩺 Medical Leave (ML)</option>
-                <option value="DUTY">🎖️ Duty Leave / On-Duty (OD)</option>
+                <option value="CASUAL"> Casual Leave (CL)</option>
+                <option value="MEDICAL"> Medical Leave (ML)</option>
+                <option value="DUTY"> Duty Leave / On-Duty (OD)</option>
               </select>
             </div>
 
@@ -316,7 +299,7 @@ export function TeacherLeaveTab() {
         }}
       >
         <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#1C1C26', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <span>📋</span> Leave Application History & Approvals
+           Leave Application History & Approvals
         </h3>
 
         <div style={{ overflowX: 'auto' }}>
@@ -366,7 +349,7 @@ export function TeacherLeaveTab() {
                           l.status === 'APPROVED' ? '#15803D' : l.status === 'REJECTED' ? '#B91C1C' : '#854D0E',
                       }}
                     >
-                      {l.status === 'APPROVED' ? '✓ APPROVED' : l.status === 'REJECTED' ? '✕ REJECTED' : '⏳ PENDING'}
+                      {l.status === 'APPROVED' ? '✓ APPROVED' : l.status === 'REJECTED' ? '✕ REJECTED' : ' PENDING'}
                     </span>
                   </td>
                   <td style={{ padding: '0.85rem 1rem', color: '#64748B', fontSize: '0.8rem', fontStyle: 'italic' }}>

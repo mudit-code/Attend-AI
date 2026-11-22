@@ -7,86 +7,65 @@ import { runSync } from '../lib/syncEngine';
 import heroImage from '../assets/attendance_3d_hero.jpg';
 import BrandLogo from '../components/common/BrandLogo';
 
-const COLLEGE_BRANCHES = [
-  { id: 'ALL', name: '🏛️ Central Campus - All Branches (Institutional Administration)' },
-  { id: 'CSE', name: '💻 Computer Science & Engineering (B.Tech CSE)' },
-  { id: 'CSE-AIML', name: '🤖 Artificial Intelligence & Machine Learning (CSE-AIML)' },
-  { id: 'IT', name: '🌐 Information Technology (B.Tech IT)' },
-  { id: 'ECE', name: '📡 Electronics & Communication Engineering (B.Tech ECE)' },
-  { id: 'EEE', name: '⚡ Electrical & Electronics Engineering (B.Tech EEE)' },
-  { id: 'ME', name: '⚙️ Mechanical Engineering (B.Tech ME)' },
-  { id: 'CE', name: '🏗️ Civil Engineering (B.Tech CE)' },
-  { id: 'MBA', name: '📊 Department of Business Administration (MBA)' },
-  { id: 'MCA', name: '📱 Department of Computer Applications (MCA)' },
-  { id: 'PHARM', name: '💊 Faculty of Pharmacy (B.Pharm / M.Pharm)' },
-  { id: 'ASH', name: '🔬 Applied Sciences & Humanities (1st Year)' },
-  { id: 'EXAM', name: '📋 Examination & Academic Administration Cell' },
-];
+interface RegistrationSection {
+  id: number;
+  name: string;
+  year: number;
+  course: {
+    name: string;
+    department: { name: string };
+  };
+}
 
-const ACADEMIC_YEARS = [
-  '1st Year (Sem 1-2)',
-  '2nd Year (Sem 3-4)',
-  '3rd Year (Sem 5-6)',
-  '4th Year (Sem 7-8)',
-];
+const COLLEGE_BRANCHES: { id: string; name: string }[] = [];
+const ACADEMIC_YEARS: string[] = [];
+const ACADEMIC_SECTIONS: string[] = [];
+const TEACHER_DESIGNATIONS: string[] = [];
+const ADMIN_ROLE_TYPES: string[] = [];
 
-const ACADEMIC_SECTIONS = [
-  'Section A',
-  'Section B',
-  'Section C',
-  'Section D',
-];
-
-const TEACHER_DESIGNATIONS = [
-  'Assistant Professor',
-  'Associate Professor',
-  'Professor',
-  'Head of Department (HOD)',
-  'Visiting Faculty / Guest Lecturer',
-];
-
-const ADMIN_ROLE_TYPES = [
-  'Super Admin / Director',
-  'Academic Coordinator',
-  'Registrar Office',
-  'Head of Department (HOD)',
-  'Examination Controller',
-];
+interface RegistrationDepartment {
+  id: number;
+  name: string;
+  code: string;
+}
 
 export default function LoginPage() {
   const [authMode, setAuthMode] = useState<'LOGIN' | 'REGISTER'>('LOGIN');
   const [selectedRole, setSelectedRole] = useState<'TEACHER' | 'STUDENT' | 'ADMIN'>('TEACHER');
 
   // Login credentials
-  const [email, setEmail] = useState('teacher1@attendai.com');
-  const [password, setPassword] = useState('Teacher@123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
   // Register credentials
-  const [name, setName] = useState('Dr. Rajesh Sharma');
-  const [regEmail, setRegEmail] = useState('teacher1@attendai.com');
-  const [regPassword, setRegPassword] = useState('Teacher@123');
-  const [confirmPassword, setConfirmPassword] = useState('Teacher@123');
-  const [phone, setPhone] = useState('9876543210');
+  const [name, setName] = useState('');
+  const [regEmail, setRegEmail] = useState('');
+  const [regPassword, setRegPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [phone, setPhone] = useState('');
 
   // Student specific fields
-  const [rollNo, setRollNo] = useState('2101640100015');
-  const [branch, setBranch] = useState(COLLEGE_BRANCHES[1].name);
-  const [academicYear, setAcademicYear] = useState(ACADEMIC_YEARS[2]);
-  const [section, setSection] = useState(ACADEMIC_SECTIONS[0]);
-  const [parentName, setParentName] = useState('Suresh Kumar');
-  const [parentPhone, setParentPhone] = useState('9812345678');
+  const [rollNo, setRollNo] = useState('');
+  const [sectionId, setSectionId] = useState<number | ''>('');
+  const [branch, setBranch] = useState('');
+  const [academicYear, setAcademicYear] = useState('');
+  const [parentName, setParentName] = useState('');
+  const [parentPhone, setParentPhone] = useState('');
 
-  // Teacher specific fields
-  const [employeeCode, setEmployeeCode] = useState('FAC-KIT-204');
-  const [department, setDepartment] = useState(COLLEGE_BRANCHES[1].name);
-  const [designation, setDesignation] = useState(TEACHER_DESIGNATIONS[0]);
+  const [sections, setSections] = useState<RegistrationSection[]>([]);
+  const [sectionsLoading, setSectionsLoading] = useState(true);
+  const [sectionsLoadError, setSectionsLoadError] = useState('');
+  const [employeeCode, setEmployeeCode] = useState('');
+  const [departments] = useState<RegistrationDepartment[]>([]);
+  const [departmentId, setDepartmentId] = useState<number | ''>('');
+  const [departmentsLoading] = useState(false);
+  const [departmentLoadError] = useState('');
+  const [designation, setDesignation] = useState('');
   const [isClassTeacher, setIsClassTeacher] = useState(false);
-  const [classTeacherSection, setClassTeacherSection] = useState(ACADEMIC_SECTIONS[0]);
-
-  // Admin specific fields
-  const [adminCode, setAdminCode] = useState('ADMIN2026');
-  const [adminBranch, setAdminBranch] = useState(COLLEGE_BRANCHES[0].name);
-  const [adminRoleType, setAdminRoleType] = useState(ADMIN_ROLE_TYPES[0]);
+  const [classTeacherSection, setClassTeacherSection] = useState('');
+  const [adminCode, setAdminCode] = useState('');
+  const [adminBranch, setAdminBranch] = useState('');
+  const [adminRoleType, setAdminRoleType] = useState('');
 
   // OAuth Modal state
   const [oauthModalOpen, setOauthModalOpen] = useState(false);
@@ -107,98 +86,36 @@ export default function LoginPage() {
     }
   }, [location.state]);
 
-  // Quick switch role & prefill demo credentials for login and register
+  useEffect(() => {
+    let cancelled = false;
+
+    api.get<{ data: RegistrationSection[] }>('/auth/sections')
+      .then(({ data }) => {
+        if (cancelled) return;
+        setSections(data.data);
+      })
+      .catch((err: any) => {
+        if (cancelled) return;
+        setSectionsLoadError(
+          err.response?.data?.error?.message || 'Could not load available classes. Check the backend connection and refresh.'
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setSectionsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   function handleSelectRole(role: 'TEACHER' | 'STUDENT' | 'ADMIN') {
     setSelectedRole(role);
     setError('');
     setSuccessMsg('');
-    if (role === 'TEACHER') {
-      setEmail('teacher1@attendai.com');
-      setPassword('Teacher@123');
-      setName('Dr. Rajesh Sharma');
-      setRegEmail('r.sharma@kit.ac.in');
-      setRegPassword('Teacher@123');
-      setConfirmPassword('Teacher@123');
-      setPhone('9876543210');
-      setEmployeeCode('FAC-KIT-204');
-      setDepartment(COLLEGE_BRANCHES[1].name);
-      setDesignation(TEACHER_DESIGNATIONS[0]);
-      setIsClassTeacher(false);
-      setClassTeacherSection(ACADEMIC_SECTIONS[0]);
-    } else if (role === 'STUDENT') {
-      setEmail('student1@attendai.com');
-      setPassword('Student@123');
-      setName('Aman Kumar');
-      setRegEmail('aman.kumar@kit.ac.in');
-      setRegPassword('Student@123');
-      setConfirmPassword('Student@123');
-      setPhone('9876512345');
-      setRollNo('2101640100015');
-      setBranch(COLLEGE_BRANCHES[1].name);
-      setAcademicYear(ACADEMIC_YEARS[2]);
-      setSection(ACADEMIC_SECTIONS[0]);
-      setParentName('Suresh Kumar');
-      setParentPhone('9812345678');
-    } else if (role === 'ADMIN') {
-      setEmail('admin@attendai.com');
-      setPassword('Admin@123');
-      setName('Dean Academics');
-      setRegEmail('dean.academics@kit.ac.in');
-      setRegPassword('Admin@123');
-      setConfirmPassword('Admin@123');
-      setPhone('9898989898');
-      setEmployeeCode('ADM-KIT-001');
-      setAdminCode('ADMIN2026');
-      setAdminBranch(COLLEGE_BRANCHES[0].name);
-      setAdminRoleType(ADMIN_ROLE_TYPES[0]);
-    }
   }
 
-  // 1-Click Direct Demo Account Login
-  function handle1ClickDemoLogin(targetRole: 'TEACHER' | 'STUDENT' | 'ADMIN') {
-    const demoUser =
-      targetRole === 'STUDENT'
-        ? {
-            id: 1,
-            name: 'Aman Kumar',
-            email: 'student1@attendai.com',
-            role: 'STUDENT' as const,
-            student: { id: 1, sectionId: 1, rollNo: '2101640100015' },
-          }
-        : targetRole === 'TEACHER'
-        ? {
-            id: 2,
-            name: 'Dr. Rajesh Sharma',
-            email: 'teacher1@attendai.com',
-            role: 'TEACHER' as const,
-            teacher: { id: 1, departmentId: 1 },
-          }
-        : {
-            id: 3,
-            name: 'Dean Academics',
-            email: 'admin@attendai.com',
-            role: 'ADMIN' as const,
-          };
-
-    unlockApp();
-    setToken(`token-${targetRole.toLowerCase()}-demo-attendai`);
-    setUser(demoUser);
-
-    void db.users.put({
-      id: demoUser.id,
-      name: demoUser.name,
-      email: demoUser.email,
-      role: demoUser.role,
-    }).catch(() => {});
-
-    void runSync();
-
-    if (targetRole === 'STUDENT') navigate('/student');
-    else if (targetRole === 'TEACHER') navigate('/teacher');
-    else navigate('/admin');
-  }
-
-  // Handle Standard Login (100% Reliable Access)
+  // Handle standard login
   async function handleLoginSubmit(e: FormEvent) {
     e.preventDefault();
     setError('');
@@ -232,20 +149,16 @@ export default function LoginPage() {
       else navigate('/dashboard');
     } catch (err: any) {
       if (err.response?.status === 401) {
-        setError(err.response?.data?.error?.message || 'Invalid email or password. Please check your credentials or use 1-Click Quick Demo Login.');
-      } else if (!navigator.onLine || !err.response || err.response?.status >= 500) {
-        // Backend offline or database down (e.g. PostgreSQL not running): seamless demo fallback
-        console.warn('Backend database unreachable. Entering dashboard in Offline Demo Mode.');
-        handle1ClickDemoLogin(selectedRole);
+        setError(err.response?.data?.error?.message || 'Invalid email or password.');
       } else {
-        setError(err.response?.data?.error?.message || 'Login failed. Please try again or use 1-Click Quick Demo Login.');
+        setError(err.response?.data?.error?.message || 'Unable to sign in. Check that the backend is running and try again.');
       }
     } finally {
       setLoading(false);
     }
   }
 
-  // Handle Registration (100% Reliable Access)
+  // Handle account registration
   async function handleRegisterSubmit(e: FormEvent) {
     e.preventDefault();
     setError('');
@@ -259,47 +172,29 @@ export default function LoginPage() {
       setError('Passwords do not match.');
       return;
     }
+    if (selectedRole !== 'STUDENT') {
+      setError('Teacher and administrator accounts are created by an administrator.');
+      return;
+    }
+    if (!rollNo.trim() || !sectionId) {
+      setError('Enter your official roll number and select your class.');
+      return;
+    }
+    if (sectionsLoading || sectionsLoadError || sections.length === 0) {
+      setError(sectionsLoadError || 'No classes are currently available for student registration.');
+      return;
+    }
 
     setLoading(true);
-    const fallbackUser = {
-      id: Math.floor(Math.random() * 9000) + 1000,
-      name: name || (selectedRole === 'STUDENT' ? 'Aman Kumar' : selectedRole === 'TEACHER' ? 'Faculty Member' : 'Admin Staff'),
-      email: regEmail || `${selectedRole.toLowerCase()}@attendai.com`,
-      role: selectedRole,
-      phone: phone || undefined,
-      student: selectedRole === 'STUDENT' ? { id: 1, sectionId: 1, rollNo: rollNo || '2101640100015', branch, academicYear, section, parentName, parentPhone } : null,
-      teacher: selectedRole === 'TEACHER' ? { id: 1, departmentId: 1, designation, isClassTeacher, classTeacherSection } : null,
-      branch: selectedRole === 'ADMIN' ? adminBranch : branch,
-      department: selectedRole === 'ADMIN' ? adminBranch : department,
-      adminRoleType: selectedRole === 'ADMIN' ? adminRoleType : undefined,
-    };
-
     try {
       const payload = {
-        name: fallbackUser.name,
-        email: fallbackUser.email,
+        name,
+        email: regEmail,
         password: regPassword,
-        role: selectedRole,
+        role: 'STUDENT',
         phone: phone || undefined,
-        ...(selectedRole === 'STUDENT' ? {
-          rollNo: rollNo || '2101640100015',
-          branch,
-          semester: academicYear,
-          parentName,
-          parentPhone,
-        } : {}),
-        ...(selectedRole === 'TEACHER' ? {
-          employeeCode: employeeCode || 'FAC-KIT-204',
-          department,
-          designation,
-          isClassTeacher,
-        } : {}),
-        ...(selectedRole === 'ADMIN' ? {
-          employeeCode: employeeCode || 'ADM-KIT-001',
-          adminCode: adminCode || 'ADMIN2026',
-          branch: adminBranch,
-          adminRoleType,
-        } : {}),
+        rollNo: rollNo.trim(),
+        sectionId,
       };
 
       const { data } = await api.post('/auth/register', payload);
@@ -315,89 +210,17 @@ export default function LoginPage() {
       });
 
       setSuccessMsg('Account created successfully! Loading your dashboard...');
-      setTimeout(() => {
-        if (selectedRole === 'ADMIN') navigate('/admin');
-        else if (selectedRole === 'TEACHER') navigate('/teacher');
-        else navigate('/student');
-      }, 500);
-    } catch {
-      // Backend/DB offline fallback: Immediately register in client session
-      setToken('token-registered-' + Date.now());
-      setUser(fallbackUser);
-
-      void db.users.put({
-        id: fallbackUser.id,
-        name: fallbackUser.name,
-        email: fallbackUser.email,
-        role: fallbackUser.role,
-      }).catch(() => {});
-
-      setSuccessMsg('✓ Account registered successfully! Opening dashboard...');
-      setTimeout(() => {
-        if (selectedRole === 'ADMIN') navigate('/admin');
-        else if (selectedRole === 'TEACHER') navigate('/teacher');
-        else navigate('/student');
-      }, 500);
+      setTimeout(() => navigate('/student'), 500);
+    } catch (err: any) {
+      setError(err.response?.data?.error?.message || 'Registration failed. Check that the backend is running and try again.');
     } finally {
       setLoading(false);
     }
   }
 
-  // Complete Google OAuth login
-  async function completeOAuth(selectedEmail: string, selectedName: string) {
-    setLoading(true);
+  function completeOAuth(_selectedEmail: string, _selectedName: string) {
     setOauthModalOpen(false);
-    setError('');
-
-    try {
-      const { data } = await api.post('/auth/oauth', {
-        provider: 'google',
-        role: selectedRole,
-        email: selectedEmail,
-        name: selectedName,
-        rollNo: selectedRole === 'STUDENT' ? rollNo || '2101640100015' : undefined,
-        employeeCode: selectedRole === 'TEACHER' ? employeeCode || 'FAC-KIT-204' : undefined,
-      });
-
-      setToken(data.accessToken);
-      setUser(data.user);
-
-      await db.users.put({
-        id: data.user.id,
-        name: data.user.name,
-        email: data.user.email,
-        role: data.user.role,
-      });
-
-      if (selectedRole === 'ADMIN') navigate('/admin');
-      else if (selectedRole === 'TEACHER') navigate('/teacher');
-      else navigate('/student');
-    } catch {
-      const demoUser = {
-        id: selectedRole === 'STUDENT' ? 1 : selectedRole === 'TEACHER' ? 2 : 3,
-        name: selectedName,
-        email: selectedEmail,
-        role: selectedRole,
-        student: selectedRole === 'STUDENT' ? { id: 1, sectionId: 1, rollNo: '2101640100015' } : null,
-        teacher: selectedRole === 'TEACHER' ? { id: 1, departmentId: 1 } : null,
-      };
-
-      setToken('demo-oauth-token-google');
-      setUser(demoUser);
-
-      void db.users.put({
-        id: demoUser.id,
-        name: demoUser.name,
-        email: demoUser.email,
-        role: demoUser.role,
-      }).catch(() => {});
-
-      if (selectedRole === 'ADMIN') navigate('/admin');
-      else if (selectedRole === 'TEACHER') navigate('/teacher');
-      else navigate('/student');
-    } finally {
-      setLoading(false);
-    }
+    setError('Google sign-in is unavailable because no OAuth provider is configured.');
   }
 
   return (
@@ -532,7 +355,7 @@ export default function LoginPage() {
               transition: 'all 0.2s ease',
             }}
           >
-            🔐 Sign In
+             Sign In
           </button>
           <button
             type="button"
@@ -540,7 +363,7 @@ export default function LoginPage() {
               setAuthMode('REGISTER');
               setError('');
               setSuccessMsg('');
-              handleSelectRole(selectedRole);
+              handleSelectRole('STUDENT');
             }}
             id="tab-register"
             style={{
@@ -557,7 +380,7 @@ export default function LoginPage() {
               transition: 'all 0.2s ease',
             }}
           >
-            ✨ Register / Sign Up
+             Register / Sign Up
           </button>
         </div>
 
@@ -574,7 +397,7 @@ export default function LoginPage() {
               Select Your Role
             </label>
             <span style={{ fontSize: '0.72rem', color: 'var(--color-primary)', fontWeight: 700 }}>
-              {selectedRole === 'STUDENT' ? '🎓 Student Portal' : selectedRole === 'TEACHER' ? '👨‍🏫 Faculty Portal' : '🏛️ Admin Cell'}
+              {selectedRole === 'STUDENT' ? ' Student Portal' : selectedRole === 'TEACHER' ? ' Faculty Portal' : ' Admin Cell'}
             </span>
           </div>
 
@@ -593,6 +416,7 @@ export default function LoginPage() {
                   type="button"
                   id={`role-btn-${role.toLowerCase()}`}
                   onClick={() => handleSelectRole(role)}
+                  disabled={authMode === 'REGISTER' && role !== 'STUDENT'}
                   style={{
                     flex: 1,
                     display: 'flex',
@@ -606,7 +430,8 @@ export default function LoginPage() {
                     color: active ? 'var(--color-primary)' : 'var(--color-text-muted)',
                     fontSize: '0.825rem',
                     fontWeight: active ? 800 : 600,
-                    cursor: 'pointer',
+                    cursor: authMode === 'REGISTER' && role !== 'STUDENT' ? 'not-allowed' : 'pointer',
+                    opacity: authMode === 'REGISTER' && role !== 'STUDENT' ? 0.45 : 1,
                     transition: 'all 0.2s ease',
                   }}
                 >
@@ -630,7 +455,7 @@ export default function LoginPage() {
         {/* Error Alert */}
         {error && (
           <div className="alert alert--error" style={{ marginBottom: '1rem', padding: '0.6rem 0.8rem', fontSize: '0.85rem' }}>
-            <span>⚠️</span>
+
             <span>{error}</span>
           </div>
         )}
@@ -671,19 +496,7 @@ export default function LoginPage() {
                   disabled={loading}
                   style={{ paddingRight: '2.75rem', height: 46 }}
                 />
-                <span
-                  style={{
-                    position: 'absolute',
-                    right: '1.1rem',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    color: 'var(--color-primary)',
-                    fontSize: '1.1rem',
-                    pointerEvents: 'none',
-                  }}
-                >
-                  ✉️
-                </span>
+
               </div>
             </div>
 
@@ -720,7 +533,7 @@ export default function LoginPage() {
                   }}
                   aria-label={showPass ? 'Hide password' : 'Show password'}
                 >
-                  🔒
+
                 </button>
               </div>
             </div>
@@ -756,7 +569,7 @@ export default function LoginPage() {
             <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '0.5rem' }}>
               <div>
                 <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-text-muted)', marginBottom: '0.2rem', display: 'block' }}>
-                  👤 Full Name *
+                   Full Name *
                 </label>
                 <input
                   id="reg-name"
@@ -772,7 +585,7 @@ export default function LoginPage() {
               </div>
               <div>
                 <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-text-muted)', marginBottom: '0.2rem', display: 'block' }}>
-                  📱 Mobile Number *
+                   Mobile Number *
                 </label>
                 <input
                   id="reg-phone"
@@ -791,7 +604,7 @@ export default function LoginPage() {
             {/* Email */}
             <div>
               <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-text-muted)', marginBottom: '0.2rem', display: 'block' }}>
-                ✉️ Institutional College Email *
+                 Institutional College Email *
               </label>
               <input
                 id="reg-email"
@@ -816,10 +629,10 @@ export default function LoginPage() {
             {selectedRole === 'STUDENT' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 {/* Roll No & Year */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.5rem' }}>
                   <div>
                     <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-text-muted)', marginBottom: '0.2rem', display: 'block' }}>
-                      🎓 AKTU / University Roll No *
+                       AKTU / University Roll No *
                     </label>
                     <input
                       id="reg-rollno"
@@ -833,9 +646,9 @@ export default function LoginPage() {
                       style={{ height: 42, fontSize: '0.85rem' }}
                     />
                   </div>
-                  <div>
+                  <div style={{ display: 'none' }}>
                     <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-text-muted)', marginBottom: '0.2rem', display: 'block' }}>
-                      📅 Academic Year *
+                       Academic Year *
                     </label>
                     <select
                       id="reg-student-year"
@@ -855,9 +668,9 @@ export default function LoginPage() {
                 </div>
 
                 {/* Branch / Department Dropdown */}
-                <div>
+                <div style={{ display: 'none' }}>
                   <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-text-muted)', marginBottom: '0.2rem', display: 'block' }}>
-                    💻 Department / Branch *
+                     Department / Branch *
                   </label>
                   <select
                     id="reg-student-branch"
@@ -875,42 +688,47 @@ export default function LoginPage() {
                   </select>
                 </div>
 
-                {/* Assigned Section */}
+                {/* Live class options from the database */}
                 <div>
                   <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-text-muted)', marginBottom: '0.2rem', display: 'block' }}>
-                    🏫 Assigned Section *
+                    Class *
                   </label>
                   <select
                     id="reg-student-section"
                     className="input"
-                    value={section}
-                    onChange={(e) => setSection(e.target.value)}
-                    disabled={loading}
+                    value={sectionId}
+                    onChange={(e) => setSectionId(e.target.value ? Number(e.target.value) : '')}
+                    disabled={loading || sectionsLoading || sections.length === 0}
+                    required
                     style={{ height: 42, fontSize: '0.82rem', background: '#FFF0EE', border: '1.5px solid #FFDCD7' }}
                   >
-                    {ACADEMIC_SECTIONS.map((s) => (
-                      <option key={s} value={s} style={{ background: '#FFFFFF', color: '#1E293B' }}>
-                        {s}
+                    <option value="">
+                      {sectionsLoading ? 'Loading classes...' : sections.length ? 'Select your class' : 'No classes available'}
+                    </option>
+                    {sections.map((entry) => (
+                      <option key={entry.id} value={entry.id}>
+                        {entry.course.department.name} - {entry.course.name} - Year {entry.year} - {entry.name}
                       </option>
                     ))}
                   </select>
+                  {sectionsLoadError && <p role="alert" className="text-xs" style={{ color: '#B42318' }}>{sectionsLoadError}</p>}
                 </div>
 
                 {/* Parent / Guardian Alert Box */}
                 <div
                   style={{
+                    display: 'none',
                     background: 'rgba(255, 60, 40, 0.04)',
                     border: '1px dashed var(--color-border)',
                     borderRadius: '10px',
                     padding: '0.65rem 0.75rem',
-                    display: 'flex',
                     flexDirection: 'column',
                     gap: '0.5rem',
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-primary)' }}>
-                      👨‍👩‍👧 Parent / Guardian Alerts
+                       Parent / Guardian Alerts
                     </span>
                     <span style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)' }}>Attendance & SMS</span>
                   </div>
@@ -946,7 +764,7 @@ export default function LoginPage() {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
                   <div>
                     <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-text-muted)', marginBottom: '0.2rem', display: 'block' }}>
-                      🆔 Faculty Employee Code *
+                       Faculty Employee Code *
                     </label>
                     <input
                       id="reg-empcode"
@@ -962,7 +780,7 @@ export default function LoginPage() {
                   </div>
                   <div>
                     <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-text-muted)', marginBottom: '0.2rem', display: 'block' }}>
-                      👔 Designation / Post *
+                       Designation / Post *
                     </label>
                     <select
                       id="reg-teacher-designation"
@@ -984,22 +802,30 @@ export default function LoginPage() {
                 {/* Department Dropdown */}
                 <div>
                   <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-text-muted)', marginBottom: '0.2rem', display: 'block' }}>
-                    🏢 Academic Department *
+                     Academic Department *
                   </label>
                   <select
                     id="reg-teacher-department"
                     className="input"
-                    value={department}
-                    onChange={(e) => setDepartment(e.target.value)}
-                    disabled={loading}
+                    value={departmentId}
+                    onChange={(e) => setDepartmentId(e.target.value ? Number(e.target.value) : '')}
+                    disabled={loading || departmentsLoading || departments.length === 0}
                     style={{ height: 42, fontSize: '0.82rem', background: '#FFF0EE', border: '1.5px solid #FFDCD7' }}
                   >
-                    {COLLEGE_BRANCHES.slice(1).map((b) => (
-                      <option key={b.id} value={b.name} style={{ background: '#FFFFFF', color: '#1E293B' }}>
-                        {b.name}
+                    <option value="" disabled>
+                      {departmentsLoading ? 'Loading departments...' : departments.length ? 'Select a department' : 'No departments configured'}
+                    </option>
+                    {departments.map((dept) => (
+                      <option key={dept.id} value={dept.id} style={{ background: '#FFFFFF', color: '#1E293B' }}>
+                        {dept.name}
                       </option>
                     ))}
                   </select>
+                  {departmentLoadError && (
+                    <p role="alert" style={{ color: '#B42318', fontSize: '0.75rem', marginTop: '0.35rem' }}>
+                      {departmentLoadError}
+                    </p>
+                  )}
                 </div>
 
                 {/* Class Teacher Toggle */}
@@ -1024,7 +850,7 @@ export default function LoginPage() {
                       style={{ width: 16, height: 16, accentColor: 'var(--color-primary)' }}
                     />
                     <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--color-text)' }}>
-                      📌 Assigned as Class Teacher / Proctor
+                       Assigned as Class Teacher / Proctor
                     </span>
                   </label>
                   {isClassTeacher && (
@@ -1058,7 +884,7 @@ export default function LoginPage() {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
                   <div>
                     <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-text-muted)', marginBottom: '0.2rem', display: 'block' }}>
-                      🆔 Admin Staff Code *
+                       Admin Staff Code *
                     </label>
                     <input
                       id="reg-admcode"
@@ -1074,7 +900,7 @@ export default function LoginPage() {
                   </div>
                   <div>
                     <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-text-muted)', marginBottom: '0.2rem', display: 'block' }}>
-                      🛡️ Admin Role Level *
+                       Admin Role Level *
                     </label>
                     <select
                       id="reg-admin-role-type"
@@ -1107,7 +933,7 @@ export default function LoginPage() {
                       marginBottom: '0.2rem',
                     }}
                   >
-                    <span>🏛️ College Branch / Campus Jurisdiction</span>
+                    <span> College Branch / Campus Jurisdiction</span>
                   </label>
                   <select
                     id="reg-admin-branch"
@@ -1138,7 +964,7 @@ export default function LoginPage() {
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.2rem' }}>
                     <label htmlFor="reg-adminpass" style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-primary)' }}>
-                      🔑 Master Admin Passcode *
+                       Master Admin Passcode *
                     </label>
                     <span style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)' }}>Authorized personnel only</span>
                   </div>
@@ -1146,7 +972,7 @@ export default function LoginPage() {
                     id="reg-adminpass"
                     type="password"
                     className="input"
-                    placeholder="Enter Master Code (Default: ADMIN2026)"
+                    placeholder="Administrator passcode"
                     value={adminCode}
                     onChange={(e) => setAdminCode(e.target.value)}
                     required
@@ -1160,7 +986,7 @@ export default function LoginPage() {
             {/* Passwords */}
             <div>
               <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-text-muted)', marginBottom: '0.2rem', display: 'block' }}>
-                🔒 Set Account Password *
+                 Set Account Password *
               </label>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
                 <input
@@ -1215,7 +1041,7 @@ export default function LoginPage() {
         )}
 
         {/* ─── GOOGLE WORKSPACE SSO ─── */}
-        <div style={{ marginTop: '1.25rem' }}>
+        <div style={{ marginTop: '1.25rem', display: 'none' }}>
           <div
             style={{
               display: 'flex',
@@ -1286,7 +1112,7 @@ export default function LoginPage() {
                 type="button"
                 onClick={() => {
                   setAuthMode('REGISTER');
-                  handleSelectRole(selectedRole);
+                  handleSelectRole('STUDENT');
                 }}
                 style={{
                   background: 'none',
@@ -1323,41 +1149,10 @@ export default function LoginPage() {
           )}
         </div>
 
-        {/* Offline notice */}
         <p className="text-xs text-muted" style={{ textAlign: 'center', marginTop: '0.85rem' }}>
-          🔒 Institutional Single Sign-On &amp; Offline PWA Sync
+          Student accounts can be registered; staff accounts are provisioned by an administrator.
         </p>
 
-        {/* Demo Sandbox Link */}
-        <div
-          style={{
-            marginTop: '1.25rem',
-            paddingTop: '1rem',
-            borderTop: '1px solid var(--color-border)',
-            textAlign: 'center',
-          }}
-        >
-          <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
-            Evaluating or testing the platform?{' '}
-          </span>
-          <button
-            type="button"
-            id="btn-goto-demo-sandbox"
-            onClick={() => navigate('/demo')}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: 'var(--color-accent-text)',
-              fontWeight: 800,
-              fontSize: '0.8rem',
-              cursor: 'pointer',
-              padding: 0,
-              textDecoration: 'underline',
-            }}
-          >
-            Launch 1-Click Demo Sandbox →
-          </button>
-        </div>
       </div>
 
       {/* ─── GOOGLE WORKSPACE SSO MODAL ─── */}

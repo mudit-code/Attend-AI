@@ -52,6 +52,8 @@ model User {
   auditLogs    AuditLog[]
   refreshTokens RefreshToken[]
   institutionalFeedbacks InstitutionalFeedback[]
+  gradedAssignmentSubmissions AssignmentSubmission[] @relation("AssignmentGradedBy")
+  signedOffAssignmentSubmissions AssignmentSubmission[] @relation("AssignmentSignedOffBy")
 
   @@map("users")
 }
@@ -127,6 +129,7 @@ model Section {
   timetableSlots TimetableSlot[]
   teacherSubjects TeacherSubject[]
   attendanceSessions AttendanceSession[]
+  assignments Assignment[]
 
   @@map("sections")
 }
@@ -147,6 +150,7 @@ model Teacher {
   subjects     TeacherSubject[]
   sessions     AttendanceSession[]
   leaveRequests TeacherLeaveRequest[]
+  assignments  Assignment[]
 
   @@map("teachers")
 }
@@ -166,6 +170,7 @@ model Student {
   correctionRequests CorrectionRequest[]
   attendanceSummaries AttendanceSummary[]
   internalMarks      InternalMark[]
+  assignmentSubmissions AssignmentSubmission[]
   clearanceStatus    ClearanceStatus?
   libraryRecords     LibraryRecord[]
   grievanceTickets   GrievanceTicket[]
@@ -193,6 +198,7 @@ model Subject {
 
   teacherSubjects TeacherSubject[]
   attendanceSessions AttendanceSession[]
+  assignments Assignment[]
 
   @@map("subjects")
 }
@@ -510,6 +516,58 @@ model InternalMark {
   @@unique([studentId, subjectId, markType])
   @@index([studentId])
   @@map("internal_marks")
+}
+
+model Assignment {
+  id          String   @id @default(uuid())
+  title       String
+  description String
+  maxMarks    Float    @default(100)
+  dueAt       DateTime?
+  teacherId   Int
+  sectionId   Int
+  subjectId   Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  teacher     Teacher  @relation(fields: [teacherId], references: [id])
+  section     Section  @relation(fields: [sectionId], references: [id])
+  subject     Subject  @relation(fields: [subjectId], references: [id])
+  submissions AssignmentSubmission[]
+
+  @@index([teacherId, createdAt])
+  @@index([sectionId, createdAt])
+  @@map("assignments")
+}
+
+model AssignmentSubmission {
+  id                String                     @id @default(uuid())
+  assignmentId      String
+  studentId         Int
+  driveUrl          String
+  status            AssignmentSubmissionStatus @default(SUBMITTED)
+  marks             Float?
+  feedback          String?
+  submittedAt       DateTime                   @default(now())
+  gradedAt          DateTime?
+  gradedByUserId    Int?
+  signedOffAt       DateTime?
+  signedOffByUserId Int?
+
+  assignment      Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  student         Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  gradedByUser    User?      @relation("AssignmentGradedBy", fields: [gradedByUserId], references: [id], onDelete: SetNull)
+  signedOffByUser User?      @relation("AssignmentSignedOffBy", fields: [signedOffByUserId], references: [id], onDelete: SetNull)
+
+  @@unique([assignmentId, studentId])
+  @@index([studentId, submittedAt])
+  @@map("assignment_submissions")
+}
+
+enum AssignmentSubmissionStatus {
+  SUBMITTED
+  GRADED
+  SIGNED_OFF
 }
 
 enum MarkType {
