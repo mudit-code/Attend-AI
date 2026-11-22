@@ -224,104 +224,30 @@ export default function LoginPage() {
   }
 
   return (
-    <main
-      className="page"
-      style={{
-        minHeight: '100dvh',
-        background: 'var(--color-bg)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '1.25rem 1rem',
-      }}
-    >
-      <div
-        className="card"
-        style={{
-          width: '100%',
-          maxWidth: 480,
-          background: '#FFFFFF',
-          borderRadius: '20px',
-          boxShadow: '0 8px 32px rgba(15, 23, 42, 0.06)',
-          border: '1px solid var(--color-border)',
-          padding: 'clamp(1.25rem, 3.5vw, 2rem) clamp(1rem, 3vw, 1.75rem)',
-        }}
-      >
-        {/* Back to Home Link */}
-        <div style={{ marginBottom: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <button
-            type="button"
-            onClick={() => navigate('/')}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: 'var(--color-text-muted)',
-              fontSize: '0.85rem',
-              fontWeight: 700,
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.35rem',
-              padding: 0,
-            }}
-          >
-            ← Back to Homepage
-          </button>
-          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-faint)' }}>AttendAI v2.4</span>
-        </div>
+    <main className="page auth-page">
+      <div className="auth-shell">
+        <section className="auth-story">
+          <div className="auth-story-brand">
+            <BrandLogo size="lg" subtitle="Institutional Campus Access" onClick={() => navigate('/')} />
+          </div>
 
-        {/* Trombone Brand Logo */}
-        <div style={{ marginBottom: '1.25rem' }}>
-          <BrandLogo size="lg" subtitle="Institutional Campus Access" onClick={() => navigate('/')} />
-        </div>
+          <div className="auth-story-heading">
+            <h1>
+              {authMode === 'LOGIN' ? 'Welcome to your campus portal' : 'Create your student account'}
+            </h1>
+            <p>
+              {authMode === 'LOGIN'
+                ? 'A clear, connected view of your campus day.'
+                : 'Register with your institutional details to get started.'}
+            </p>
+          </div>
 
-        {/* Title */}
-        <div style={{ marginBottom: '1.25rem' }}>
-          <h1
-            style={{
-              fontSize: '1.5rem',
-              fontWeight: 800,
-              lineHeight: 1.25,
-              color: 'var(--color-text)',
-              letterSpacing: '-0.3px',
-              marginBottom: '0.25rem',
-            }}
-          >
-            {authMode === 'LOGIN' ? 'Sign In to AttendAI' : 'Create an Account'}
-          </h1>
-          <p className="text-xs text-muted" style={{ fontWeight: 600 }}>
-            {authMode === 'LOGIN'
-              ? 'Web Attendance Management & College ERP System'
-              : `Register as new ${selectedRole.charAt(0) + selectedRole.slice(1).toLowerCase()} for your campus`}
-          </p>
-        </div>
+          <div className="auth-story-art" aria-hidden="true">
+            <img src={heroImage} alt="" />
+          </div>
+        </section>
 
-        {/* 3D Illustration Graphic (Compact) */}
-        <div
-          style={{
-            width: '100%',
-            height: 130,
-            borderRadius: '16px',
-            overflow: 'hidden',
-            marginBottom: '1.25rem',
-            background: '#FFF0EE',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: 'inset 0 0 20px rgba(255, 60, 40, 0.05)',
-          }}
-        >
-          <img
-            src={heroImage}
-            alt="3D College Attendance"
-            style={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-            }}
-          />
-        </div>
-
+        <section className="auth-form-panel">
         {/* Auth Mode Toggle Tabs (Sign In / Register) */}
         <div
           style={{
@@ -417,34 +343,10 @@ export default function LoginPage() {
                   id={`role-btn-${role.toLowerCase()}`}
                   onClick={() => handleSelectRole(role)}
                   disabled={authMode === 'REGISTER' && role !== 'STUDENT'}
-                  style={{
-                    flex: 1,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '0.35rem',
-                    padding: '0.55rem 0.35rem',
-                    borderRadius: '999px',
-                    border: active ? '2px solid var(--color-primary)' : '1.5px solid #FFDCD7',
-                    background: active ? '#FFF0EE' : '#FFFFFF',
-                    color: active ? 'var(--color-primary)' : 'var(--color-text-muted)',
-                    fontSize: '0.825rem',
-                    fontWeight: active ? 800 : 600,
-                    cursor: authMode === 'REGISTER' && role !== 'STUDENT' ? 'not-allowed' : 'pointer',
-                    opacity: authMode === 'REGISTER' && role !== 'STUDENT' ? 0.45 : 1,
-                    transition: 'all 0.2s ease',
-                  }}
+                  className="auth-role-option"
+                  aria-pressed={active}
                 >
-                  <span
-                    style={{
-                      width: 12,
-                      height: 12,
-                      borderRadius: '50%',
-                      border: active ? '3.5px solid var(--color-primary)' : '1.5px solid #A58B87',
-                      background: '#FFFFFF',
-                      display: 'inline-block',
-                    }}
-                  />
+                  <span className="auth-role-indicator" aria-hidden="true" />
                   {role.charAt(0) + role.slice(1).toLowerCase()}
                 </button>
               );
@@ -1153,6 +1055,7 @@ export default function LoginPage() {
           Student accounts can be registered; staff accounts are provisioned by an administrator.
         </p>
 
+        </section>
       </div>
 
       {/* ─── GOOGLE WORKSPACE SSO MODAL ─── */}
