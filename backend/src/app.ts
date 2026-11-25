@@ -49,25 +49,9 @@ app.use(
 );
 
 // ─── CORS ─────────────────────────────────────────────────────────
-const allowedOrigins = (env.FRONTEND_URL || 'http://localhost:5173')
-  .split(',')
-  .map((url) => url.trim().replace(/\/$/, ''));
-
 app.use(
   cors({
-    origin: (origin, callback) => {
-      if (!origin) return callback(null, true);
-      const cleanOrigin = origin.replace(/\/$/, '');
-      if (
-        allowedOrigins.includes(cleanOrigin) ||
-        allowedOrigins.includes('*') ||
-        cleanOrigin.endsWith('.vercel.app') ||
-        cleanOrigin.endsWith('.netlify.app')
-      ) {
-        return callback(null, true);
-      }
-      return callback(null, false);
-    },
+    origin: env.FRONTEND_URL,
     credentials: true, // Required for cookies
     methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
   })
