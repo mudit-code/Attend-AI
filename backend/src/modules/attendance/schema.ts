@@ -3,6 +3,7 @@ import { z } from 'zod';
 export const createSessionSchema = z.object({
   sectionId: z.number().int().positive(),
   subjectId: z.number().int().positive(),
+  teacherId: z.number().int().positive().optional(),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   period: z.number().int().min(1).max(10),
 });

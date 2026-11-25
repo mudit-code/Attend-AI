@@ -1,8 +1,12 @@
 import axios from 'axios';
 import { useAuthStore } from '../stores/useAuthStore';
 
+const apiBase = import.meta.env.VITE_API_URL
+  ? `${import.meta.env.VITE_API_URL.replace(/\/$/, '')}/api/v1`
+  : '/api/v1';
+
 export const api = axios.create({
-  baseURL: '/api/v1',
+  baseURL: apiBase,
   withCredentials: true, // Send HttpOnly cookies
   headers: { 'Content-Type': 'application/json' },
 });
@@ -20,7 +24,10 @@ api.interceptors.request.use((config) => {
 
 // Auto-refresh on 401
 let isRefreshing = false;
-let refreshQueue: Array<(token: string) => void> = [];
+let refreshQueue: Array<{
+  resolve: (token: string) => void;
+  reject: (reason: unknown) => void;
+}> = [];
 
 api.interceptors.response.use(
   (res) => res,
@@ -32,10 +39,13 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && !original._retry && !isAuthRoute) {
       if (isRefreshing) {
         // Queue requests while refresh is in progress
-        return new Promise((resolve) => {
-          refreshQueue.push((token: string) => {
-            original.headers.Authorization = `Bearer ${token}`;
-            resolve(api(original));
+        return new Promise((resolve, reject) => {
+          refreshQueue.push({
+            resolve: (token: string) => {
+              original.headers.Authorization = `Bearer ${token}`;
+              resolve(api(original));
+            },
+            reject,
           });
         });
       }
@@ -48,23 +58,21 @@ api.interceptors.response.use(
         const newToken = data.accessToken;
 
         useAuthStore.getState().setToken(newToken);
-        refreshQueue.forEach((cb) => cb(newToken));
+        refreshQueue.forEach(({ resolve }) => resolve(newToken));
         refreshQueue = [];
 
         original.headers.Authorization = `Bearer ${newToken}`;
         return api(original);
-      } catch {
-        // Refresh failed — force logout
-        useAuthStore.getState().logout();
-        window.location.href = '/login';
+      } catch (refreshError) {
+        const status = axios.isAxiosError(refreshError) ? refreshError.response?.status : undefined;
+        if (status === 401 || status === 403) {
+          useAuthStore.getState().logout();
+        }
+        refreshQueue.forEach(({ reject }) => reject(refreshError));
+        refreshQueue = [];
       } finally {
         isRefreshing = false;
       }
-    }
-
-    // Check if update required
-    if (error.response?.data?.error?.code === 'UPDATE_REQUIRED') {
-      window.location.reload();
     }
 
     return Promise.reject(error);

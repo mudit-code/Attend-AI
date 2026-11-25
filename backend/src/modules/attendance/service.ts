@@ -24,6 +24,9 @@ export async function createSession(teacherId: number, input: CreateSessionInput
   });
 
   if (existing) {
+    if (existing.teacherId !== teacherId) {
+      throw { code: 'SESSION_OWNED_BY_ANOTHER_TEACHER', status: 409, message: 'This attendance session belongs to another teacher.' };
+    }
     return existing;
   }
 
@@ -110,6 +113,11 @@ export async function markRecords(
     throw { code: 'NOT_FOUND', status: 404, message: 'Session not found' };
   }
 
+  const teacher = await prisma.teacher.findUnique({ where: { userId } });
+  if (teacher && session.teacherId !== teacher.id) {
+    throw { code: 'FORBIDDEN', status: 403, message: 'You cannot edit attendance for another teacher’s session.' };
+  }
+
   if (session.locked) {
     throw {
       code: 'SESSION_LOCKED',
@@ -139,6 +147,14 @@ export async function markRecords(
 
   // Check approved leaves for session date so they are preserved
   const studentIds = input.records.map((r) => r.studentId);
+  const enrolledStudents = await prisma.student.findMany({
+    where: { id: { in: studentIds }, sectionId: session.sectionId },
+    select: { id: true },
+  });
+  if (enrolledStudents.length !== new Set(studentIds).size) {
+    throw { code: 'WRONG_SECTION', status: 403, message: 'Attendance can only be recorded for students enrolled in this session’s section.' };
+  }
+
   const approvedLeaves = await prisma.leaveRequest.findMany({
     where: {
       studentId: { in: studentIds },
@@ -226,6 +242,11 @@ export async function updateRecord(
 
   if (!record) {
     throw { code: 'NOT_FOUND', status: 404, message: 'Attendance record not found' };
+  }
+
+  const teacher = await prisma.teacher.findUnique({ where: { userId } });
+  if (teacher && record.session.teacherId !== teacher.id) {
+    throw { code: 'FORBIDDEN', status: 403, message: 'You cannot edit attendance for another teacher’s session.' };
   }
 
   if (record.session.locked) {

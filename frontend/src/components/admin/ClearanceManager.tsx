@@ -13,17 +13,8 @@ interface StudentClearance {
   examUnlocked: boolean;
 }
 
-const DEFAULT_CLEARANCE_LIST: StudentClearance[] = [
-  { studentId: 1, rollNo: "2101640100015", name: "Aman Kumar", branch: "CSE", academic: false, accounts: true, library: true, discipline: true, examUnlocked: false },
-  { studentId: 2, rollNo: "2101640100016", name: "Ananya Dixit", branch: "CSE", academic: true, accounts: true, library: true, discipline: true, examUnlocked: true },
-  { studentId: 3, rollNo: "2101640100017", name: "Deepak Yadav", branch: "CSE", academic: false, accounts: false, library: true, discipline: true, examUnlocked: false },
-  { studentId: 4, rollNo: "2101640100018", name: "Muskan Gupta", branch: "CSE", academic: true, accounts: true, library: true, discipline: true, examUnlocked: true },
-  { studentId: 5, rollNo: "2101640100019", name: "Prashant Shukla", branch: "CSE", academic: false, accounts: true, library: false, discipline: true, examUnlocked: false },
-  { studentId: 6, rollNo: "2101640100020", name: "Rishabh Tripathi", branch: "CSE", academic: true, accounts: true, library: true, discipline: true, examUnlocked: true },
-];
-
 export default function ClearanceManager() {
-  const [list, setList] = useState<StudentClearance[]>(DEFAULT_CLEARANCE_LIST);
+  const [list, setList] = useState<StudentClearance[]>([]);
   const [filter, setFilter] = useState<string>("ALL");
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [updating, setUpdating] = useState<number | null>(null);
@@ -32,12 +23,12 @@ export default function ClearanceManager() {
   useEffect(() => {
     api.get('/clearance/all')
       .then((res) => {
-        if (res.data?.data && res.data.data.length > 0) {
+        if (Array.isArray(res.data?.data)) {
           const mapped: StudentClearance[] = res.data.data.map((c: any) => ({
             studentId: c.studentId,
-            rollNo: c.student?.rollNo || '2101640100000',
-            name: c.student?.user?.name || 'Student',
-            branch: c.student?.section?.name || 'CSE',
+            rollNo: c.student?.rollNo || '',
+            name: c.student?.user?.name || '',
+            branch: c.student?.section?.name || '',
             academic: Boolean(c.academic),
             accounts: Boolean(c.accounts),
             library: Boolean(c.library),
@@ -47,7 +38,7 @@ export default function ClearanceManager() {
           setList(mapped);
         }
       })
-      .catch(() => {});
+      .catch(() => setList([]));
   }, []);
 
   async function toggleStatus(studentId: number, field: "accounts" | "library" | "discipline") {
@@ -58,8 +49,10 @@ export default function ClearanceManager() {
     const newVal = !student[field];
     try {
       await api.patch(`/clearance/${studentId}`, { [field]: newVal });
-    } catch {
-      // offline fallback
+    } catch (error: any) {
+      setBulkMsg(error.response?.data?.error?.message || 'Could not update this clearance status.');
+      setUpdating(null);
+      return;
     }
 
     setList((prev) =>
@@ -75,14 +68,7 @@ export default function ClearanceManager() {
   }
 
   function handleBulkUnlock() {
-    setList((prev) =>
-      prev.map((s) => {
-        const allCleared = s.academic && s.accounts && s.library && s.discipline;
-        return allCleared ? { ...s, examUnlocked: true } : s;
-      })
-    );
-    setBulkMsg("✓ Admit Cards released for all eligible students (4/4 Cleared)!");
-    setTimeout(() => setBulkMsg(null), 4000);
+    setBulkMsg('Bulk admit-card release is not available in the backend yet.');
   }
 
   const filtered = list.filter((s) => {
@@ -153,7 +139,7 @@ export default function ClearanceManager() {
           onClick={handleBulkUnlock}
           style={{ fontWeight: 700 }}
         >
-          ⚡ Bulk Unlock Admit Cards
+           Bulk Unlock Admit Cards
         </button>
       </div>
 
@@ -241,7 +227,7 @@ export default function ClearanceManager() {
                       fontWeight: 800,
                     }}
                   >
-                    {s.examUnlocked ? "UNLOCKED 🎟️" : "LOCKED 🔒"}
+                    {s.examUnlocked ? "UNLOCKED " : "LOCKED "}
                   </span>
                 </td>
               </tr>

@@ -30,19 +30,19 @@ export default function GrievanceButton() {
   return (
     <>
       <button onClick={() => setOpen(true)} style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.6rem 1rem", background: "rgba(107,114,128,0.1)", border: "1px solid var(--color-border)", borderRadius: 10, cursor: "pointer", color: "var(--color-text)", fontSize: "0.85rem", fontWeight: 600, width: "100%" }}>
-        <span>📮</span> File Grievance
+         File Grievance
       </button>
 
       {open && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
           <div style={{ background: "var(--color-surface)", borderRadius: 20, padding: "1.5rem", width: "100%", maxWidth: 480, maxHeight: "90vh", overflow: "auto" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.25rem" }}>
-              <div style={{ fontWeight: 800, fontSize: "1.1rem", color: "var(--color-text)" }}>📮 File a Grievance</div>
+              <div style={{ fontWeight: 800, fontSize: "1.1rem", color: "var(--color-text)" }}> File a Grievance</div>
               <button onClick={() => setOpen(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--color-muted)", fontSize: "1.25rem" }}>✕</button>
             </div>
             {success ? (
               <div style={{ textAlign: "center", padding: "2rem", color: "#10b981" }}>
-                <div style={{ fontSize: "2rem" }}>✅</div>
+                <div style={{ fontSize: "2rem" }}></div>
                 <div style={{ fontWeight: 700, marginTop: 8 }}>Grievance Submitted!</div>
                 <div style={{ fontSize: "0.8rem", color: "var(--color-muted)", marginTop: 4 }}>HOD will review it shortly.</div>
               </div>

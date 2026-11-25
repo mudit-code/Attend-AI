@@ -26,6 +26,7 @@
    - [Faculty 1-Click Roll Call Matrix & Lab 2x Credits](#12-faculty-1-click-roll-call-matrix--lab-2x-credits)
    - [Attendance Dispute Redressal & Claim Matrix](#13-attendance-dispute-redressal--claim-matrix)
    - [System Hardening & Enterprise Resilience Engineering](#14-system-hardening--enterprise-resilience-engineering)
+   - [Assignment Submission & Review](#15-assignment-submission--review)
 7. [Database Architecture & Data Modeling](#-database-architecture--data-modeling)
 8. [Complete REST API Specification](#-complete-rest-api-specification)
 9. [Folder Structure](#-folder-structure)
@@ -53,6 +54,7 @@ In traditional colleges and universities, classroom attendance consumes 10–15 
 - **Automated Defaulter Warning Mailer:** Real-time percentage calculations with dynamic threshold sliders (50%–90%), shortage computations, and 1-click batch dispatch of official warning notices to students and parents.
 - **Campus Health Clinic & Dispensary:** Integrated OPD consultation logging, pharmacy inventory with reorder threshold alerts, and instant 1-click validation of student medical leaves.
 - **Academic Credentials & Finance:** Certified AKTU semester transcript generator and itemized fee payment receipt slips with cryptographic clearance verification.
+- **Assignment Submission & Review:** Teachers publish assignments for assigned sections; students submit publicly accessible Google Drive PDFs, and teachers provide feedback, marks, and final sign-off.
 - **Session Auto-Lock & Audit:** 24-hour tamper-proofing with administrative unlock approvals and immutable audit trails.
 
 ---
@@ -260,6 +262,11 @@ graph TD
 - **N+1 Query Elimination in Reporting:** Bulk query consolidation reduces 1500+ sequential SQL queries during class reports and defaulter calculations down to 2 optimized database round-trips.
 - **Resilient Degraded Server Boot:** Backend gracefully handles initial connection dips to PostgreSQL or Redis without crashing the Express process.
 
+### 15. Assignment Submission & Review
+- Teachers create assignments for their assigned section and subject with instructions, maximum marks, and an optional deadline.
+- Students submit Google Drive file links. The backend verifies public access and checks the PDF file signature before accepting a submission.
+- Teachers review submissions, add feedback and marks, then sign off. Students can view grades and feedback; signed-off submissions are locked.
+
 ---
 
 ## 🗄️ Database Architecture & Data Modeling
@@ -347,6 +354,16 @@ All endpoints are mounted under `/api/v1`.
 | `GET` | `/dispensary/verify-visit/:rollNo` | Admin, Staff | Checks if a student visited the clinic for medical leave verification |
 | `GET` | `/dispensary/stock` | Admin, Staff | Lists medicine inventory and low-stock reorder warnings |
 | `GET` | `/dispensary/emergency-directory` | Authenticated | Returns hospital contacts and emergency helpline numbers |
+
+### Assignment Submission & Review (`/api/v1/assignments`)
+| Method | Endpoint | Access | Description |
+|---|---|---|---|
+| `GET` | `/assignments/mine` | Student | Lists assignments for the student's section and their submission/grade |
+| `GET` | `/assignments/teacher` | Teacher | Lists the teacher's assignments and student submissions |
+| `POST` | `/assignments` | Teacher | Creates an assignment for an assigned section and subject |
+| `PUT` | `/assignments/:id/submission` | Student | Submits or replaces a publicly accessible Google Drive PDF link |
+| `PATCH` | `/assignments/submissions/:submissionId/review` | Teacher | Saves marks and feedback |
+| `POST` | `/assignments/submissions/:submissionId/sign-off` | Teacher | Finalizes a grade and locks the submission |
 
 ### 7. Leaves, Clearances & Administrative Operations
 | Method | Endpoint | Access | Description |

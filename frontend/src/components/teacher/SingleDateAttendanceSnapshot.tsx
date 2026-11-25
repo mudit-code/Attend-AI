@@ -5,35 +5,25 @@ interface DayStudentStatus {
   id: number;
   rollNo: string;
   name: string;
-  status: 'P' | 'A' | 'L' | 'OD';
+  status: 'P' | 'A' | 'L' | 'LV' | 'OD';
   markedAt: string;
   method: 'DYNAMIC_QR' | 'MANUAL_ROSTER';
 }
 
-const SAMPLE_DAILY_ROSTERS: Record<string, DayStudentStatus[]> = {
-  default: [
-    { id: 1, rollNo: '2101640100015', name: 'Aman Kumar', status: 'A', markedAt: '09:05 AM', method: 'MANUAL_ROSTER' },
-    { id: 2, rollNo: '2101640100016', name: 'Ananya Dixit', status: 'P', markedAt: '09:02 AM', method: 'DYNAMIC_QR' },
-    { id: 3, rollNo: '2101640100017', name: 'Deepak Yadav', status: 'P', markedAt: '09:04 AM', method: 'DYNAMIC_QR' },
-    { id: 4, rollNo: '2101640100018', name: 'Muskan Gupta', status: 'P', markedAt: '09:01 AM', method: 'DYNAMIC_QR' },
-    { id: 5, rollNo: '2101640100019', name: 'Prashant Shukla', status: 'A', markedAt: '09:05 AM', method: 'MANUAL_ROSTER' },
-    { id: 6, rollNo: '2101640100020', name: 'Rishabh Tripathi', status: 'P', markedAt: '09:03 AM', method: 'DYNAMIC_QR' },
-    { id: 7, rollNo: '2101640100021', name: 'Sakshi Singh', status: 'OD', markedAt: '08:50 AM', method: 'MANUAL_ROSTER' },
-  ],
-};
-
 export default function SingleDateAttendanceSnapshot() {
   const [selectedDate, setSelectedDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
   const [selectedPeriod, setSelectedPeriod] = useState<number>(1);
-  const [filterStatus, setFilterStatus] = useState<'ALL' | 'P' | 'A' | 'OD'>('ALL');
-  const [roster, setRoster] = useState<DayStudentStatus[]>(SAMPLE_DAILY_ROSTERS.default);
-  const [, setLoading] = useState<boolean>(false);
+  const [filterStatus, setFilterStatus] = useState<'ALL' | 'P' | 'A' | 'L' | 'LV' | 'OD'>('ALL');
+  const [roster, setRoster] = useState<DayStudentStatus[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
     let isMounted = true;
     async function loadSnapshot() {
       try {
         setLoading(true);
+        setLoadError('');
         const res = await api.get('/attendance/my-sessions');
         const sessions = res.data?.data || res.data || [];
         const match = Array.isArray(sessions) && sessions.find((s: any) => {
@@ -44,28 +34,37 @@ export default function SingleDateAttendanceSnapshot() {
         if (match && isMounted) {
           const detailRes = await api.get(`/attendance/sessions/${match.id}`);
           const sessionData = detailRes.data?.data || detailRes.data;
-          if (sessionData && sessionData.records && sessionData.records.length > 0) {
-            const mapped: DayStudentStatus[] = sessionData.records.map((r: any, idx: number) => ({
-              id: r.student?.id || idx + 1,
-              rollNo: r.student?.rollNo || `21016401000${String(idx + 1).padStart(2, '0')}`,
-              name: r.student?.user?.name || `Student ${idx + 1}`,
-              status: (r.status === 'PRESENT' ? 'P' : r.status === 'LEAVE' ? 'L' : r.status === 'ON_DUTY' ? 'OD' : 'A'),
-              markedAt: r.markedAt ? new Date(r.markedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '09:00 AM',
+          if (sessionData && Array.isArray(sessionData.records)) {
+            const mapped: DayStudentStatus[] = sessionData.records.flatMap((r: any) => {
+              if (!r.student?.id || !r.student?.rollNo || !r.student?.user?.name) return [];
+              return [{
+              id: r.student.id,
+              rollNo: r.student.rollNo,
+              name: r.student.user.name,
+              status: r.status === 'P' || r.status === 'PRESENT' ? 'P'
+                : r.status === 'A' || r.status === 'ABSENT' ? 'A'
+                : r.status === 'LV' || r.status === 'LEAVE' ? 'LV'
+                : r.status === 'OD' || r.status === 'ON_DUTY' ? 'OD'
+                : 'L',
+              markedAt: r.markedAt ? new Date(r.markedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
               method: r.method === 'QR' ? 'DYNAMIC_QR' : 'MANUAL_ROSTER',
-            }));
-            if (isMounted) {
-              setRoster(mapped);
-              setLoading(false);
-              return;
-            }
+              }];
+            });
+            if (isMounted) setRoster(mapped);
+            return;
           }
+        } else if (isMounted) {
+          setRoster([]);
         }
-      } catch {
-        // Fallback to sample roster
-      }
-      if (isMounted) {
-        setRoster(SAMPLE_DAILY_ROSTERS.default);
-        setLoading(false);
+        if (isMounted) setRoster([]);
+        setLoadError('');
+      } catch (error: any) {
+        if (isMounted) {
+          setRoster([]);
+          setLoadError(error.response?.data?.error?.message || 'Could not load attendance for this date.');
+        }
+      } finally {
+        if (isMounted) setLoading(false);
       }
     }
 
@@ -83,7 +82,8 @@ export default function SingleDateAttendanceSnapshot() {
 
   const presentCount = roster.filter((s) => s.status === 'P' || s.status === 'OD').length;
   const absentCount = roster.filter((s) => s.status === 'A').length;
-  const dayPercentage = Math.round((presentCount / roster.length) * 100);
+  const dayPercentage = roster.length > 0 ? Math.round((presentCount / roster.length) * 100) : null;
+  const meetsAttendanceThreshold = dayPercentage !== null && dayPercentage >= 75;
 
   function handleExportDayCSV() {
     let csv = 'Roll No,Student Name,Attendance Status,Marked At,Verification Method,Date,Period\n';
@@ -105,7 +105,7 @@ export default function SingleDateAttendanceSnapshot() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1rem' }}>
         <div>
           <h3 style={{ fontSize: '1.15rem', display: 'flex', alignItems: 'center', gap: '0.4rem', margin: 0 }}>
-            <span>📅</span> Single-Date Class Attendance Snapshot
+             Single-Date Class Attendance Snapshot
           </h3>
           <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', margin: '0.2rem 0 0 0' }}>
             Pick any past calendar date to view the complete historical roll-call state (Inspired by Student-Attendance-System01)
@@ -117,11 +117,13 @@ export default function SingleDateAttendanceSnapshot() {
           className="btn btn--ghost btn--sm"
           style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
         >
-          📥 Export Day CSV
+           Export Day CSV
         </button>
       </div>
 
       {/* Date & Period Picker Bar */}
+      {loadError && <p role="alert" className="alert alert--error">{loadError}</p>}
+      {loading && <p className="text-muted">Loading attendance records...</p>}
       <div
         style={{
           display: 'grid',
@@ -222,9 +224,9 @@ export default function SingleDateAttendanceSnapshot() {
           <span style={{ fontSize: '0.7rem', color: '#B91C1C', display: 'block' }}>Marked Absent</span>
           <strong style={{ fontSize: '1.25rem', color: '#991B1B' }}>{absentCount} Students</strong>
         </div>
-        <div style={{ padding: '0.75rem', background: dayPercentage >= 75 ? '#ECFDF5' : '#FEF2F2', borderRadius: 'var(--radius-sm)', border: `1px solid ${dayPercentage >= 75 ? '#A7F3D0' : '#FECACA'}` }}>
-          <span style={{ fontSize: '0.7rem', color: dayPercentage >= 75 ? '#047857' : '#B91C1C', display: 'block' }}>Day Turnout %</span>
-          <strong style={{ fontSize: '1.25rem', color: dayPercentage >= 75 ? '#065F46' : '#991B1B' }}>{dayPercentage}%</strong>
+        <div style={{ padding: '0.75rem', background: meetsAttendanceThreshold ? '#ECFDF5' : '#FEF2F2', borderRadius: 'var(--radius-sm)', border: `1px solid ${meetsAttendanceThreshold ? '#A7F3D0' : '#FECACA'}` }}>
+          <span style={{ fontSize: '0.7rem', color: meetsAttendanceThreshold ? '#047857' : '#B91C1C', display: 'block' }}>Day Turnout %</span>
+          <strong style={{ fontSize: '1.25rem', color: meetsAttendanceThreshold ? '#065F46' : '#991B1B' }}>{dayPercentage === null ? '—' : `${dayPercentage}%`}</strong>
         </div>
       </div>
 
@@ -266,7 +268,7 @@ export default function SingleDateAttendanceSnapshot() {
                   </td>
                   <td style={{ padding: '0.65rem 0.75rem', color: 'var(--color-text-muted)' }}>{s.markedAt}</td>
                   <td style={{ padding: '0.65rem 0.75rem', textAlign: 'right', color: 'var(--color-text-muted)', fontSize: '0.73rem' }}>
-                    {s.method === 'DYNAMIC_QR' ? '📱 10s Live QR' : '📋 Faculty Manual Roster'}
+                    {s.method === 'DYNAMIC_QR' ? ' 10s Live QR' : ' Faculty Manual Roster'}
                   </td>
                 </tr>
               );

@@ -23,7 +23,7 @@ router.post(
   async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       const user = req.user!;
-      let teacherId: number | undefined;
+      let teacherId = req.body.teacherId as number | undefined;
 
       if (user.role === 'TEACHER') {
         const teacher = await prisma.teacher.findUnique({ where: { userId: user.id } });
@@ -32,10 +32,27 @@ router.post(
           return;
         }
         teacherId = teacher.id;
-      } else {
-        // Admin or HOD can create on behalf of teacher, default to first teacher
-        const firstTeacher = await prisma.teacher.findFirst();
-        teacherId = firstTeacher?.id || 1;
+      } else if (!teacherId) {
+        res.status(400).json({
+          error: { code: 'TEACHER_REQUIRED', message: 'Select a teacher for this attendance session.' },
+        });
+        return;
+      }
+
+      const allocation = await prisma.teacherSubject.findUnique({
+        where: {
+          teacherId_subjectId_sectionId: {
+            teacherId,
+            subjectId: req.body.subjectId,
+            sectionId: req.body.sectionId,
+          },
+        },
+      });
+      if (!allocation) {
+        res.status(403).json({
+          error: { code: 'CLASS_NOT_ASSIGNED', message: 'The selected teacher is not assigned to this subject and section.' },
+        });
+        return;
       }
 
       const session = await attendanceService.createSession(teacherId, req.body);

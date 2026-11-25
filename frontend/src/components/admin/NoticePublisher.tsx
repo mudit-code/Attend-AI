@@ -17,45 +17,8 @@ interface NoticeItem {
   createdAt: string;
 }
 
-const DEFAULT_NOTICES: NoticeItem[] = [
-  {
-    id: 1,
-    title: "Odd Semester Sessional-II Examination & Admit Card Guidelines",
-    body: "All B.Tech students are informed that Sessional-II commences from 28th October. Ensure departmental No-Dues clearance is completed.",
-    category: "EXAM",
-    targetRole: "STUDENT",
-    audienceScope: "CAMPUS",
-    pdfUrl: "https://kit.ac.in/circulars/sessional-2-schedule.pdf",
-    isActive: true,
-    createdAt: "2026-10-10T10:00:00Z",
-  },
-  {
-    id: 2,
-    title: "Campus Placement Registration: TCS & Infosys Drives",
-    body: "T&P cell invites eligible candidates (min 75% attendance) to register for upcoming on-campus technical assessments.",
-    category: "EVENT",
-    targetRole: "STUDENT",
-    audienceScope: "BRANCH",
-    targetDeptName: "Computer Science",
-    pdfUrl: null,
-    isActive: true,
-    createdAt: "2026-10-11T12:30:00Z",
-  },
-  {
-    id: 3,
-    title: "Diwali & Mid-Semester Break Notification",
-    body: "College will observe holiday from 1st Nov to 5th Nov. All classes will resume on 6th November.",
-    category: "HOLIDAY",
-    targetRole: null,
-    audienceScope: "CAMPUS",
-    pdfUrl: null,
-    isActive: true,
-    createdAt: "2026-10-09T09:15:00Z",
-  },
-];
-
 export default function NoticePublisher() {
-  const [notices, setNotices] = useState<NoticeItem[]>(DEFAULT_NOTICES);
+  const [notices, setNotices] = useState<NoticeItem[]>([]);
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [category, setCategory] = useState<NoticeItem["category"]>("EXAM");
@@ -75,11 +38,13 @@ export default function NoticePublisher() {
       .get("/notices")
       .then((res) => {
         const list = res.data?.data || res.data;
-        if (isMounted && Array.isArray(list) && list.length > 0) {
+        if (isMounted && Array.isArray(list)) {
           setNotices(list);
         }
       })
-      .catch(() => {});
+      .catch((error) => {
+        if (isMounted) setMsg(error.response?.data?.error?.message || 'Could not load notices.');
+      });
 
     // Load academic structures
     Promise.allSettled([api.get("/academic/departments"), api.get("/academic/sections")])
@@ -106,54 +71,37 @@ export default function NoticePublisher() {
     setPublishing(true);
     setMsg(null);
 
-    const deptObj = departments.find((d) => d.id === selectedDeptId);
-    const secObj = sections.find((s) => s.id === selectedSectionId);
-
-    const newNotice: NoticeItem = {
-      id: Date.now(),
+    try {
+      const { data } = await api.post("/notices", {
       title,
       body,
       category,
       targetRole: targetRole === "ALL" ? null : targetRole,
-      audienceScope,
-      targetDeptId: audienceScope === "BRANCH" ? selectedDeptId : null,
-      targetDeptName: audienceScope === "BRANCH" ? deptObj?.name || "Branch" : null,
-      targetSectionId: audienceScope === "SECTION" ? selectedSectionId : null,
-      targetSectionName: audienceScope === "SECTION" ? secObj?.name || "Section" : null,
       pdfUrl: pdfUrl.trim() || null,
-      isActive: true,
-      createdAt: new Date().toISOString(),
-    };
-
-    try {
-      const res = await api.post("/notices", newNotice);
-      if (res.data?.data) {
-        newNotice.id = res.data.data.id || newNotice.id;
-      }
-    } catch {
-      // fallback to local addition
+      });
+      setNotices((prev) => [data.data, ...prev]);
+      setTitle("");
+      setBody("");
+      setPdfUrl("");
+      setMsg("Notice published.");
+    } catch (error: any) {
+      setMsg(error.response?.data?.error?.message || "Could not publish the notice.");
+    } finally {
+      setPublishing(false);
+      setTimeout(() => setMsg(null), 3000);
     }
-
-    setNotices((prev) => [newNotice, ...prev]);
-    setTitle("");
-    setBody("");
-    setPdfUrl("");
-    setMsg("✓ Official Circular published successfully with targeted audience scope!");
-    setPublishing(false);
-    setTimeout(() => setMsg(null), 3000);
   }
 
   function handleToggle(id: number) {
-    setNotices((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, isActive: !n.isActive } : n))
-    );
+    void handleDelete(id);
   }
 
   async function handleDelete(id: number) {
     try {
       await api.delete(`/notices/${id}`);
-    } catch {
-      // ignore network errors in fallback/demo mode
+    } catch (error: any) {
+      setMsg(error.response?.data?.error?.message || 'Could not deactivate the notice.');
+      return;
     }
     setNotices((prev) => prev.filter((n) => n.id !== id));
   }
@@ -163,7 +111,7 @@ export default function NoticePublisher() {
       {/* Compose Form */}
       <div className="card" style={{ marginBottom: "1.5rem" }}>
         <h2 style={{ fontSize: "1.25rem", fontWeight: 800, marginBottom: "0.25rem" }}>
-          📢 Post Official Circular / Notice
+           Post Official Circular / Notice
         </h2>
         <p className="text-xs text-muted" style={{ marginBottom: "1rem" }}>
           This notice will immediately appear on Student & Faculty dashboard announcement banners.
@@ -188,12 +136,12 @@ export default function NoticePublisher() {
                   fontWeight: 600,
                 }}
               >
-                <option value="EXAM">📝 Examination</option>
-                <option value="FEE">💳 Fees & Accounts</option>
-                <option value="HOLIDAY">🏖️ Holiday / Break</option>
-                <option value="EVENT">🎉 Event / Placement</option>
-                <option value="DISCIPLINE">⚠️ Discipline / Proctor</option>
-                <option value="GENERAL">📢 General Circular</option>
+                <option value="EXAM"> Examination</option>
+                <option value="FEE"> Fees & Accounts</option>
+                <option value="HOLIDAY"> Holiday / Break</option>
+                <option value="EVENT"> Event / Placement</option>
+                <option value="DISCIPLINE"> Discipline / Proctor</option>
+                <option value="GENERAL"> General Circular</option>
               </select>
             </div>
 
@@ -237,9 +185,9 @@ export default function NoticePublisher() {
                   fontWeight: 700,
                 }}
               >
-                <option value="CAMPUS">🌐 Campus Wide (All Departments)</option>
-                <option value="BRANCH">🏢 Specific Branch (Department Only)</option>
-                <option value="SECTION">👥 Specific Section Only</option>
+                <option value="CAMPUS"> Campus Wide (All Departments)</option>
+                <option value="BRANCH"> Specific Branch (Department Only)</option>
+                <option value="SECTION"> Specific Section Only</option>
               </select>
             </div>
 
@@ -371,7 +319,7 @@ export default function NoticePublisher() {
 
           <div style={{ display: "flex", justifyContent: "flex-end" }}>
             <button type="submit" className="btn btn--primary" disabled={publishing} style={{ fontWeight: 800 }}>
-              {publishing ? "Publishing..." : "🚀 Publish Notice Now"}
+              {publishing ? "Publishing..." : " Publish Notice Now"}
             </button>
           </div>
         </form>
@@ -380,7 +328,7 @@ export default function NoticePublisher() {
       {/* Published Notices List */}
       <div className="card">
         <h3 style={{ fontSize: "1.1rem", fontWeight: 800, marginBottom: "1rem" }}>
-          📋 Published Circulars & Notices ({notices.length})
+           Published Circulars & Notices ({notices.length})
         </h3>
         <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
           {notices.map((n) => (
@@ -415,10 +363,10 @@ export default function NoticePublisher() {
                     }}
                   >
                     {n.audienceScope === "BRANCH"
-                      ? `🏢 ${n.targetDeptName || "Branch"}`
+                      ? ` ${n.targetDeptName || "Branch"}`
                       : n.audienceScope === "SECTION"
-                      ? `👥 ${n.targetSectionName || "Section"}`
-                      : "🌐 Campus Wide"}
+                      ? ` ${n.targetSectionName || "Section"}`
+                      : " Campus Wide"}
                   </span>
                   <span className="text-xs text-muted">
                     {new Date(n.createdAt).toLocaleDateString()}
@@ -437,7 +385,7 @@ export default function NoticePublisher() {
                     rel="noreferrer"
                     style={{ fontSize: "0.75rem", color: "var(--color-primary)", fontWeight: 700, textDecoration: "none", display: "inline-block", marginTop: 4 }}
                   >
-                    📄 View PDF Attachment →
+                     View PDF Attachment →
                   </a>
                 )}
               </div>

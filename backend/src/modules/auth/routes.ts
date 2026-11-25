@@ -1,7 +1,7 @@
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { validate } from '../../middlewares/validate';
 import { authenticate, AuthRequest } from '../../middlewares/auth';
-import { loginSchema, otpSendSchema, otpVerifySchema, registerSchema, oauthSchema } from './schema';
+import { loginSchema, otpSendSchema, otpVerifySchema, registerSchema } from './schema';
 import * as authService from './service';
 import { env } from '../../config/env';
 
@@ -13,6 +13,16 @@ const COOKIE_OPTIONS = {
   sameSite: 'strict' as const,
   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
 };
+
+// GET /auth/sections
+router.get('/sections', async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const data = await authService.listRegistrationSections();
+    res.json({ data });
+  } catch (err) {
+    next(err);
+  }
+});
 
 // POST /auth/login
 router.post('/login', validate(loginSchema), async (req: Request, res: Response): Promise<void> => {
@@ -48,30 +58,8 @@ router.post('/register', validate(registerSchema), async (req: Request, res: Res
   }
 });
 
-// POST /auth/oauth
-router.post('/oauth', validate(oauthSchema), async (req: Request, res: Response): Promise<void> => {
-  try {
-    const result = await authService.oauthService(req.body);
-    res.cookie('refresh_token', result.refreshToken, COOKIE_OPTIONS);
-    res.json({
-      accessToken: result.accessToken,
-      user: result.user,
-    });
-  } catch (err: unknown) {
-    const e = err as { code: string; status: number; message: string };
-    res.status(e.status || 500).json({ error: { code: e.code || 'OAUTH_ERROR', message: e.message || 'OAuth authentication failed' } });
-  }
-});
-
 // POST /auth/refresh
 router.post('/refresh', async (req: Request, res: Response): Promise<void> => {
-  const authHeader = req.headers.authorization;
-  if (authHeader?.includes('demo-')) {
-    const token = authHeader.split(' ')[1];
-    res.json({ accessToken: token });
-    return;
-  }
-
   const rawToken = req.cookies?.refresh_token;
   if (!rawToken) {
     res.status(401).json({ error: { code: 'MISSING_REFRESH_TOKEN', message: 'Refresh token not found' } });

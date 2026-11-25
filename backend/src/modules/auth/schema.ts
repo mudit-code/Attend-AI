@@ -27,32 +27,11 @@ export const registerSchema = z.object({
   name: z.string().min(2),
   email: z.string().email(),
   password: z.string().min(6),
-  role: z.enum(['STUDENT', 'TEACHER', 'ADMIN']),
-  rollNo: z.string().optional(),
-  sectionId: z.number().int().optional(),
-  employeeCode: z.string().optional(),
-  departmentId: z.number().int().optional(),
-  adminCode: z.string().optional(),
-  branch: z.string().optional(),
+  role: z.literal('STUDENT'),
+  rollNo: z.string().min(2).max(20),
+  sectionId: z.number().int().positive(),
   phone: z.string().optional(),
-  parentName: z.string().optional(),
-  parentPhone: z.string().optional(),
-  semester: z.string().optional(),
-  designation: z.string().optional(),
-  isClassTeacher: z.boolean().optional(),
-  adminRoleType: z.string().optional(),
-});
-
-export const oauthSchema = z.object({
-  provider: z.enum(['google', 'microsoft', 'github']),
-  role: z.enum(['STUDENT', 'TEACHER', 'ADMIN']),
-  email: z.string().email(),
-  name: z.string().min(1),
-  avatar: z.string().optional(),
-  rollNo: z.string().optional(),
-  employeeCode: z.string().optional(),
 });
 
 export type RegisterInput = z.infer<typeof registerSchema>;
-export type OAuthInput = z.infer<typeof oauthSchema>;
 

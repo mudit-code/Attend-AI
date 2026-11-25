@@ -39,24 +39,6 @@ export default function DeviceManagerModal() {
     } catch (err: any) {
       const msg = err.response?.data?.error?.message || 'Student not found. Please check the Roll Number.';
       setSearchError(msg);
-      // Demo fallback
-      if (rollNoInput.toUpperCase().startsWith('210')) {
-        setStudentData({
-          studentId: 1,
-          rollNo: rollNoInput.toUpperCase(),
-          name: 'Aman Kumar',
-          email: 'aman@student.attendai.com',
-          devices: [
-            {
-              deviceId: 'fp-a1b2c3d4e5f6',
-              platform: 'web',
-              lastSyncAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-              createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
-            },
-          ],
-        });
-        setSearchError(null);
-      }
     } finally {
       setSearching(false);
     }
@@ -68,12 +50,13 @@ export default function DeviceManagerModal() {
     setUnbindMessage(null);
     try {
       await api.delete(`/admin/devices/unbind/${studentData.rollNo}`);
-      setUnbindMessage({ type: 'success', text: `✅ Device binding for ${studentData.name} (${studentData.rollNo}) has been reset. They can now scan from a new phone.` });
+      setUnbindMessage({ type: 'success', text: ` Device binding for ${studentData.name} (${studentData.rollNo}) has been reset. They can now scan from a new phone.` });
       setStudentData({ ...studentData, devices: [] });
-    } catch {
-      // Demo mode: simulate success
-      setUnbindMessage({ type: 'success', text: `✅ Device binding for ${studentData.name} (${studentData.rollNo}) has been reset. They can now scan from a new phone.` });
-      setStudentData({ ...studentData, devices: [] });
+    } catch (err: any) {
+      setUnbindMessage({
+        type: 'error',
+        text: err.response?.data?.error?.message || 'Could not reset the device binding.',
+      });
     } finally {
       setUnbinding(false);
       setConfirmReset(false);
@@ -87,7 +70,7 @@ export default function DeviceManagerModal() {
       {/* Header */}
       <div style={{ background: 'linear-gradient(135deg, #1e3a5f, #0f2744)', borderRadius: '12px', padding: '20px', border: '1px solid rgba(6,182,212,0.25)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-          <span style={{ fontSize: '24px' }}>📱</span>
+
           <h3 style={{ margin: 0, color: '#e2e8f0', fontSize: '18px', fontWeight: 700 }}>Student Device Binding Manager</h3>
         </div>
         <p style={{ margin: 0, color: '#94a3b8', fontSize: '13px', lineHeight: 1.6 }}>
@@ -122,13 +105,13 @@ export default function DeviceManagerModal() {
             fontSize: '14px', whiteSpace: 'nowrap',
           }}
         >
-          {searching ? '🔍 Searching...' : '🔍 Search Student'}
+          {searching ? ' Searching...' : ' Search Student'}
         </button>
       </div>
 
       {searchError && (
         <div style={{ padding: '12px 16px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '8px', color: '#fca5a5', fontSize: '13px' }}>
-          ⚠️ {searchError}
+           {searchError}
         </div>
       )}
 
@@ -153,7 +136,7 @@ export default function DeviceManagerModal() {
               color: hasDevice ? '#fbbf24' : '#4ade80',
               border: `1px solid ${hasDevice ? 'rgba(234,179,8,0.3)' : 'rgba(34,197,94,0.3)'}`,
             }}>
-              {hasDevice ? `📱 ${studentData.devices.length} Device Bound` : '✅ No Device Bound'}
+              {hasDevice ? ` ${studentData.devices.length} Device Bound` : ' No Device Bound'}
             </div>
           </div>
 
@@ -166,7 +149,7 @@ export default function DeviceManagerModal() {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <div>
                       <div style={{ color: '#fbbf24', fontSize: '13px', fontFamily: 'monospace', marginBottom: '4px' }}>
-                        🔒 {d.deviceId}
+                         {d.deviceId}
                       </div>
                       <div style={{ color: '#64748b', fontSize: '11px' }}>
                         Platform: {d.platform || 'Web Browser'} &nbsp;•&nbsp;
@@ -189,12 +172,12 @@ export default function DeviceManagerModal() {
                     fontWeight: 600, cursor: 'pointer', fontSize: '13px',
                   }}
                 >
-                  🔓 Reset Device Binding
+                   Reset Device Binding
                 </button>
               ) : (
                 <div style={{ marginTop: '8px', padding: '14px 16px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.35)', borderRadius: '8px' }}>
                   <div style={{ color: '#fca5a5', fontSize: '13px', marginBottom: '10px', fontWeight: 600 }}>
-                    ⚠️ Confirm Reset — This will remove the device binding for <strong>{studentData.name}</strong>. They can register a new device on their next QR scan.
+                     Confirm Reset — This will remove the device binding for <strong>{studentData.name}</strong>. They can register a new device on their next QR scan.
                   </div>
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <button
@@ -207,7 +190,7 @@ export default function DeviceManagerModal() {
                         opacity: unbinding ? 0.7 : 1,
                       }}
                     >
-                      {unbinding ? 'Resetting...' : '✅ Yes, Reset Now'}
+                      {unbinding ? 'Resetting...' : ' Yes, Reset Now'}
                     </button>
                     <button
                       onClick={() => setConfirmReset(false)}
@@ -221,7 +204,7 @@ export default function DeviceManagerModal() {
             </div>
           ) : (
             <div style={{ padding: '16px 20px', color: '#4ade80', fontSize: '13px' }}>
-              ✅ This student has no device bound. They can freely scan QR from any phone.
+               This student has no device bound. They can freely scan QR from any phone.
             </div>
           )}
         </div>

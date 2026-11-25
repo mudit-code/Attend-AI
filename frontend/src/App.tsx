@@ -1,4 +1,4 @@
-import { useEffect, useState, lazy, Suspense } from 'react';
+import { useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './stores/useAuthStore';
 import { initSyncListeners } from './lib/syncEngine';
@@ -11,7 +11,6 @@ import './index.css';
 // Lazy-load pages for code splitting
 const HomePage = lazy(() => import('./pages/HomePage'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
-const DemoPortalPage = lazy(() => import('./pages/DemoPortalPage'));
 const TeacherDashboard = lazy(() => import('./pages/teacher/TeacherDashboard'));
 const StudentDashboard = lazy(() => import('./pages/student/StudentDashboard'));
 const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
@@ -50,30 +49,19 @@ function AppShell({ children }: { children: React.ReactNode }) {
 
 // ─── Root App ────────────────────────────────────────────────────
 export default function App() {
-  const [initialLoading, setInitialLoading] = useState(true);
-
-  // Silent background PWA registration
+  // Register the service worker only in production and avoid interrupting active sessions with updates.
   useRegisterSW({
-    immediate: true,
+    immediate: import.meta.env.PROD,
     onOfflineReady() { console.log('App ready for offline use'); },
   });
 
-  // Initialize sync listeners & smooth initial loading effect on refresh
+  // Initialize sync listeners
   useEffect(() => {
     const cleanup = initSyncListeners();
-    const timer = setTimeout(() => {
-      setInitialLoading(false);
-    }, 450);
-
     return () => {
       cleanup();
-      clearTimeout(timer);
     };
   }, []);
-
-  if (initialLoading) {
-    return <LoadingScreen message="Starting AttendAI..." />;
-  }
 
   return (
     <BrowserRouter>
@@ -81,7 +69,6 @@ export default function App() {
         <Suspense fallback={<PageLoader />}>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
-            <Route path="/demo" element={<DemoPortalPage />} />
             <Route path="/locked" element={<LockScreen />} />
 
             <Route

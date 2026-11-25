@@ -5,22 +5,23 @@ export default function QuickAcademicUtilityDock() {
   const [activeTab, setActiveTab] = useState<'calc' | 'notes'>('calc');
 
   // Quick Calculator
-  const [held, setHeld] = useState<number>(44);
-  const [attended, setAttended] = useState<number>(33);
+  const [held, setHeld] = useState<number>(0);
+  const [attended, setAttended] = useState<number>(0);
   const [target, setTarget] = useState<number>(75);
 
   // Scratchpad
   const [notes, setNotes] = useState<string>(() => {
-    return localStorage.getItem('attendai_academic_notes') || '• Submit internal marks by Friday\n• Verify medical leave certificate for roll 2101640100015\n• Extra lecture on Cloud Computing scheduled for Monday 10 AM';
+    return localStorage.getItem('attendai_academic_notes') || '';
   });
 
   useEffect(() => {
     localStorage.setItem('attendai_academic_notes', notes);
   }, [notes]);
 
-  const currentPercent = held > 0 ? ((attended / held) * 100).toFixed(1) : '100.0';
-  const needed = Math.max(0, Math.ceil((target * held) / 100) - attended);
-  const canBunk = Math.max(0, Math.floor((attended - (target * held) / 100) / (target / 100)));
+  const currentPercent = held > 0 && attended <= held ? (attended / held) * 100 : null;
+  const needed = currentPercent === null ? 0 : Math.max(0, Math.ceil((target * held) / 100) - attended);
+  const canBunk = currentPercent === null ? 0 : Math.max(0, Math.floor((attended - (target * held) / 100) / (target / 100)));
+  const meetsTarget = currentPercent !== null && currentPercent >= target;
 
   return (
     <>
@@ -49,7 +50,7 @@ export default function QuickAcademicUtilityDock() {
         }}
         title="Open Academic Quick Calculator & Scratchpad (Inspired by University-Management-System)"
       >
-        <span>🧮</span>
+
         <span>{isOpen ? 'Close Utility' : 'Quick Utility'}</span>
       </button>
 
@@ -75,7 +76,7 @@ export default function QuickAcademicUtilityDock() {
           {/* Header */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem' }}>
             <strong style={{ fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-              <span>🛠️</span> Academic Utilities
+               Academic Utilities
             </strong>
             <button
               onClick={() => setIsOpen(false)}
@@ -101,7 +102,7 @@ export default function QuickAcademicUtilityDock() {
                 color: activeTab === 'calc' ? 'var(--color-primary)' : 'var(--color-text-muted)',
               }}
             >
-              🧮 Calculator
+               Calculator
             </button>
             <button
               onClick={() => setActiveTab('notes')}
@@ -117,7 +118,7 @@ export default function QuickAcademicUtilityDock() {
                 color: activeTab === 'notes' ? 'var(--color-primary)' : 'var(--color-text-muted)',
               }}
             >
-              📝 Scratchpad
+               Scratchpad
             </button>
           </div>
 
@@ -129,8 +130,9 @@ export default function QuickAcademicUtilityDock() {
                   <label style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', display: 'block', fontWeight: 600 }}>Total Held</label>
                   <input
                     type="number"
-                    value={held}
-                    onChange={(e) => setHeld(Math.max(1, Number(e.target.value)))}
+                    value={held || ''}
+                    min={0}
+                    onChange={(e) => setHeld(Math.max(0, Number(e.target.value)))}
                     style={{ width: '100%', padding: '0.4rem', borderRadius: '6px', border: '1px solid var(--color-border)', fontSize: '0.85rem' }}
                   />
                 </div>
@@ -138,7 +140,9 @@ export default function QuickAcademicUtilityDock() {
                   <label style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', display: 'block', fontWeight: 600 }}>Attended</label>
                   <input
                     type="number"
-                    value={attended}
+                    value={attended || ''}
+                    min={0}
+                    max={held || undefined}
                     onChange={(e) => setAttended(Math.max(0, Number(e.target.value)))}
                     style={{ width: '100%', padding: '0.4rem', borderRadius: '6px', border: '1px solid var(--color-border)', fontSize: '0.85rem' }}
                   />
@@ -161,21 +165,23 @@ export default function QuickAcademicUtilityDock() {
               {/* Result Pill */}
               <div
                 style={{
-                  background: Number(currentPercent) >= target ? '#ECFDF5' : '#FEF2F2',
-                  border: `1px solid ${Number(currentPercent) >= target ? '#A7F3D0' : '#FECACA'}`,
+                  background: meetsTarget ? '#ECFDF5' : '#FEF2F2',
+                  border: `1px solid ${meetsTarget ? '#A7F3D0' : '#FECACA'}`,
                   borderRadius: 'var(--radius-sm)',
                   padding: '0.65rem',
                   textAlign: 'center',
                 }}
               >
                 <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)' }}>Current Status:</div>
-                <strong style={{ fontSize: '1.25rem', color: Number(currentPercent) >= target ? '#065F46' : '#991B1B' }}>
-                  {currentPercent}%
+                <strong style={{ fontSize: '1.25rem', color: meetsTarget ? '#065F46' : '#991B1B' }}>
+                  {currentPercent === null ? '—' : `${currentPercent.toFixed(1)}%`}
                 </strong>
-                <div style={{ fontSize: '0.75rem', marginTop: '0.2rem', color: Number(currentPercent) >= target ? '#047857' : '#B91C1C' }}>
-                  {Number(currentPercent) >= target
-                    ? `Safe! You can safely miss ${canBunk} classes.`
-                    : `Shortage! Attend next ${needed} classes to reach ${target}%.`}
+                <div style={{ fontSize: '0.75rem', marginTop: '0.2rem', color: meetsTarget ? '#047857' : '#B91C1C' }}>
+                  {currentPercent === null
+                    ? 'Enter valid attendance totals to calculate your status.'
+                    : meetsTarget
+                      ? `You can miss up to ${canBunk} classes and remain at the target.`
+                      : `Attend the next ${needed} classes to reach ${target}%.`}
                 </div>
               </div>
             </div>

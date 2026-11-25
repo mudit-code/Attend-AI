@@ -41,7 +41,11 @@ export const timetableSlotSchema = z.object({
   period: z.number().int().min(1).max(10),
   startTime: z.string().regex(/^\d{2}:\d{2}$/),
   endTime: z.string().regex(/^\d{2}:\d{2}$/),
+  roomNo: z.string().trim().min(1).max(50).optional(),
   academicYearId: z.number().int().positive(),
+}).refine((data) => data.startTime < data.endTime, {
+  message: 'End time must be after start time',
+  path: ['endTime'],
 });
 
 export const holidaySchema = z.object({

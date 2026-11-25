@@ -5,7 +5,7 @@ import { prisma } from '../../lib/prisma';
 import { redis } from '../../lib/redis';
 import { env } from '../../config/env';
 import { logger } from '../../lib/logger';
-import type { LoginInput, OtpSendInput, OtpVerifyInput, RegisterInput, OAuthInput } from './schema';
+import type { LoginInput, OtpSendInput, OtpVerifyInput, RegisterInput } from './schema';
 
 // ─── Token helpers ───────────────────────────────────────────────
 function generateAccessToken(userId: number, role: string, departmentId?: number): string {
@@ -31,6 +31,23 @@ async function createRefreshToken(userId: number): Promise<string> {
 }
 
 // ─── Login ───────────────────────────────────────────────────────
+export async function listRegistrationSections() {
+  return prisma.section.findMany({
+    select: {
+      id: true,
+      name: true,
+      year: true,
+      course: {
+        select: {
+          name: true,
+          department: { select: { name: true } },
+        },
+      },
+    },
+    orderBy: [{ year: 'asc' }, { name: 'asc' }],
+  });
+}
+
 export async function loginService(input: LoginInput) {
   const user = await prisma.user.findUnique({
     where: { email: input.email },
@@ -197,28 +214,33 @@ export async function registerService(input: RegisterInput) {
     throw { code: 'EMAIL_ALREADY_EXISTS', status: 409, message: 'An account with this email already exists' };
   }
 
-  // Admin access code validation if registering as ADMIN
-  if (input.role === 'ADMIN') {
-    if (!input.adminCode || (input.adminCode !== 'ADMIN2026' && input.adminCode !== 'ATTENDAI_ADMIN')) {
-      throw { code: 'INVALID_ADMIN_CODE', status: 403, message: 'Valid Admin Authorization Code is required to register as Administrator' };
+  if (input.phone) {
+    const existingPhone = await prisma.user.findUnique({
+      where: { phone: input.phone },
+      select: { id: true },
+    });
+    if (existingPhone) {
+      throw { code: 'PHONE_ALREADY_EXISTS', status: 409, message: 'An account with this phone number already exists' };
     }
   }
 
+  const existingRoll = await prisma.student.findUnique({
+    where: { rollNo: input.rollNo },
+    select: { id: true },
+  });
+  if (existingRoll) {
+    throw { code: 'ROLL_EXISTS', status: 409, message: 'An account with this roll number already exists' };
+  }
+
+  const section = await prisma.section.findUnique({
+    where: { id: input.sectionId },
+    select: { id: true },
+  });
+  if (!section) {
+    throw { code: 'SECTION_NOT_FOUND', status: 400, message: 'The selected class no longer exists. Refresh and choose a valid class.' };
+  }
+
   const passwordHash = await bcrypt.hash(input.password, 10);
-
-  let sectionId = input.sectionId;
-  let departmentId = input.departmentId;
-
-  if (input.role === 'STUDENT' && !sectionId) {
-    const firstSection = await prisma.section.findFirst();
-    if (firstSection) sectionId = firstSection.id;
-  }
-
-  if (input.role === 'TEACHER' && !departmentId) {
-    const firstDept = await prisma.department.findFirst();
-    if (firstDept) departmentId = firstDept.id;
-  }
-
   const user = await prisma.user.create({
     data: {
       email: input.email,
@@ -227,35 +249,19 @@ export async function registerService(input: RegisterInput) {
       role: input.role,
       status: 'ACTIVE',
       phone: input.phone || undefined,
-      ...(input.role === 'STUDENT' && sectionId
-        ? {
-            student: {
-              create: {
-                rollNo: input.rollNo || `STU${Date.now().toString().slice(-6)}`,
-                sectionId,
-              },
-            },
-          }
-        : {}),
-      ...(input.role === 'TEACHER' && departmentId
-        ? {
-            teacher: {
-              create: {
-                employeeCode: input.employeeCode || `FAC${Date.now().toString().slice(-6)}`,
-                departmentId,
-                isClassTeacher: input.isClassTeacher ?? false,
-              },
-            },
-          }
-        : {}),
+      student: {
+        create: {
+          rollNo: input.rollNo,
+          sectionId: input.sectionId,
+        },
+      },
     },
     include: {
       student: { select: { id: true, sectionId: true, rollNo: true } },
-      teacher: { select: { id: true, departmentId: true } },
     },
   });
 
-  const accessToken = generateAccessToken(user.id, user.role, user.teacher?.departmentId);
+  const accessToken = generateAccessToken(user.id, user.role);
   const refreshToken = await createRefreshToken(user.id);
 
   logger.info('New user registered', { userId: user.id, role: user.role });
@@ -268,88 +274,6 @@ export async function registerService(input: RegisterInput) {
       name: user.name,
       email: user.email,
       role: user.role,
-      student: user.student,
-      teacher: user.teacher,
-    },
-  };
-}
-
-// ─── OAuth / SSO Service ─────────────────────────────────────────
-export async function oauthService(input: OAuthInput) {
-  let user = await prisma.user.findUnique({
-    where: { email: input.email },
-    include: {
-      teacher: { select: { id: true, departmentId: true } },
-      student: { select: { id: true, sectionId: true, rollNo: true } },
-    },
-  });
-
-  if (!user) {
-    if (input.role === 'ADMIN') {
-      throw { code: 'UNAUTHORIZED_ADMIN_OAUTH', status: 403, message: 'Administrator accounts cannot be automatically provisioned via OAuth' };
-    }
-    let sectionId: number | undefined;
-    let departmentId: number | undefined;
-
-    if (input.role === 'STUDENT') {
-      const s = await prisma.section.findFirst();
-      if (s) sectionId = s.id;
-    } else if (input.role === 'TEACHER') {
-      const d = await prisma.department.findFirst();
-      if (d) departmentId = d.id;
-    }
-
-    const dummyHash = await bcrypt.hash(crypto.randomBytes(16).toString('hex'), 10);
-
-    user = await prisma.user.create({
-      data: {
-        email: input.email,
-        name: input.name,
-        passwordHash: dummyHash,
-        role: input.role,
-        status: 'ACTIVE',
-        ...(input.role === 'STUDENT' && sectionId
-          ? {
-              student: {
-                create: {
-                  rollNo: input.rollNo || `OAUTH${Date.now().toString().slice(-6)}`,
-                  sectionId,
-                },
-              },
-            }
-          : {}),
-        ...(input.role === 'TEACHER' && departmentId
-          ? {
-              teacher: {
-                create: {
-                  employeeCode: input.employeeCode || `FAC_OAUTH${Date.now().toString().slice(-6)}`,
-                  departmentId,
-                },
-              },
-            }
-          : {}),
-      },
-      include: {
-        teacher: { select: { id: true, departmentId: true } },
-        student: { select: { id: true, sectionId: true, rollNo: true } },
-      },
-    });
-  }
-
-  const accessToken = generateAccessToken(user.id, user.role, user.teacher?.departmentId);
-  const refreshToken = await createRefreshToken(user.id);
-
-  logger.info('OAuth user logged in', { userId: user.id, provider: input.provider });
-
-  return {
-    accessToken,
-    refreshToken,
-    user: {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      teacher: user.teacher,
       student: user.student,
     },
   };

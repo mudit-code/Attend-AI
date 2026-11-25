@@ -13,26 +13,24 @@ import LibraryWidget from '../../components/student/LibraryWidget';
 import PlacementWidget from '../../components/student/PlacementWidget';
 import GrievanceButton from '../../components/student/GrievanceButton';
 import AttendanceLedgerWidget from '../../components/student/AttendanceLedgerWidget';
-import StudentMarksheetModal from '../../components/student/StudentMarksheetModal';
-import FeeReceiptModal from '../../components/student/FeeReceiptModal';
 import UserProfileDrawer from '../../components/common/UserProfileDrawer';
 import InstallAppPrompt from '../../components/common/InstallAppPrompt';
 import BrandLogo from '../../components/common/BrandLogo';
 import StudentQRScannerModal from '../../components/student/StudentQRScannerModal';
+import StudentAssignmentsTab from '../../components/student/StudentAssignmentsTab';
 
 export default function StudentDashboard() {
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
   const navigate = useNavigate();
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'qr' | 'history' | 'leave'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'assignments' | 'qr' | 'history' | 'leave'>('overview');
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [isMarksheetOpen, setIsMarksheetOpen] = useState(false);
-  const [isFeeReceiptOpen, setIsFeeReceiptOpen] = useState(false);
 
   // Report data
   const [report, setReport] = useState<any | null>(null);
   const [loadingReport, setLoadingReport] = useState(true);
+  const [reportError, setReportError] = useState<string | null>(null);
 
   // QR mark state
   const [qrTokenInput, setQrTokenInput] = useState('');
@@ -48,6 +46,8 @@ export default function StudentDashboard() {
   const [leaveReason, setLeaveReason] = useState('');
   const [submittingLeave, setSubmittingLeave] = useState(false);
   const [leaveMessage, setLeaveMessage] = useState<string | null>(null);
+  const [leaveMessageIsError, setLeaveMessageIsError] = useState(false);
+  const [leaveLoadError, setLeaveLoadError] = useState<string | null>(null);
   const [myLeaves, setMyLeaves] = useState<any[]>([]);
 
   // Correction Modal state
@@ -65,28 +65,10 @@ export default function StudentDashboard() {
     try {
       const res = await api.get('/reports/my-report');
       setReport(res.data.data);
-    } catch (err) {
-      console.warn('API unavailable, loading realistic demo student profile', err);
-      setReport({
-        summary: {
-          present: 46,
-          totalClasses: 153,
-          percentage: 30.1,
-          isDefaulter: true,
-        },
-        subjects: [
-          { subjectId: 1, subjectName: 'Cloud Computing', present: 14, total: 44, percentage: 31.8, absent: 30 },
-          { subjectId: 2, subjectName: 'Compiler Design', present: 12, total: 38, percentage: 31.6, absent: 26 },
-          { subjectId: 3, subjectName: 'Web Technology', present: 11, total: 35, percentage: 31.4, absent: 24 },
-          { subjectId: 4, subjectName: 'Software Engineering', present: 9, total: 36, percentage: 25.0, absent: 27 },
-        ],
-        history: [
-          { id: 101, subject: 'Cloud Computing', date: new Date().toISOString(), period: 1, teacher: 'Dr. R. Sharma', status: 'P', sessionId: 'ses-101' },
-          { id: 102, subject: 'Compiler Design', date: new Date(Date.now() - 86400000).toISOString(), period: 2, teacher: 'Prof. S. Verma', status: 'A', sessionId: 'ses-102' },
-          { id: 103, subject: 'Web Technology', date: new Date(Date.now() - 172800000).toISOString(), period: 3, teacher: 'Dr. A. Gupta', status: 'P', sessionId: 'ses-103' },
-          { id: 104, subject: 'Software Engineering', date: new Date(Date.now() - 259200000).toISOString(), period: 4, teacher: 'Dr. M. Singh', status: 'P', sessionId: 'ses-104' },
-        ],
-      });
+      setReportError(null);
+    } catch {
+      setReport(null);
+      setReportError('Could not load your attendance report from the server.');
     } finally {
       setLoadingReport(false);
     }
@@ -96,19 +78,10 @@ export default function StudentDashboard() {
     try {
       const res = await api.get('/leaves');
       setMyLeaves(res.data.data);
-    } catch (err) {
-      console.error('Failed to load my leaves', err);
-      // Realistic default leave records
-      setMyLeaves([
-        {
-          id: 1,
-          type: 'MEDICAL',
-          fromDate: new Date(Date.now() - 86400000 * 5).toISOString(),
-          toDate: new Date(Date.now() - 86400000 * 3).toISOString(),
-          reason: 'Viral fever diagnosed at campus clinic OPD desk',
-          status: 'APPROVED',
-        },
-      ]);
+      setLeaveLoadError(null);
+    } catch {
+      setMyLeaves([]);
+      setLeaveLoadError('Could not load leave requests from the server.');
     }
   }
 
@@ -132,58 +105,30 @@ export default function StudentDashboard() {
       localStorage.setItem('attendai_device_id', clientDeviceId);
     }
 
-    const studentId = user?.id || 1;
-    const studentName = user?.name || 'Aman Kumar';
-    const studentRollNo = user?.student?.rollNo || '2101640100015';
-
     try {
-      let message = 'Attendance Marked Present! Verified with Section Roster.';
-      try {
-        const res = await api.post('/qr/mark', {
-          sessionId: targetSessionId,
-          token: targetToken,
-          deviceId: clientDeviceId,
-        });
-        message = res.data.message || res.data.data?.message || message;
-      } catch (apiErr) {
-        // In local/demo mode or if backend DB offline, proceed with local verified attendance
-        console.warn('Backend mark error, proceeding with real-time verified sync', apiErr);
-      }
+      const res = await api.post('/qr/mark', {
+        sessionId: targetSessionId,
+        token: targetToken,
+        deviceId: clientDeviceId,
+      });
+      const message = res.data.message || res.data.data?.message;
 
-      setQrResult(`✓ ${message}`);
+      setQrResult(message || 'Attendance marked successfully.');
       setQrTokenInput('');
-
-      // Emit Real-time synchronization event across all open windows/tabs!
-      try {
-        const syncChannel = new BroadcastChannel('attendai_qr_sync');
-        syncChannel.postMessage({
-          type: 'QR_SCANNED',
-          sessionId: targetSessionId,
-          studentId,
-          studentName,
-          rollNo: studentRollNo,
-          token: targetToken,
-          timestamp: new Date().toISOString(),
-        });
-        syncChannel.close();
-      } catch (bcErr) {
-        console.warn('BroadcastChannel sync error:', bcErr);
-      }
-
-      loadMyReport();
+      await loadMyReport();
     } catch (err: any) {
       const errCode = err.response?.data?.error?.code;
       const msg = err.response?.data?.error?.message || err.message;
       if (errCode === 'WRONG_SECTION' || msg?.toLowerCase().includes('section')) {
-        setQrResult(`❌ Access Denied: You are not enrolled in this section. Cross-section proxy attendance is strictly prohibited under institutional regulations.`);
+        setQrResult(` Access Denied: You are not enrolled in this section. Cross-section proxy attendance is strictly prohibited under institutional regulations.`);
       } else if (errCode === 'SESSION_LOCKED' || msg?.toLowerCase().includes('locked')) {
-        setQrResult(`⚠️ Session Locked: Faculty has already finalized and locked the roll call for this lecture.`);
+        setQrResult(` Session Locked: Faculty has already finalized and locked the roll call for this lecture.`);
       } else if (errCode === 'INVALID_TOKEN' || msg?.toLowerCase().includes('token')) {
-        setQrResult(`⚠️ Invalid / Expired Token: The 8-character token has expired. Please enter the current code from the projected screen.`);
+        setQrResult(` Invalid / Expired Token: The 8-character token has expired. Please enter the current code from the projected screen.`);
       } else if (errCode === 'DEVICE_MISMATCH') {
-        setQrResult(`📱 Device Mismatch: Your account is bound to another registered device. Contact Admin/HOD for reset.`);
+        setQrResult(` Device Mismatch: Your account is bound to another registered device. Contact Admin/HOD for reset.`);
       } else {
-        setQrResult(`❌ Attendance Failed: ${msg || 'Could not verify session'}`);
+        setQrResult(` Attendance Failed: ${msg || 'Could not verify session'}`);
       }
     } finally {
       setMarkingQr(false);
@@ -213,13 +158,14 @@ export default function StudentDashboard() {
         reason: leaveReason,
       });
 
-      setLeaveMessage('✓ Leave request submitted! Verified with Proctor desk.');
+      setLeaveMessage('Leave request submitted for review.');
+      setLeaveMessageIsError(false);
       setLeaveReason('');
-      loadMyLeaves();
+      await loadMyLeaves();
     } catch (err: any) {
-      const msg = err.response?.data?.error?.message || 'Leave request logged and synced.';
-      setLeaveMessage(`✓ ${msg}`);
-      loadMyLeaves();
+      const msg = err.response?.data?.error?.message || 'Could not submit the leave request.';
+      setLeaveMessage(msg);
+      setLeaveMessageIsError(true);
     } finally {
       setSubmittingLeave(false);
     }
@@ -228,28 +174,24 @@ export default function StudentDashboard() {
   // Submit Correction Request
   async function handleSubmitCorrection() {
     if (!selectedRecordForCorrection || !correctionReason) return;
+    if (!selectedRecordForCorrection.sessionId) {
+      alert('This attendance record does not include a session ID and cannot be corrected.');
+      return;
+    }
 
     setSubmittingCorrection(true);
     try {
-      const isValidUuid = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
-      const sessionIdToSend = isValidUuid(selectedRecordForCorrection.sessionId)
-        ? selectedRecordForCorrection.sessionId
-        : '00000000-0000-0000-0000-000000000102';
-
       await api.post('/correction-requests', {
-        sessionId: sessionIdToSend,
+        sessionId: selectedRecordForCorrection.sessionId,
         requestedStatus: 'P',
         reason: correctionReason,
       });
 
-      alert('✓ Attendance correction claim submitted! Notified faculty desk.');
+      alert('Attendance correction request submitted.');
       setSelectedRecordForCorrection(null);
       setCorrectionReason('');
     } catch (err: any) {
-      const msg = err.response?.data?.error?.message || 'Attendance correction claim queued for faculty review.';
-      alert(`✓ ${msg}`);
-      setSelectedRecordForCorrection(null);
-      setCorrectionReason('');
+      alert(err.response?.data?.error?.message || 'Could not submit the attendance correction request.');
     } finally {
       setSubmittingCorrection(false);
     }
@@ -261,8 +203,8 @@ export default function StudentDashboard() {
     navigate('/login');
   }
 
-  const overall = report?.summary?.percentage ?? 30.1;
-  const isDefaulter = report?.summary?.isDefaulter ?? (overall < 75);
+  const overall: number | null = report?.summary?.percentage ?? null;
+  const isDefaulter = report?.summary?.isDefaulter ?? false;
 
   // Today's Live Attendance Records & Campus Pulse
   const todayISO = new Date().toISOString().slice(0, 10);
@@ -277,20 +219,13 @@ export default function StudentDashboard() {
       sessionId: h.sessionId,
     }));
 
-  const todayRecordsList: TodayAttendanceRecord[] = realTodayRecords.length > 0
-    ? realTodayRecords
-    : [
-        { period: 1, status: 'P', subject: 'Cloud Computing', teacher: 'Dr. R. Sharma', sessionId: 'ses-101', time: '09:00 - 09:55' },
-        { period: 2, status: 'A', subject: 'Web Technology Lab', teacher: 'Er. P. Verma', sessionId: 'ses-102', time: '10:00 - 10:55' },
-      ];
-
-  const todayScheduledCount = 4;
+  const todayRecordsList = realTodayRecords;
+  const todayScheduledCount = todayRecordsList.length;
   const todayPresentCount = todayRecordsList.filter((r) => r.status === 'P' || r.status === 'OD').length;
   const todayAbsentCount = todayRecordsList.filter((r) => r.status === 'A').length;
-  const todayPendingCount = Math.max(0, todayScheduledCount - (todayPresentCount + todayAbsentCount));
   const todayAttendedPct = (todayPresentCount + todayAbsentCount) > 0
     ? Math.round((todayPresentCount / (todayPresentCount + todayAbsentCount)) * 100)
-    : 100;
+    : null;
   const todayAbsentItem = todayRecordsList.find((r) => r.status === 'A');
 
   return (
@@ -326,7 +261,7 @@ export default function StudentDashboard() {
                 border: '1px solid var(--color-border)',
               }}
             >
-              🏢 {report?.student?.section?.course?.department?.name || 'CSE'} · {report?.student?.section?.name || 'Section A'}
+               {report?.student?.section?.course?.department?.name || 'Department not assigned'} · {report?.student?.section?.name || 'Section not assigned'}
             </span>
             <span
               style={{
@@ -340,7 +275,7 @@ export default function StudentDashboard() {
                 border: '1px solid var(--color-border)',
               }}
             >
-              🆔 {report?.student?.rollNo || user?.student?.rollNo || '2101640100015'}
+               {report?.student?.rollNo || user?.student?.rollNo || 'Roll number not assigned'}
             </span>
           </div>
         </div>
@@ -376,10 +311,10 @@ export default function StudentDashboard() {
                 justifyContent: 'center',
               }}
             >
-              {(user?.name || 'AK').slice(0, 2).toUpperCase()}
+              {(user?.name || 'Student').slice(0, 2).toUpperCase()}
             </div>
             <span style={{ fontSize: '0.825rem', fontWeight: 700, color: 'var(--color-text)' }}>
-              {user?.name || 'Aman Kumar'}
+              {user?.name || 'Student'}
             </span>
             <span style={{ fontSize: '0.65rem', background: '#0F172A', color: '#FFFFFF', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
               STUDENT
@@ -387,22 +322,6 @@ export default function StudentDashboard() {
           </button>
 
           <SyncBadge />
-          <button
-            id="btn-header-marksheet"
-            className="btn btn--ghost btn--sm"
-            onClick={() => setIsMarksheetOpen(true)}
-            style={{ fontWeight: 700 }}
-          >
-            📄 Marksheet
-          </button>
-          <button
-            id="btn-header-fee"
-            className="btn btn--ghost btn--sm"
-            onClick={() => setIsFeeReceiptOpen(true)}
-            style={{ fontWeight: 700 }}
-          >
-            🧾 Fee Receipt
-          </button>
           <button className="btn btn--ghost btn--sm" onClick={handleLogout} style={{ fontWeight: 700 }} title="Sign Out">
             ⎋ Logout
           </button>
@@ -424,28 +343,37 @@ export default function StudentDashboard() {
           className={`btn btn--sm ${activeTab === 'overview' ? 'btn--primary' : 'btn--ghost'}`}
           onClick={() => setActiveTab('overview')}
         >
-          📊 Academic Dashboard
+           Academic Dashboard
         </button>
+        {user?.role === 'STUDENT' && (
+          <button
+            id="tab-student-assignments"
+            className={`btn btn--sm ${activeTab === 'assignments' ? 'btn--primary' : 'btn--ghost'}`}
+            onClick={() => setActiveTab('assignments')}
+          >
+            Assignments
+          </button>
+        )}
         <button
           id="tab-student-qr"
           className={`btn btn--sm ${activeTab === 'qr' ? 'btn--primary' : 'btn--ghost'}`}
           onClick={() => setActiveTab('qr')}
         >
-          📱 Scan QR / Code Entry
+           Scan QR / Code Entry
         </button>
         <button
           id="tab-student-history"
           className={`btn btn--sm ${activeTab === 'history' ? 'btn--primary' : 'btn--ghost'}`}
           onClick={() => setActiveTab('history')}
         >
-          📅 Attendance Ledger & History
+           Attendance Ledger & History
         </button>
         <button
           id="tab-student-leave"
           className={`btn btn--sm ${activeTab === 'leave' ? 'btn--primary' : 'btn--ghost'}`}
           onClick={() => setActiveTab('leave')}
         >
-          🏖️ Apply Leave ({myLeaves.length})
+           Apply Leave ({myLeaves.length})
         </button>
       </nav>
 
@@ -453,6 +381,7 @@ export default function StudentDashboard() {
       <main style={{ flex: 1, padding: '1.25rem clamp(0.75rem, 2.5vw, 1.75rem)' }}>
         <div className="container--fluid">
           <InstallAppPrompt />
+          {reportError && <p className="alert alert--error" role="alert">{reportError}</p>}
           {/* ─────────────────────────────────────────────────────────────
               TAB 1: ACADEMIC OVERVIEW (DESKTOP EXECUTIVE VIEW)
           ───────────────────────────────────────────────────────────── */}
@@ -487,7 +416,7 @@ export default function StudentDashboard() {
                         fontSize: '1.25rem',
                       }}
                     >
-                      ⚡
+
                     </div>
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -529,7 +458,7 @@ export default function StudentDashboard() {
                         color: '#475569',
                       }}
                     >
-                      {todayScheduledCount} Scheduled Classes
+                      {todayScheduledCount} Attendance Records
                     </span>
                     <span
                       style={{
@@ -555,18 +484,6 @@ export default function StudentDashboard() {
                     >
                       ✗ {todayAbsentCount} Absent
                     </span>
-                    <span
-                      style={{
-                        padding: '4px 10px',
-                        borderRadius: '8px',
-                        background: '#FEF3C7',
-                        fontSize: '0.75rem',
-                        fontWeight: 700,
-                        color: '#B45309',
-                      }}
-                    >
-                      ⏳ {todayPendingCount} Remaining
-                    </span>
                   </div>
                 </div>
 
@@ -575,16 +492,16 @@ export default function StudentDashboard() {
                   <div style={{ flex: 1, minWidth: 200 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginBottom: '4px', fontWeight: 700 }}>
                       <span style={{ color: 'var(--color-text-muted)' }}>Daily Attendance Completion</span>
-                      <span style={{ color: todayAttendedPct >= 75 ? 'var(--color-success)' : 'var(--color-danger)' }}>
-                        {todayAttendedPct}% Attended Today
+                      <span style={{ color: todayAttendedPct === null ? 'var(--color-text-muted)' : 'var(--color-text)' }}>
+                        {todayAttendedPct === null ? 'No attendance records yet' : `${todayAttendedPct}% of recorded classes attended`}
                       </span>
                     </div>
                     <div style={{ height: 8, background: '#FFE6E2', borderRadius: 4, overflow: 'hidden' }}>
                       <div
                         style={{
                           height: '100%',
-                          width: `${todayAttendedPct}%`,
-                          background: todayAttendedPct >= 75 ? 'var(--color-success)' : 'var(--color-danger)',
+                          width: `${todayAttendedPct ?? 0}%`,
+                          background: 'var(--color-success)',
                           borderRadius: 4,
                           transition: 'width 0.4s ease',
                         }}
@@ -605,7 +522,7 @@ export default function StudentDashboard() {
                       }}
                     >
                       <span style={{ fontSize: '0.8rem', color: '#991B1B', fontWeight: 600 }}>
-                        ⚠️ Marked <strong>ABSENT</strong> in Period {todayAbsentItem.period} ({todayAbsentItem.subject})
+                         Marked <strong>ABSENT</strong> in Period {todayAbsentItem.period} ({todayAbsentItem.subject})
                       </span>
                       <button
                         className="btn btn--sm"
@@ -621,16 +538,16 @@ export default function StudentDashboard() {
                         }}
                         onClick={() => {
                           setSelectedRecordForCorrection({
-                            sessionId: todayAbsentItem.sessionId || 'ses-102',
+                            sessionId: todayAbsentItem.sessionId,
                             period: todayAbsentItem.period,
                             subject: todayAbsentItem.subject,
                             teacher: todayAbsentItem.teacher,
-                            time: todayAbsentItem.time || '10:00 - 10:55',
+                            time: todayAbsentItem.time,
                           });
-                          setCorrectionReason('Present on 2nd bench, missed roll call during lecture');
+                          setCorrectionReason('');
                         }}
                       >
-                        🔔 Claim Correction
+                         Claim Correction
                       </button>
                     </div>
                   )}
@@ -670,7 +587,11 @@ export default function StudentDashboard() {
                         fontSize: '0.75rem',
                       }}
                     >
-                      {isDefaulter ? '⚠️ Defaulter (< 75%)' : '✓ Exam Eligible'}
+                      {!report?.summary
+                        ? 'Report unavailable'
+                        : isDefaulter
+                        ? 'Below attendance threshold'
+                        : 'Attendance requirement met'}
                     </span>
                   </div>
                   <div style={{ marginTop: '0.75rem', display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
@@ -682,14 +603,16 @@ export default function StudentDashboard() {
                         lineHeight: 1,
                       }}
                     >
-                      {loadingReport ? '...' : `${overall}%`}
+                      {loadingReport ? '...' : overall === null ? '—' : `${overall}%`}
                     </span>
                     <span className="text-xs text-muted" style={{ fontWeight: 600 }}>
-                      AKTU Threshold: 75.0%
+                      Attendance percentage
                     </span>
                   </div>
                   <p className="text-xs text-muted" style={{ marginTop: '0.5rem' }}>
-                    <strong>{report?.summary?.present || 46}</strong> Attended / <strong>{report?.summary?.totalClasses || 153}</strong> Total Lectures
+                    {report?.summary
+                      ? <><strong>{report.summary.present ?? 0}</strong> Attended / <strong>{report.summary.totalClasses ?? 0}</strong> Total Lectures</>
+                      : 'Attendance totals unavailable'}
                   </p>
                 </div>
 
@@ -707,15 +630,15 @@ export default function StudentDashboard() {
                     <span className="text-xs text-muted" style={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                       Attendance Runway
                     </span>
-                    <span style={{ fontSize: '1.25rem' }}>🎯</span>
+
                   </div>
                   <div style={{ marginTop: '0.75rem' }}>
                     <div style={{ fontSize: '2.25rem', fontWeight: 900, color: 'var(--color-primary)', lineHeight: 1 }}>
-                      {overall >= 75 ? '+8 Bunks Safe' : '27 Classes Req.'}
+                      {overall === null ? '—' : 'Available'}
                     </div>
                   </div>
                   <p className="text-xs text-muted" style={{ marginTop: '0.5rem' }}>
-                    {overall >= 75 ? 'Classes you can safely miss' : 'Consecutive classes needed to cross 75%'}
+                    {overall === null ? 'Forecast unavailable without attendance data' : 'Use the attendance calculator for a forecast'}
                   </p>
                 </div>
 
@@ -733,18 +656,18 @@ export default function StudentDashboard() {
                     <span className="text-xs text-muted" style={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                       Certified SGPA
                     </span>
-                    <span style={{ fontSize: '1.25rem' }}>🏆</span>
+
                   </div>
                   <div style={{ marginTop: '0.75rem', display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
                     <span style={{ fontSize: '2.5rem', fontWeight: 900, color: '#7C3AED', lineHeight: 1 }}>
-                      8.42
+                      —
                     </span>
                     <span className="badge" style={{ background: '#EDE9FE', color: '#6D28D9', fontWeight: 800 }}>
-                      Rank #3 in Sec A
+                      Marks data unavailable
                     </span>
                   </div>
                   <p className="text-xs text-muted" style={{ marginTop: '0.5rem' }}>
-                    Semester 6 · 22 Credit Units Complete
+                    Semester results are not available in the attendance report.
                   </p>
                 </div>
 
@@ -762,80 +685,19 @@ export default function StudentDashboard() {
                     <span className="text-xs text-muted" style={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                       Digital No-Dues
                     </span>
-                    <span style={{ fontSize: '1.25rem' }}>📜</span>
+
                   </div>
                   <div style={{ marginTop: '0.75rem', display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
                     <span style={{ fontSize: '2.5rem', fontWeight: 900, color: '#059669', lineHeight: 1 }}>
-                      4 / 4
+                      —
                     </span>
                     <span className="badge" style={{ background: '#DCFCE7', color: '#15803D', fontWeight: 800 }}>
-                      All Cleared ✓
+                      Status unavailable
                     </span>
                   </div>
                   <p className="text-xs text-muted" style={{ marginTop: '0.5rem' }}>
-                    Library, Accounts, Hostel & Dept Cleared
+                    Clearance data is not connected.
                   </p>
-                </div>
-              </div>
-
-              {/* ─── Official Documents Fast-Action Bar ─────────────── */}
-              <div
-                className="card"
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  flexWrap: 'wrap',
-                  gap: '1rem',
-                  padding: '1rem 1.5rem',
-                  marginBottom: '1.5rem',
-                  background: 'linear-gradient(90deg, #FFFFFF 0%, #FFF5F4 100%)',
-                  border: '1.5px solid #FFDCD7',
-                  borderRadius: '20px',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <div
-                    style={{
-                      width: 44,
-                      height: 44,
-                      borderRadius: '12px',
-                      background: '#FFF0EE',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '1.5rem',
-                      border: '1px solid #FFDCD7',
-                    }}
-                  >
-                    📑
-                  </div>
-                  <div>
-                    <strong style={{ fontSize: '0.95rem', color: 'var(--color-text)', display: 'block' }}>
-                      Official Academic Documents & Verified Receipts
-                    </strong>
-                    <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
-                      Download digitally verified AKTU semester transcript cards and institutional fee slips
-                    </span>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-                  <button
-                    id="btn-open-fee-receipt"
-                    className="btn btn--secondary btn--sm"
-                    onClick={() => setIsFeeReceiptOpen(true)}
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', fontWeight: 700 }}
-                  >
-                    🧾 Paid Fee Receipt Slip
-                  </button>
-                  <button
-                    id="btn-open-marksheet"
-                    className="btn btn--primary btn--sm"
-                    onClick={() => setIsMarksheetOpen(true)}
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', fontWeight: 700 }}
-                  >
-                    📄 Official AKTU Marksheet (SGPA 8.42)
-                  </button>
                 </div>
               </div>
 
@@ -862,10 +724,10 @@ export default function StudentDashboard() {
                       }}
                     >
                       <h3 style={{ color: '#B91C1C', marginBottom: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <span>⚠️</span> Official AKTU Defaulter Notice ({overall}%)
+                        Attendance requirement notice ({overall}%)
                       </h3>
                       <p className="text-sm" style={{ color: '#7F1D1D', lineHeight: 1.5 }}>
-                        Your attendance is currently below the mandatory <strong>75.0% threshold</strong> mandated by Dr. A.P.J. Abdul Kalam Technical University. You are at risk of being debarred from end-semester university examinations. Please ensure regular attendance in upcoming scheduled lectures.
+                        Your attendance is below the institution's required minimum of <strong>{report?.summary?.minRequired}%</strong>. Attend upcoming scheduled lectures to improve your attendance.
                       </p>
                     </div>
                   )}
@@ -874,13 +736,13 @@ export default function StudentDashboard() {
                   <div className="card">
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
                       <div>
-                        <h3 style={{ margin: 0 }}>📚 Subject-wise Attendance Breakdown</h3>
+                        <h3 style={{ margin: 0 }}> Subject-wise Attendance Breakdown</h3>
                         <p className="text-xs text-muted" style={{ marginTop: '0.25rem' }}>
-                          Current semester course-wise attendance breakdown with 75% cutoff indicator
+                          Current course-wise attendance breakdown and status
                         </p>
                       </div>
                       <span className="badge" style={{ background: '#FFF0EE', color: 'var(--color-primary)', fontWeight: 800 }}>
-                        {report?.subjects?.length || 4} Subjects Enrolled
+                        {report?.subjects?.length ?? 0} Subjects Enrolled
                       </span>
                     </div>
 
@@ -890,7 +752,7 @@ export default function StudentDashboard() {
                           key={sub.subjectId}
                           style={{
                             background: '#FFF9F8',
-                            border: `1.5px solid ${sub.percentage < 75 ? '#FFDCD7' : '#BBF7D0'}`,
+                            border: `1.5px solid ${sub.isDefaulter ? '#FFDCD7' : '#BBF7D0'}`,
                             borderRadius: '16px',
                             padding: '1rem 1.25rem',
                           }}
@@ -903,7 +765,7 @@ export default function StudentDashboard() {
                               style={{
                                 fontWeight: 800,
                                 fontSize: '0.95rem',
-                                color: sub.percentage < 75 ? 'var(--color-danger)' : 'var(--color-success)',
+                                color: sub.isDefaulter ? 'var(--color-danger)' : 'var(--color-success)',
                               }}
                             >
                               {sub.percentage}%
@@ -924,7 +786,7 @@ export default function StudentDashboard() {
                               style={{
                                 height: '100%',
                                 width: `${Math.min(100, sub.percentage)}%`,
-                                background: sub.percentage < 75 ? 'var(--color-danger)' : 'var(--color-success)',
+                                background: sub.isDefaulter ? 'var(--color-danger)' : 'var(--color-success)',
                                 borderRadius: 4,
                                 transition: 'width 0.4s ease',
                               }}
@@ -935,7 +797,7 @@ export default function StudentDashboard() {
                             <span className="text-muted">
                               <strong>{sub.present}</strong> / {sub.total} classes attended
                             </span>
-                            <span style={{ color: sub.percentage < 75 ? '#DC2626' : 'var(--color-text-muted)', fontWeight: 600 }}>
+                            <span style={{ color: sub.isDefaulter ? '#DC2626' : 'var(--color-text-muted)', fontWeight: 600 }}>
                               {sub.absent} absent
                             </span>
                           </div>
@@ -982,6 +844,8 @@ export default function StudentDashboard() {
             </div>
           )}
 
+          {user?.role === 'STUDENT' && activeTab === 'assignments' && <StudentAssignmentsTab />}
+
           {/* ─────────────────────────────────────────────────────────────
               TAB 2: QR CODE SCAN / TOKEN ENTRY (CENTERED DESKTOP CARD)
           ───────────────────────────────────────────────────────────── */}
@@ -1003,7 +867,7 @@ export default function StudentDashboard() {
                       margin: '0 auto 1rem',
                     }}
                   >
-                    📱
+
                   </div>
                   <h2 style={{ marginBottom: '0.5rem' }}>Classroom Dynamic QR Scanner</h2>
                   <p className="text-sm text-muted">
@@ -1026,7 +890,7 @@ export default function StudentDashboard() {
                     gap: '0.6rem',
                   }}
                 >
-                  <span style={{ fontSize: '1.1rem' }}>🔒</span>
+
                   <div>
                     <strong>Anti-Proxy Protection Active:</strong> Token is cryptographically locked to{' '}
                     <strong>{report?.student?.section?.name || 'your assigned section'} ({report?.student?.section?.course?.department?.name || 'CSE'})</strong>. Attempts to mark attendance for another section will be rejected.
@@ -1053,7 +917,7 @@ export default function StudentDashboard() {
                     borderRadius: 14,
                   }}
                 >
-                  📷 Open Live Camera Scanner
+                   Open Live Camera Scanner
                 </button>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
@@ -1144,18 +1008,11 @@ export default function StudentDashboard() {
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
                 <div>
-                  <h2 style={{ margin: 0 }}>📅 Class Attendance Ledger & Audit History</h2>
+                  <h2 style={{ margin: 0 }}> Class Attendance Ledger & Audit History</h2>
                   <p className="text-xs text-muted" style={{ marginTop: '0.25rem' }}>
                     Historical log of all classes conducted with presence status and 1-click correction requests
                   </p>
                 </div>
-                <button
-                  className="btn btn--secondary btn--sm"
-                  onClick={() => setIsMarksheetOpen(true)}
-                  style={{ fontWeight: 700 }}
-                >
-                  📄 View Official Semester Marksheet
-                </button>
               </div>
 
               <div className="student-history-grid">
@@ -1271,7 +1128,7 @@ export default function StudentDashboard() {
           {activeTab === 'leave' && (
             <div>
               <div style={{ marginBottom: '1.5rem' }}>
-                <h2 style={{ margin: 0 }}>🏖️ Student Leave Application & Verification Desk</h2>
+                <h2 style={{ margin: 0 }}> Student Leave Application & Verification Desk</h2>
                 <p className="text-xs text-muted" style={{ marginTop: '0.25rem' }}>
                   Submit medical, personal, or on-duty leaves. Medical leaves are cross-checked automatically with campus dispensary records.
                 </p>
@@ -1344,9 +1201,9 @@ export default function StudentDashboard() {
                         className="card"
                         style={{
                           padding: '0.85rem',
-                          background: leaveMessage.includes('✓') ? '#F0FDF4' : '#FFF1F2',
-                          border: `1.5px solid ${leaveMessage.includes('✓') ? '#BBF7D0' : '#FECDD3'}`,
-                          color: leaveMessage.includes('✓') ? '#15803D' : '#B91C1C',
+                          background: leaveMessageIsError ? '#FFF1F2' : '#F0FDF4',
+                          border: `1.5px solid ${leaveMessageIsError ? '#FECDD3' : '#BBF7D0'}`,
+                          color: leaveMessageIsError ? '#B91C1C' : '#15803D',
                           fontWeight: 700,
                         }}
                       >
@@ -1370,6 +1227,7 @@ export default function StudentDashboard() {
                       </span>
                     </div>
 
+                    {leaveLoadError && <p className="alert alert--error" role="alert">{leaveLoadError}</p>}
                     <div style={{ display: 'grid', gap: '0.85rem' }}>
                       {myLeaves.map((l) => (
                         <div
@@ -1423,22 +1281,6 @@ export default function StudentDashboard() {
       {/* Institutional User Profile Drawer */}
       <UserProfileDrawer isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
 
-      {/* Official Semester Marksheet Modal */}
-      <StudentMarksheetModal
-        isOpen={isMarksheetOpen}
-        onClose={() => setIsMarksheetOpen(false)}
-        studentName={user?.name || 'Aman Kumar'}
-        rollNo={user?.student?.rollNo || '2101640100015'}
-      />
-
-      {/* Itemized Fee Breakdown & Receipt Modal */}
-      <FeeReceiptModal
-        isOpen={isFeeReceiptOpen}
-        onClose={() => setIsFeeReceiptOpen(false)}
-        studentName={user?.name || 'Aman Kumar'}
-        rollNo={user?.student?.rollNo || '2101640100015'}
-      />
-
       {/* ─── STEP 3: Instant Attendance Dispute / Correction Modal ──── */}
       {selectedRecordForCorrection && (
         <div
@@ -1485,7 +1327,7 @@ export default function StudentDashboard() {
                     fontWeight: 800,
                   }}
                 >
-                  🔔
+
                 </div>
                 <div>
                   <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: '#1E293B' }}>
@@ -1529,15 +1371,15 @@ export default function StudentDashboard() {
                     borderRadius: '6px',
                   }}
                 >
-                  Marked: ❌ ABSENT
+                  Marked:  ABSENT
                 </span>
               </div>
               <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0F172A' }}>
-                {selectedRecordForCorrection.subject || 'Subject Lecture'}
+                {selectedRecordForCorrection.subject || '—'}
               </div>
               <div style={{ fontSize: '0.8rem', color: '#64748B', marginTop: '4px' }}>
-                Faculty: <strong style={{ color: '#334155' }}>{selectedRecordForCorrection.teacher || 'Assigned Faculty'}</strong>
-                {selectedRecordForCorrection.time && ` · ⏰ ${selectedRecordForCorrection.time}`}
+                Faculty: <strong style={{ color: '#334155' }}>{selectedRecordForCorrection.teacher || '—'}</strong>
+                {selectedRecordForCorrection.time && ` ·  ${selectedRecordForCorrection.time}`}
               </div>
             </div>
 
@@ -1639,7 +1481,7 @@ export default function StudentDashboard() {
                 disabled={submittingCorrection || !correctionReason.trim()}
                 style={{ fontWeight: 800, minWidth: 160 }}
               >
-                {submittingCorrection ? 'Submitting Claim...' : '🚀 Submit Correction Claim'}
+                {submittingCorrection ? 'Submitting Claim...' : ' Submit Correction Claim'}
               </button>
             </div>
           </div>

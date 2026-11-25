@@ -4,7 +4,7 @@ import heroImage from '../assets/attendance_3d_hero.jpg';
 import BrandLogo from '../components/common/BrandLogo';
 
 export default function HomePage() {
-  const { user, setToken, setUser } = useAuthStore();
+  const { user } = useAuthStore();
   const navigate = useNavigate();
 
   function getDashboardRoute() {
@@ -20,35 +20,7 @@ export default function HomePage() {
   }
 
   function handleQuickDemo(role: 'ADMIN' | 'TEACHER' | 'STUDENT') {
-    const demoUser =
-      role === 'STUDENT'
-        ? {
-            id: 1,
-            name: 'Aman Kumar',
-            email: 'student1@attendai.com',
-            role: 'STUDENT' as const,
-            student: { id: 1, sectionId: 1, rollNo: '2101640100015' },
-          }
-        : role === 'TEACHER'
-        ? {
-            id: 2,
-            name: 'Dr. R. Sharma',
-            email: 'teacher1@attendai.com',
-            role: 'TEACHER' as const,
-            teacher: { id: 1, departmentId: 1 },
-          }
-        : {
-            id: 3,
-            name: 'Dean Academics',
-            email: 'admin@attendai.com',
-            role: 'ADMIN' as const,
-          };
-
-    setToken('demo-token-attendai');
-    setUser(demoUser);
-    if (role === 'STUDENT') navigate('/student');
-    else if (role === 'TEACHER') navigate('/teacher');
-    else navigate('/admin');
+    navigate('/login', { state: { quickRole: role } });
   }
 
   return (
@@ -100,7 +72,7 @@ export default function HomePage() {
                   textDecoration: 'none',
                 }}
               >
-                Demo Roles
+                User Portals
               </a>
               <a
                 href="#features"
@@ -124,22 +96,13 @@ export default function HomePage() {
                 Dashboard ({user.name.split(' ')[0]}) →
               </button>
             ) : (
-              <div className="flex items-center gap-2">
-                <button
-                  className="btn btn--ghost btn--sm"
-                  onClick={() => navigate('/demo')}
-                  style={{ fontWeight: 700 }}
-                >
-                  ⚡ Try Demo Sandbox
-                </button>
-                <button
-                  className="btn btn--primary btn--sm"
-                  onClick={() => navigate('/login')}
-                  style={{ fontWeight: 700 }}
-                >
-                  Institutional Sign In →
-                </button>
-              </div>
+              <button
+                className="btn btn--primary btn--sm"
+                onClick={() => navigate('/login')}
+                style={{ fontWeight: 700 }}
+              >
+                Institutional Sign In →
+              </button>
             )}
           </div>
         </div>
@@ -173,7 +136,7 @@ export default function HomePage() {
                   marginBottom: '1.25rem',
                 }}
               >
-                <span>✨</span> Offline-First PWA · Anti-Proxy Rotating QR
+                 Offline-First PWA · Anti-Proxy Rotating QR
               </div>
 
               <h1
@@ -213,17 +176,6 @@ export default function HomePage() {
                   }}
                 >
                   {user ? 'Open My Dashboard →' : 'Institutional Sign In →'}
-                </button>
-                <button
-                  className="btn btn--accent"
-                  onClick={() => navigate('/demo')}
-                  style={{
-                    padding: '0.9rem 1.75rem',
-                    fontSize: '1rem',
-                    fontWeight: 800,
-                  }}
-                >
-                  ⚡ Explore 1-Click Demo Sandbox
                 </button>
               </div>
 
@@ -283,7 +235,7 @@ export default function HomePage() {
                     gap: '0.4rem',
                   }}
                 >
-                  <span>⚡</span> &lt; 60s Class Roster
+                   &lt; 60s Class Roster
                 </div>
 
                 {/* Floating stat pill 2 */}
@@ -306,7 +258,7 @@ export default function HomePage() {
                     gap: '0.4rem',
                   }}
                 >
-                  <span>🔒</span> 10s Rotating QR Token
+                   10s Rotating QR Token
                 </div>
               </div>
             </div>
@@ -351,20 +303,20 @@ export default function HomePage() {
 
             <div>
               <div style={{ fontSize: '2.5rem', fontWeight: 900, color: '#D97706', lineHeight: 1 }}>
-                100%
+                Offline Ready
               </div>
               <p className="text-sm font-semibold" style={{ color: 'var(--color-text)', marginTop: '0.375rem' }}>
-                Offline IndexedDB
+                Offline-capable workflows
               </p>
               <p className="text-xs text-muted">Zero dependency on campus Wi-Fi</p>
             </div>
 
             <div>
               <div style={{ fontSize: '2.5rem', fontWeight: 900, color: '#7C3AED', lineHeight: 1 }}>
-                75%
+                Attendance Insights
               </div>
               <p className="text-sm font-semibold" style={{ color: 'var(--color-text)', marginTop: '0.375rem' }}>
-                Automated Defaulter Audit
+                Server-calculated reports
               </p>
               <p className="text-xs text-muted">Instant shortage calculations</p>
             </div>
@@ -393,13 +345,13 @@ export default function HomePage() {
                 letterSpacing: '1px',
               }}
             >
-              Interactive Experience
+              Development Seed Accounts
             </span>
             <h2 style={{ fontSize: '2rem', fontWeight: 800, marginTop: '0.25rem', color: 'var(--color-text)' }}>
-              Test Drive AttendAI by Role
+            Sign In To Your Portal
             </h2>
             <p className="text-muted" style={{ maxWidth: 520, margin: '0.5rem auto 0 auto' }}>
-              Click any demo account below to immediately explore that user experience:
+              Choose your role to open the sign-in page. Accounts are provisioned by an administrator.
             </p>
           </div>
 
@@ -423,25 +375,24 @@ export default function HomePage() {
             >
               <div>
                 <div className="flex items-center gap-1" style={{ marginBottom: '0.75rem' }}>
-                  <span style={{ fontSize: '1.75rem' }}>👨‍🏫</span>
+
                   <div>
                     <h3 style={{ margin: 0 }}>Faculty / Teacher</h3>
                     <p className="text-xs text-muted">Classroom Attendance & QR</p>
                   </div>
                 </div>
                 <p className="text-sm" style={{ marginBottom: '1.25rem' }}>
-                  3-tap attendance marking, live 10-second rotating QR generator, student roster management, and leave approvals.
+                  Manage assigned classes, create attendance sessions, enter marks, and publish assignments.
                 </p>
                 <div style={{ background: '#FFFFFF', padding: '0.75rem', borderRadius: '12px', fontSize: '0.8rem', border: '1px solid #FFDCD7', marginBottom: '1.25rem' }}>
-                  <p><strong>Login:</strong> teacher1@attendai.com</p>
-                  <p><strong>Pass:</strong> Teacher@123</p>
+                  Sign in with the account and temporary password provided by your administrator.
                 </div>
               </div>
               <button
                 className="btn btn--primary btn--block btn--sm"
                 onClick={() => handleQuickDemo('TEACHER')}
               >
-                Log in as Teacher →
+                Continue to Teacher Sign In →
               </button>
             </div>
 
@@ -458,18 +409,17 @@ export default function HomePage() {
             >
               <div>
                 <div className="flex items-center gap-1" style={{ marginBottom: '0.75rem' }}>
-                  <span style={{ fontSize: '1.75rem' }}>🎓</span>
+
                   <div>
                     <h3 style={{ margin: 0 }}>Student</h3>
                     <p className="text-xs text-muted">Attendance Meter & QR Scan</p>
                   </div>
                 </div>
                 <p className="text-sm" style={{ marginBottom: '1.25rem' }}>
-                  Overall percentage meter, 75% defaulter threshold warning, 8-char live QR scanner, history, and leave apply.
+                  Review attendance, scan active session QR codes, submit assignments, and request leave.
                 </p>
                 <div style={{ background: '#FFFFFF', padding: '0.75rem', borderRadius: '12px', fontSize: '0.8rem', border: '1px solid #A7F3D0', marginBottom: '1.25rem' }}>
-                  <p><strong>Login:</strong> student1@attendai.com</p>
-                  <p><strong>Pass:</strong> Student@123</p>
+                  Sign in with the account provided by your administrator or register with your official details.
                 </div>
               </div>
               <button
@@ -477,7 +427,7 @@ export default function HomePage() {
                 style={{ background: '#059669' }}
                 onClick={() => handleQuickDemo('STUDENT')}
               >
-                Log in as Student →
+                Continue to Student Sign In →
               </button>
             </div>
 
@@ -494,18 +444,17 @@ export default function HomePage() {
             >
               <div>
                 <div className="flex items-center gap-1" style={{ marginBottom: '0.75rem' }}>
-                  <span style={{ fontSize: '1.75rem' }}>⚙️</span>
+
                   <div>
                     <h3 style={{ margin: 0 }}>Administrator / HOD</h3>
                     <p className="text-xs text-muted">College Governance & Rules</p>
                   </div>
                 </div>
                 <p className="text-sm" style={{ marginBottom: '1.25rem' }}>
-                  Live college stats, academic department setup, CSV student bulk upload, policy threshold rules, and audit trail.
+                  Manage academic structure, provision accounts, allocate subjects, and configure timetable data.
                 </p>
                 <div style={{ background: '#FFFFFF', padding: '0.75rem', borderRadius: '12px', fontSize: '0.8rem', border: '1px solid #FDE68A', marginBottom: '1.25rem' }}>
-                  <p><strong>Login:</strong> admin@attendai.com</p>
-                  <p><strong>Pass:</strong> Admin@123</p>
+                  Administrator access is provisioned separately and cannot be self-registered.
                 </div>
               </div>
               <button
@@ -513,7 +462,7 @@ export default function HomePage() {
                 style={{ background: '#D97706' }}
                 onClick={() => handleQuickDemo('ADMIN')}
               >
-                Log in as Admin →
+                Continue to Admin Sign In →
               </button>
             </div>
           </div>
@@ -567,7 +516,7 @@ export default function HomePage() {
                   border: '1.5px solid #FFDCD7',
                 }}
               >
-                📡
+
               </div>
               <h3 style={{ marginBottom: '0.5rem' }}>Offline-First Sync Engine</h3>
               <p className="text-sm">
@@ -592,7 +541,7 @@ export default function HomePage() {
                   border: '1.5px solid #A7F3D0',
                 }}
               >
-                📱
+
               </div>
               <h3 style={{ marginBottom: '0.5rem' }}>Anti-Proxy Rotating QR</h3>
               <p className="text-sm">
@@ -617,7 +566,7 @@ export default function HomePage() {
                   border: '1.5px solid #FDE68A',
                 }}
               >
-                ⚡
+
               </div>
               <h3 style={{ marginBottom: '0.5rem' }}>3-Tap High-Speed Roster</h3>
               <p className="text-sm">
@@ -642,7 +591,7 @@ export default function HomePage() {
                   border: '1.5px solid #E9D5FF',
                 }}
               >
-                📊
+
               </div>
               <h3 style={{ marginBottom: '0.5rem' }}>Automated Defaulter Reports</h3>
               <p className="text-sm">
@@ -667,7 +616,7 @@ export default function HomePage() {
                   border: '1.5px solid #BFDBFE',
                 }}
               >
-                🏖️
+
               </div>
               <h3 style={{ marginBottom: '0.5rem' }}>Leave & Correction Workflows</h3>
               <p className="text-sm">
@@ -692,7 +641,7 @@ export default function HomePage() {
                   border: '1.5px solid #FECDD3',
                 }}
               >
-                📜
+
               </div>
               <h3 style={{ marginBottom: '0.5rem' }}>Immutable Audit Trail</h3>
               <p className="text-sm">

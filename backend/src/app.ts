@@ -25,6 +25,7 @@ import teacherLeaveRouter from './modules/leaves/routes';
 import feedbackRouter from './modules/feedback/routes';
 import communicationRouter from './modules/communication/routes';
 import dispensaryRouter from './modules/dispensary/routes';
+import assignmentsRouter from './modules/assignments/routes';
 
 
 const app = express();
@@ -48,9 +49,25 @@ app.use(
 );
 
 // ─── CORS ─────────────────────────────────────────────────────────
+const allowedOrigins = (env.FRONTEND_URL || 'http://localhost:5173')
+  .split(',')
+  .map((url) => url.trim().replace(/\/$/, ''));
+
 app.use(
   cors({
-    origin: env.FRONTEND_URL,
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      const cleanOrigin = origin.replace(/\/$/, '');
+      if (
+        allowedOrigins.includes(cleanOrigin) ||
+        allowedOrigins.includes('*') ||
+        cleanOrigin.endsWith('.vercel.app') ||
+        cleanOrigin.endsWith('.netlify.app')
+      ) {
+        return callback(null, true);
+      }
+      return callback(null, false);
+    },
     credentials: true, // Required for cookies
     methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
   })
@@ -107,6 +124,7 @@ app.use('/api/v1/teacher-leaves', teacherLeaveRouter);
 app.use('/api/v1/feedback', feedbackRouter);
 app.use('/api/v1/communication', communicationRouter);
 app.use('/api/v1/dispensary', dispensaryRouter);
+app.use('/api/v1/assignments', assignmentsRouter);
 
 // 404 handler
 app.use((_req, res) => {

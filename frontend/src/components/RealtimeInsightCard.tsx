@@ -104,7 +104,7 @@ export default function RealtimeInsightCard() {
               border: '1px solid #FFDCD7',
             }}
           >
-            ☀️
+
           </div>
           <div>
             <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-text)', letterSpacing: '0.5px' }}>

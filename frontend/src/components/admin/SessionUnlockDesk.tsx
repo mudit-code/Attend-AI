@@ -14,36 +14,10 @@ interface LockedSession {
   recordCount: number;
 }
 
-const DEMO_SESSIONS: LockedSession[] = [
-  {
-    id: 'sess-demo-001',
-    date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-    period: 3,
-    lockedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000 + 60 * 60 * 1000).toISOString(),
-    teacherName: 'Dr. Priya Sharma',
-    teacherEmail: 'priya.sharma@college.edu',
-    sectionName: 'CSE-3A',
-    subjectName: 'Cloud Computing',
-    subjectCode: 'KCS-701',
-    recordCount: 58,
-  },
-  {
-    id: 'sess-demo-002',
-    date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-    period: 1,
-    lockedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000 + 60 * 60 * 1000).toISOString(),
-    teacherName: 'Prof. Ramesh Yadav',
-    teacherEmail: 'ramesh.yadav@college.edu',
-    sectionName: 'IT-2B',
-    subjectName: 'Database Management Systems',
-    subjectCode: 'KIT-301',
-    recordCount: 54,
-  },
-];
-
 export default function SessionUnlockDesk() {
   const [sessions, setSessions] = useState<LockedSession[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [unlockReason, setUnlockReason] = useState<Record<string, string>>({});
   const [unlocking, setUnlocking] = useState<Record<string, boolean>>({});
   const [messages, setMessages] = useState<Record<string, { type: 'success' | 'error'; text: string }>>({});
@@ -57,8 +31,10 @@ export default function SessionUnlockDesk() {
     try {
       const res = await api.get('/admin/sessions/locked');
       setSessions(res.data.data);
-    } catch {
-      setSessions(DEMO_SESSIONS);
+      setLoadError('');
+    } catch (error: any) {
+      setSessions([]);
+      setLoadError(error.response?.data?.error?.message || 'Could not load locked sessions.');
     } finally {
       setLoading(false);
     }
@@ -74,12 +50,13 @@ export default function SessionUnlockDesk() {
     setMessages((prev) => { const next = { ...prev }; delete next[sessionId]; return next; });
     try {
       await api.post(`/admin/sessions/${sessionId}/admin-unlock`, { reason });
-      setMessages((prev) => ({ ...prev, [sessionId]: { type: 'success', text: `✅ Session unlocked. Teacher can now edit attendance for this period.` } }));
+      setMessages((prev) => ({ ...prev, [sessionId]: { type: 'success', text: ` Session unlocked. Teacher can now edit attendance for this period.` } }));
       setSessions((prev) => prev.filter((s) => s.id !== sessionId));
     } catch (err: any) {
-      // Demo mode: simulate success
-      setMessages((prev) => ({ ...prev, [sessionId]: { type: 'success', text: `✅ Session unlocked. Teacher can now edit attendance for this period.` } }));
-      setSessions((prev) => prev.filter((s) => s.id !== sessionId));
+      setMessages((prev) => ({
+        ...prev,
+        [sessionId]: { type: 'error', text: err.response?.data?.error?.message || 'Could not unlock this session.' },
+      }));
     } finally {
       setUnlocking((prev) => ({ ...prev, [sessionId]: false }));
     }
@@ -92,7 +69,7 @@ export default function SessionUnlockDesk() {
       {/* Header */}
       <div style={{ background: 'linear-gradient(135deg, #2d1b69, #1a0f3c)', borderRadius: '12px', padding: '20px', border: '1px solid rgba(139,92,246,0.3)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-          <span style={{ fontSize: '24px' }}>🔐</span>
+
           <h3 style={{ margin: 0, color: '#e2e8f0', fontSize: '18px', fontWeight: 700 }}>Locked Session Unlock Desk</h3>
         </div>
         <p style={{ margin: 0, color: '#94a3b8', fontSize: '13px', lineHeight: 1.6 }}>
@@ -101,11 +78,12 @@ export default function SessionUnlockDesk() {
         </p>
       </div>
 
+      {loadError && <p role="alert" className="alert alert--error">{loadError}</p>}
       {loading ? (
-        <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>⏳ Loading locked sessions...</div>
+        <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}> Loading locked sessions...</div>
       ) : sessions.length === 0 ? (
         <div style={{ padding: '40px', textAlign: 'center', background: 'rgba(34,197,94,0.07)', border: '1px solid rgba(34,197,94,0.2)', borderRadius: '12px', color: '#4ade80' }}>
-          ✅ No locked sessions requiring admin unlock at this time.
+           No locked sessions requiring admin unlock at this time.
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -122,9 +100,9 @@ export default function SessionUnlockDesk() {
                   </div>
                 </div>
                 <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                  <div style={{ color: '#94a3b8', fontSize: '12px' }}>👨‍🏫 {s.teacherName}</div>
+                  <div style={{ color: '#94a3b8', fontSize: '12px' }}> {s.teacherName}</div>
                   <div style={{ color: '#64748b', fontSize: '11px', marginTop: '2px' }}>
-                    🔒 Locked: {s.lockedAt ? new Date(s.lockedAt).toLocaleString('en-IN') : 'Auto-locked'} &nbsp;•&nbsp; {s.recordCount} records
+                     Locked: {s.lockedAt ? new Date(s.lockedAt).toLocaleString('en-IN') : 'Auto-locked'} &nbsp;•&nbsp; {s.recordCount} records
                   </div>
                 </div>
               </div>
@@ -154,7 +132,7 @@ export default function SessionUnlockDesk() {
                     fontSize: '13px', whiteSpace: 'nowrap', flexShrink: 0,
                   }}
                 >
-                  {unlocking[s.id] ? 'Unlocking...' : '🔓 Unlock Session'}
+                  {unlocking[s.id] ? 'Unlocking...' : ' Unlock Session'}
                 </button>
               </div>
 
@@ -178,7 +156,7 @@ export default function SessionUnlockDesk() {
         onClick={loadLockedSessions}
         style={{ alignSelf: 'flex-start', padding: '8px 16px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '8px', color: '#94a3b8', cursor: 'pointer', fontSize: '12px' }}
       >
-        🔄 Refresh List
+         Refresh List
       </button>
     </div>
   );

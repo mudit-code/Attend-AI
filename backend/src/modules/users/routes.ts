@@ -1,19 +1,35 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import { authenticate } from '../../middlewares/auth';
+import { authenticate, AuthRequest } from '../../middlewares/auth';
 import { requireRole } from '../../middlewares/role';
 import { validate } from '../../middlewares/validate';
 import { createStudentSchema, createTeacherSchema, bulkStudentSchema } from './schema';
 import * as usersService from './service';
+import { prisma } from '../../lib/prisma';
 
 const router = Router();
 
 router.use(authenticate);
 
 // ─── Students ─────────────────────────────────────────────────────
-router.get('/students', async (req: Request, res: Response, next: NextFunction) => {
+router.get('/students', requireRole('ADMIN', 'HOD', 'TEACHER'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const sectionId = req.query.sectionId ? Number(req.query.sectionId) : undefined;
     const search = req.query.search as string | undefined;
+    if (req.user!.role === 'TEACHER') {
+      if (!sectionId) {
+        res.status(400).json({ error: { code: 'SECTION_REQUIRED', message: 'Select an assigned class to view its students.' } });
+        return;
+      }
+      const teacher = await prisma.teacher.findUnique({ where: { userId: req.user!.id }, select: { id: true } });
+      const allocation = teacher && await prisma.teacherSubject.findFirst({
+        where: { teacherId: teacher.id, sectionId },
+        select: { id: true },
+      });
+      if (!allocation) {
+        res.status(403).json({ error: { code: 'NOT_ASSIGNED', message: 'You are not assigned to this class.' } });
+        return;
+      }
+    }
     const data = await usersService.getStudents(sectionId, search);
     res.json({ data });
   } catch (err) {
@@ -57,7 +73,7 @@ router.post(
 );
 
 // ─── Teachers ─────────────────────────────────────────────────────
-router.get('/teachers', async (req: Request, res: Response, next: NextFunction) => {
+router.get('/teachers', requireRole('ADMIN', 'HOD'), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const departmentId = req.query.departmentId ? Number(req.query.departmentId) : undefined;
     const data = await usersService.getTeachers(departmentId);

@@ -12,45 +12,12 @@ interface Drive {
   registeredCount: number;
 }
 
-const DEFAULT_DRIVES: Drive[] = [
-  {
-    id: 1,
-    companyName: "TCS Ninja / Digital Campus Drive 2026",
-    driveDate: "2026-10-28",
-    minAttendance: 75,
-    eligibleBranches: ["CSE", "IT", "ECE"],
-    description: "National Qualifier Test for Assistant System Engineer roles.",
-    registrationDeadline: "2026-10-24",
-    registeredCount: 48,
-  },
-  {
-    id: 2,
-    companyName: "Wipro Elite National Talent Hunt",
-    driveDate: "2026-11-05",
-    minAttendance: 75,
-    eligibleBranches: ["CSE", "IT"],
-    description: "Project Engineer recruitment for 2026 graduating batch.",
-    registrationDeadline: "2026-11-01",
-    registeredCount: 32,
-  },
-  {
-    id: 3,
-    companyName: "Infosys InfyTQ Certification & Placement",
-    driveDate: "2026-11-15",
-    minAttendance: 70,
-    eligibleBranches: ["CSE", "IT", "ECE", "ME"],
-    description: "System Engineer Specialist hiring drive.",
-    registrationDeadline: "2026-11-10",
-    registeredCount: 65,
-  },
-];
-
 export default function PlacementManager() {
-  const [drives, setDrives] = useState<Drive[]>(DEFAULT_DRIVES);
+  const [drives, setDrives] = useState<Drive[]>([]);
   const [companyName, setCompanyName] = useState("");
   const [driveDate, setDriveDate] = useState("");
   const [minAttendance, setMinAttendance] = useState<number>(75);
-  const [branches, setBranches] = useState<string>("CSE, IT, ECE");
+  const [branches, setBranches] = useState<string>("");
   const [deadline, setDeadline] = useState("");
   const [description, setDescription] = useState("");
   const [publishing, setPublishing] = useState(false);
@@ -59,21 +26,24 @@ export default function PlacementManager() {
   useEffect(() => {
     api.get('/placement/drives')
       .then((res) => {
-        if (res.data?.data && res.data.data.length > 0) {
+        if (Array.isArray(res.data?.data)) {
           const mapped: Drive[] = res.data.data.map((d: any) => ({
             id: d.id,
             companyName: d.companyName,
             driveDate: d.driveDate?.slice(0, 10) || '',
-            minAttendance: d.minAttendance ?? 75,
-            eligibleBranches: d.eligibleBranches || ['CSE', 'IT', 'ECE'],
+            minAttendance: d.minAttendance,
+            eligibleBranches: d.eligibleBranches ?? [],
             description: d.description || '',
-            registrationDeadline: d.registrationDeadline?.slice(0, 10) || d.driveDate?.slice(0, 10) || '',
+            registrationDeadline: d.registrationDeadline?.slice(0, 10) || '',
             registeredCount: d._count?.registrations ?? 0,
           }));
           setDrives(mapped);
         }
       })
-      .catch(() => {});
+      .catch((error) => {
+        setDrives([]);
+        setMsg(error.response?.data?.error?.message || 'Could not load placement drives.');
+      });
   }, []);
 
   async function handleCreate(e: React.FormEvent) {
@@ -82,38 +52,27 @@ export default function PlacementManager() {
     setPublishing(true);
     setMsg(null);
 
-    const newDrive: Drive = {
-      id: Date.now(),
-      companyName,
-      driveDate,
-      minAttendance,
-      eligibleBranches: branches.split(",").map((b) => b.trim().toUpperCase()),
-      description,
-      registrationDeadline: deadline || driveDate,
-      registeredCount: 0,
-    };
-
     try {
-      await api.post("/placement/drives", {
+      const { data } = await api.post("/placement/drives", {
         companyName,
         driveDate,
         minAttendance,
-        eligibleBranches: branches.split(",").map((b) => b.trim().toUpperCase()),
+        eligibleBranches: branches.split(",").map((b) => b.trim().toUpperCase()).filter(Boolean),
         description,
-        registrationDeadline: deadline || driveDate,
+        registrationDeadline: deadline || undefined,
       });
-    } catch {
-      // fallback to local addition
+      setDrives((prev) => [data.data, ...prev]);
+      setCompanyName("");
+      setDriveDate("");
+      setDescription("");
+      setDeadline("");
+      setMsg("Placement drive published.");
+    } catch (error: any) {
+      setMsg(error.response?.data?.error?.message || "Could not publish the placement drive.");
+    } finally {
+      setPublishing(false);
+      setTimeout(() => setMsg(null), 3000);
     }
-
-    setDrives((prev) => [newDrive, ...prev]);
-    setCompanyName("");
-    setDriveDate("");
-    setDescription("");
-    setDeadline("");
-    setMsg("✓ Campus Placement Drive published! Automated attendance gate is active.");
-    setPublishing(false);
-    setTimeout(() => setMsg(null), 3000);
   }
 
   return (
@@ -121,7 +80,7 @@ export default function PlacementManager() {
       {/* Create Drive Form */}
       <div className="card" style={{ marginBottom: "1.5rem" }}>
         <h2 style={{ fontSize: "1.3rem", fontWeight: 800, marginBottom: "0.25rem" }}>
-          💼 Training & Placement (T&P) Drive Publisher
+           Training & Placement (T&P) Drive Publisher
         </h2>
         <p className="text-xs text-muted" style={{ marginBottom: "1rem" }}>
           AttendAI automatically validates each student's attendance against the cutoff before allowing drive registration.
@@ -245,7 +204,7 @@ export default function PlacementManager() {
 
           <div style={{ display: "flex", justifyContent: "flex-end" }}>
             <button type="submit" className="btn btn--primary" disabled={publishing} style={{ fontWeight: 800 }}>
-              {publishing ? "Posting..." : "🚀 Post Recruitment Drive"}
+              {publishing ? "Posting..." : " Post Recruitment Drive"}
             </button>
           </div>
         </form>
@@ -254,7 +213,7 @@ export default function PlacementManager() {
       {/* Drives List */}
       <div className="card">
         <h3 style={{ fontSize: "1.1rem", fontWeight: 800, marginBottom: "1rem" }}>
-          🏢 Active Campus Recruitment Drives ({drives.length})
+           Active Campus Recruitment Drives ({drives.length})
         </h3>
         <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
           {drives.map((d) => (
@@ -285,7 +244,7 @@ export default function PlacementManager() {
                   {d.companyName}
                 </h4>
                 <p className="text-xs text-muted" style={{ margin: "2px 0 0 0" }}>
-                  📅 Drive Date: {d.driveDate} · {d.description}
+                   Drive Date: {d.driveDate} · {d.description}
                 </p>
               </div>
 

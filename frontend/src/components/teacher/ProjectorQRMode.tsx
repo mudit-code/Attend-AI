@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { QRCodeSVG } from 'qrcode.react';
 
 interface Props {
   sessionId: string | null;
@@ -14,8 +15,6 @@ interface Props {
   onExit: () => void;
 }
 
-// Simple QR code display using data URI (qrcode.js would be used in production)
-// We display the token prominently for classroom use
 export default function ProjectorQRMode({
   sessionId,
   qrToken,
@@ -30,7 +29,6 @@ export default function ProjectorQRMode({
   onExit,
 }: Props) {
   const [showExitHint, setShowExitHint] = useState(true);
-  const [qrDataUrl, setQrDataUrl] = useState<string>('');
 
   // Hide exit hint after 3 seconds
   useEffect(() => {
@@ -53,14 +51,6 @@ export default function ProjectorQRMode({
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [onExit]);
-
-  // Generate QR code using qrserver API (free, no install needed)
-  useEffect(() => {
-    if (!qrToken || !sessionId) return;
-    const qrContent = JSON.stringify({ s: sessionId, t: qrToken });
-    const encoded = encodeURIComponent(qrContent);
-    setQrDataUrl(`https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encoded}&bgcolor=0A0E1A&color=06B6D4&margin=20`);
-  }, [qrToken, sessionId]);
 
   const progressPercent = totalStudents > 0 ? (scannedCount / totalStudents) * 100 : 0;
 
@@ -111,7 +101,7 @@ export default function ProjectorQRMode({
       {/* Top: Class metadata */}
       <div style={{ textAlign: 'center', marginBottom: '32px', position: 'relative', zIndex: 1 }}>
         <div style={{ fontSize: '14px', color: '#06b6d4', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: '8px' }}>
-          📡 LIVE ATTENDANCE SESSION — SCAN TO MARK PRESENT
+           LIVE ATTENDANCE SESSION — SCAN TO MARK PRESENT
         </div>
         <div style={{ fontSize: '28px', fontWeight: 800, color: '#f1f5f9', marginBottom: '6px' }}>
           {subjectName}
@@ -131,8 +121,16 @@ export default function ProjectorQRMode({
             border: '2px solid rgba(6,182,212,0.4)', boxShadow: '0 0 60px rgba(6,182,212,0.2)',
             maxWidth: 'min(86vw, 320px)',
           }}>
-            {qrDataUrl ? (
-              <img src={qrDataUrl} alt="QR Code" style={{ width: '100%', height: 'auto', maxWidth: 280, borderRadius: '8px', display: 'block' }} />
+            {qrToken && sessionId ? (
+              <QRCodeSVG
+                value={JSON.stringify({ s: sessionId, t: qrToken })}
+                size={280}
+                level="M"
+                bgColor="#0A0E1A"
+                fgColor="#06B6D4"
+                marginSize={4}
+                style={{ width: '100%', height: 'auto', maxWidth: 280, borderRadius: '8px', display: 'block' }}
+              />
             ) : (
               <div style={{ width: 280, height: 280, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(6,182,212,0.05)', borderRadius: '8px' }}>
                 <div style={{ textAlign: 'center' }}>

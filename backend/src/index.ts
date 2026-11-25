@@ -33,7 +33,11 @@ async function main() {
     logger.info(`${signal} received — shutting down gracefully`);
     server.close(async () => {
       await prisma.$disconnect();
-      await redis.quit();
+      if (redis.status === 'ready') {
+        await redis.quit();
+      } else {
+        redis.disconnect();
+      }
       logger.info('Server closed');
       process.exit(0);
     });

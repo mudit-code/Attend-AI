@@ -25,44 +25,6 @@ interface EmailLogItem {
   createdAt: string;
 }
 
-const DEFAULT_DEFAULTER_STUDENTS: DefaulterStudent[] = [
-  { rollNo: '2101640100015', name: 'Aman Kumar', email: '2101640100015@aktu.ac.in', totalClasses: 44, present: 14, percentage: 31.8 },
-  { rollNo: '2101640100017', name: 'Deepak Yadav', email: '2101640100017@aktu.ac.in', totalClasses: 44, present: 29, percentage: 65.9 },
-  { rollNo: '2101640100019', name: 'Prashant Shukla', email: '2101640100019@aktu.ac.in', totalClasses: 44, present: 27, percentage: 61.4 },
-  { rollNo: '2101640100028', name: 'Vikas Pandey', email: '2101640100028@aktu.ac.in', totalClasses: 44, present: 31, percentage: 70.5 },
-];
-
-const DEFAULT_LOGS: EmailLogItem[] = [
-  {
-    id: 1,
-    recipientEmail: '2101640100015@aktu.ac.in',
-    recipientName: 'Aman Kumar',
-    rollNo: '2101640100015',
-    subjectCode: 'KCS-601',
-    subjectName: 'Cloud Computing',
-    attendancePercent: 31.8,
-    classesAttended: 14,
-    totalClasses: 44,
-    senderName: 'Prof. Rajesh Sharma',
-    status: 'DELIVERED',
-    createdAt: '2026-10-10 11:30 AM',
-  },
-  {
-    id: 2,
-    recipientEmail: '2101640100019@aktu.ac.in',
-    recipientName: 'Prashant Shukla',
-    rollNo: '2101640100019',
-    subjectCode: 'KCS-601',
-    subjectName: 'Cloud Computing',
-    attendancePercent: 61.4,
-    classesAttended: 27,
-    totalClasses: 44,
-    senderName: 'Prof. Rajesh Sharma',
-    status: 'DELIVERED',
-    createdAt: '2026-10-10 11:30 AM',
-  },
-];
-
 interface DefaulterEmailManagerProps {
   students?: any[];
   subjectName?: string;
@@ -71,26 +33,24 @@ interface DefaulterEmailManagerProps {
 
 export default function DefaulterEmailManager({
   students,
-  subjectName = 'Cloud Computing',
-  subjectCode = 'KCS-601',
+  subjectName = '',
+  subjectCode = '',
 }: DefaulterEmailManagerProps) {
   const [cutoff, setCutoff] = useState<number>(75);
   const [isDispatching, setIsDispatching] = useState<boolean>(false);
   const [dispatchResult, setDispatchResult] = useState<string | null>(null);
-  const [logs, setLogs] = useState<EmailLogItem[]>(DEFAULT_LOGS);
+  const [logs, setLogs] = useState<EmailLogItem[]>([]);
 
-  // Derive defaulters from passed props or default list
-  const activeStudentPool: DefaulterStudent[] =
-    students && students.length > 0
-      ? students.map((s) => ({
+  const activeStudentPool: DefaulterStudent[] = (students ?? [])
+      .map((s) => ({
           rollNo: s.rollNo,
           name: s.name,
-          email: `${s.rollNo.toLowerCase()}@aktu.ac.in`,
-          totalClasses: s.totalClasses || 44,
-          present: s.present || Math.round((44 * (s.percentage || 70)) / 100),
-          percentage: Number(s.percentage || 0),
+          email: s.email || '',
+          totalClasses: Number(s.totalClasses ?? 0),
+          present: Number(s.present ?? 0),
+          percentage: Number(s.percentage ?? 0),
         }))
-      : DEFAULT_DEFAULTER_STUDENTS;
+      .filter((student) => student.email);
 
   const filteredDefaulters = activeStudentPool.filter((s) => s.percentage < cutoff);
 
@@ -101,11 +61,10 @@ export default function DefaulterEmailManager({
   async function loadEmailLogs() {
     try {
       const res = await api.get('/communication/defaulters/logs');
-      if (res.data?.data && res.data.data.length > 0) {
-        setLogs(res.data.data);
-      }
-    } catch {
-      // Retain fallback logs offline
+      setLogs(res.data?.data ?? []);
+    } catch (error: any) {
+      setLogs([]);
+      setDispatchResult(error.response?.data?.error?.message || 'Could not load notification records.');
     }
   }
 
@@ -119,49 +78,17 @@ export default function DefaulterEmailManager({
     setDispatchResult(null);
 
     try {
-      await api.post('/communication/defaulters/send-warning-batch', {
+      const { data } = await api.post('/communication/defaulters/send-warning-batch', {
         students: filteredDefaulters,
         subjectCode,
         subjectName,
         cutoffPercentage: cutoff,
       });
 
-      const newEntries: EmailLogItem[] = filteredDefaulters.map((s, idx) => ({
-        id: Date.now() + idx,
-        recipientEmail: s.email,
-        recipientName: s.name,
-        rollNo: s.rollNo,
-        subjectCode,
-        subjectName,
-        attendancePercent: s.percentage,
-        classesAttended: s.present,
-        totalClasses: s.totalClasses,
-        senderName: 'Faculty & Proctor Cell',
-        status: 'DELIVERED',
-        createdAt: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
-      }));
-
-      setLogs((prev) => [...newEntries, ...prev]);
-      setDispatchResult(`✓ Automated attendance warning notices dispatched to ${filteredDefaulters.length} students & parent email accounts.`);
-    } catch {
-      // Simulate locally if offline
-      const newEntries: EmailLogItem[] = filteredDefaulters.map((s, idx) => ({
-        id: Date.now() + idx,
-        recipientEmail: s.email,
-        recipientName: s.name,
-        rollNo: s.rollNo,
-        subjectCode,
-        subjectName,
-        attendancePercent: s.percentage,
-        classesAttended: s.present,
-        totalClasses: s.totalClasses,
-        senderName: 'Faculty & Proctor Cell',
-        status: 'DELIVERED (SIMULATED)',
-        createdAt: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
-      }));
-
-      setLogs((prev) => [...newEntries, ...prev]);
-      setDispatchResult(`✓ Simulated dispatch: warning notices prepared for ${filteredDefaulters.length} students & guardians.`);
+      setLogs((prev) => [...(data.data?.logs ?? []), ...prev]);
+      setDispatchResult(data.data?.message || 'Notification request recorded.');
+    } catch (error: any) {
+      setDispatchResult(error.response?.data?.error?.message || 'Email delivery is not configured. No messages were sent.');
     } finally {
       setIsDispatching(false);
     }
@@ -173,7 +100,7 @@ export default function DefaulterEmailManager({
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1rem' }}>
         <div>
           <h3 style={{ fontSize: '1.15rem', display: 'flex', alignItems: 'center', gap: '0.4rem', margin: 0 }}>
-            <span>📧</span> Automated Defaulter Warning Email Dispatcher
+             Automated Defaulter Warning Email Dispatcher
           </h3>
           <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', margin: '0.2rem 0 0 0' }}>
             Batch alert students & parents when attendance drops below threshold (Inspired by AttendanceAppWithEmail)
@@ -186,7 +113,7 @@ export default function DefaulterEmailManager({
           className="btn btn--primary btn--sm"
           style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 700 }}
         >
-          {isDispatching ? 'Dispatching...' : `📤 Send Warning to ${filteredDefaulters.length} Defaulters`}
+          {isDispatching ? 'Dispatching...' : ` Send Warning to ${filteredDefaulters.length} Defaulters`}
         </button>
       </div>
 
@@ -316,7 +243,7 @@ export default function DefaulterEmailManager({
       {/* Sent Email Audit Log History */}
       <div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-          <strong style={{ fontSize: '0.9rem' }}>📜 Sent Email Audit History ({logs.length} logged notices)</strong>
+          <strong style={{ fontSize: '0.9rem' }}> Sent Email Audit History ({logs.length} logged notices)</strong>
           <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)' }}>Auto-recorded in sent_email_details</span>
         </div>
 
