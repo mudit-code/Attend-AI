@@ -17,11 +17,39 @@ interface RegistrationSection {
   };
 }
 
-const COLLEGE_BRANCHES: { id: string; name: string }[] = [];
-const ACADEMIC_YEARS: string[] = [];
-const ACADEMIC_SECTIONS: string[] = [];
-const TEACHER_DESIGNATIONS: string[] = [];
-const ADMIN_ROLE_TYPES: string[] = [];
+const COLLEGE_BRANCHES: { id: string; name: string }[] = [
+  { id: 'cs', name: 'Computer Science & Engineering' },
+  { id: 'it', name: 'Information Technology' },
+  { id: 'ece', name: 'Electronics & Communication' },
+  { id: 'me', name: 'Mechanical Engineering' },
+  { id: 'ce', name: 'Civil Engineering' },
+];
+const ACADEMIC_YEARS: string[] = ['1st Year', '2nd Year', '3rd Year', '4th Year'];
+const ACADEMIC_SECTIONS: string[] = [
+  '3rd Year A',
+  '3rd Year B',
+  '2nd Year A',
+  '2nd Year B',
+  '1st Year A',
+  '1st Year B',
+  '4th Year A',
+  '4th Year B',
+];
+const TEACHER_DESIGNATIONS: string[] = [
+  'Assistant Professor',
+  'Associate Professor',
+  'Professor',
+  'Head of Department (HOD)',
+  'Lecturer',
+  'Lab Instructor',
+];
+const ADMIN_ROLE_TYPES: string[] = [
+  'Super Administrator',
+  'Academic Registrar',
+  'Examination In-charge',
+  'Department Administrator',
+  'System Coordinator',
+];
 
 interface RegistrationDepartment {
   id: number;
@@ -56,16 +84,16 @@ export default function LoginPage() {
   const [sectionsLoading, setSectionsLoading] = useState(true);
   const [sectionsLoadError, setSectionsLoadError] = useState('');
   const [employeeCode, setEmployeeCode] = useState('');
-  const [departments] = useState<RegistrationDepartment[]>([]);
+  const [departments, setDepartments] = useState<RegistrationDepartment[]>([]);
   const [departmentId, setDepartmentId] = useState<number | ''>('');
-  const [departmentsLoading] = useState(false);
-  const [departmentLoadError] = useState('');
-  const [designation, setDesignation] = useState('');
+  const [departmentsLoading, setDepartmentsLoading] = useState(true);
+  const [departmentLoadError, setDepartmentLoadError] = useState('');
+  const [designation, setDesignation] = useState(TEACHER_DESIGNATIONS[0]);
   const [isClassTeacher, setIsClassTeacher] = useState(false);
-  const [classTeacherSection, setClassTeacherSection] = useState('');
+  const [classTeacherSection, setClassTeacherSection] = useState(ACADEMIC_SECTIONS[0]);
   const [adminCode, setAdminCode] = useState('');
-  const [adminBranch, setAdminBranch] = useState('');
-  const [adminRoleType, setAdminRoleType] = useState('');
+  const [adminBranch, setAdminBranch] = useState(COLLEGE_BRANCHES[0].name);
+  const [adminRoleType, setAdminRoleType] = useState(ADMIN_ROLE_TYPES[0]);
 
   // OAuth Modal state
   const [oauthModalOpen, setOauthModalOpen] = useState(false);
@@ -92,7 +120,10 @@ export default function LoginPage() {
     api.get<{ data: RegistrationSection[] }>('/auth/sections')
       .then(({ data }) => {
         if (cancelled) return;
-        setSections(data.data);
+        setSections(data.data || []);
+        if (data.data?.length && !sectionId) {
+          setSectionId(data.data[0].id);
+        }
       })
       .catch((err: any) => {
         if (cancelled) return;
@@ -102,6 +133,23 @@ export default function LoginPage() {
       })
       .finally(() => {
         if (!cancelled) setSectionsLoading(false);
+      });
+
+    api.get<{ data: RegistrationDepartment[] }>('/auth/departments')
+      .then(({ data }) => {
+        if (cancelled) return;
+        const depts = data.data || [];
+        setDepartments(depts);
+        if (depts.length > 0 && !departmentId) {
+          setDepartmentId(depts[0].id);
+        }
+      })
+      .catch((err: any) => {
+        if (cancelled) return;
+        setDepartmentLoadError(err.response?.data?.error?.message || 'Could not load departments.');
+      })
+      .finally(() => {
+        if (!cancelled) setDepartmentsLoading(false);
       });
 
     return () => {
@@ -172,31 +220,50 @@ export default function LoginPage() {
       setError('Passwords do not match.');
       return;
     }
-    if (selectedRole !== 'STUDENT') {
-      setError('Teacher and administrator accounts are created by an administrator.');
-      return;
-    }
-    if (!rollNo.trim() || !sectionId) {
-      setError('Enter your official roll number and select your class.');
-      return;
-    }
-    if (sectionsLoading || sectionsLoadError || sections.length === 0) {
-      setError(sectionsLoadError || 'No classes are currently available for student registration.');
-      return;
+
+    let targetRoute = '/student';
+    const payload: any = {
+      name,
+      email: regEmail,
+      password: regPassword,
+      role: selectedRole,
+      phone: phone || undefined,
+    };
+
+    if (selectedRole === 'STUDENT') {
+      if (!rollNo.trim() || !sectionId) {
+        setError('Enter your official roll number and select your class.');
+        return;
+      }
+      if (sectionsLoading || sectionsLoadError || sections.length === 0) {
+        setError(sectionsLoadError || 'No classes are currently available for student registration.');
+        return;
+      }
+      payload.rollNo = rollNo.trim();
+      payload.sectionId = sectionId;
+      targetRoute = '/student';
+    } else if (selectedRole === 'TEACHER') {
+      if (!employeeCode.trim()) {
+        setError('Please enter your faculty employee code.');
+        return;
+      }
+      payload.employeeCode = employeeCode.trim();
+      payload.departmentId = departmentId || (departments[0]?.id ?? 1);
+      payload.designation = designation;
+      payload.isClassTeacher = isClassTeacher;
+      targetRoute = '/teacher';
+    } else if (selectedRole === 'ADMIN') {
+      if (!adminCode.trim()) {
+        setError('Please enter the administrator passcode.');
+        return;
+      }
+      payload.employeeCode = employeeCode.trim() || 'ADM-' + Date.now().toString().slice(-4);
+      payload.adminPasscode = adminCode.trim();
+      targetRoute = '/admin';
     }
 
     setLoading(true);
     try {
-      const payload = {
-        name,
-        email: regEmail,
-        password: regPassword,
-        role: 'STUDENT',
-        phone: phone || undefined,
-        rollNo: rollNo.trim(),
-        sectionId,
-      };
-
       const { data } = await api.post('/auth/register', payload);
 
       setToken(data.accessToken);
@@ -210,7 +277,7 @@ export default function LoginPage() {
       });
 
       setSuccessMsg('Account created successfully! Loading your dashboard...');
-      setTimeout(() => navigate('/student'), 500);
+      setTimeout(() => navigate(targetRoute), 600);
     } catch (err: any) {
       setError(err.response?.data?.error?.message || 'Registration failed. Check that the backend is running and try again.');
     } finally {
@@ -233,7 +300,13 @@ export default function LoginPage() {
 
           <div className="auth-story-heading">
             <h1>
-              {authMode === 'LOGIN' ? 'Welcome to your campus portal' : 'Create your student account'}
+              {authMode === 'LOGIN'
+                ? 'Welcome to your campus portal'
+                : selectedRole === 'STUDENT'
+                  ? 'Create your student account'
+                  : selectedRole === 'TEACHER'
+                    ? 'Create your faculty account'
+                    : 'Create your administrator account'}
             </h1>
             <p>
               {authMode === 'LOGIN'
@@ -289,7 +362,6 @@ export default function LoginPage() {
               setAuthMode('REGISTER');
               setError('');
               setSuccessMsg('');
-              handleSelectRole('STUDENT');
             }}
             id="tab-register"
             style={{
@@ -342,7 +414,6 @@ export default function LoginPage() {
                   type="button"
                   id={`role-btn-${role.toLowerCase()}`}
                   onClick={() => handleSelectRole(role)}
-                  disabled={authMode === 'REGISTER' && role !== 'STUDENT'}
                   className="auth-role-option"
                   aria-pressed={active}
                 >
@@ -352,6 +423,11 @@ export default function LoginPage() {
               );
             })}
           </div>
+          {authMode === 'REGISTER' && (
+            <p style={{ fontSize: '0.73rem', color: 'var(--color-text-muted)', marginTop: '0.45rem', marginBottom: 0, lineHeight: 1.4 }}>
+              Registering for: <strong>{selectedRole === 'STUDENT' ? 'Student Portal' : selectedRole === 'TEACHER' ? 'Faculty Portal' : 'Administrator Cell'}</strong>
+            </p>
+          )}
         </div>
 
         {/* Error Alert */}
@@ -1014,7 +1090,6 @@ export default function LoginPage() {
                 type="button"
                 onClick={() => {
                   setAuthMode('REGISTER');
-                  handleSelectRole('STUDENT');
                 }}
                 style={{
                   background: 'none',

@@ -24,6 +24,16 @@ router.get('/sections', async (_req: Request, res: Response, next: NextFunction)
   }
 });
 
+// GET /auth/departments
+router.get('/departments', async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const data = await authService.listRegistrationDepartments();
+    res.json({ data });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // POST /auth/login
 router.post('/login', validate(loginSchema), async (req: Request, res: Response): Promise<void> => {
   try {

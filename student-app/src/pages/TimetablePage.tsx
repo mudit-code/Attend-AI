@@ -46,11 +46,11 @@ export default function TimetablePage() {
     <div style={{ padding: '16px', maxWidth: '600px', margin: '0 auto', width: '100%', paddingBottom: '90px' }}>
       {/* Title Header */}
       <div style={{ marginBottom: '18px' }}>
-        <h1 style={{ fontSize: '20px', fontWeight: '800', color: '#FFFFFF', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Calendar size={22} color="#3B82F6" />
+        <h1 style={{ fontSize: '20px', fontWeight: '800', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Calendar size={22} color="var(--color-accent)" />
           <span>{dayName}'s Schedule</span>
         </h1>
-        <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', marginTop: '2px' }}>
+        <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', marginTop: '2px', fontWeight: 600 }}>
           Live schedule for your registered academic section
         </p>
       </div>
@@ -66,9 +66,11 @@ export default function TimetablePage() {
           gap: '10px',
           padding: '14px',
           borderRadius: 'var(--radius-md)',
-          background: 'rgba(239, 68, 68, 0.12)',
-          color: '#FCA5A5',
-          fontSize: '13px'
+          background: 'var(--color-danger-light)',
+          color: 'var(--color-danger-text)',
+          border: '1px solid #FECACA',
+          fontSize: '13px',
+          fontWeight: 600
         }}>
           <AlertCircle size={18} />
           <span>{error}</span>
@@ -77,13 +79,14 @@ export default function TimetablePage() {
         <div style={{
           padding: '40px 20px',
           textAlign: 'center',
-          background: 'var(--color-surface)',
-          borderRadius: 'var(--radius-lg)',
+          background: '#FFFFFF',
+          borderRadius: 'var(--radius-xl)',
           border: '1px solid var(--color-border)',
+          boxShadow: 'var(--shadow-card)',
           color: 'var(--color-text-muted)'
         }}>
-          <Calendar size={40} style={{ opacity: 0.3, margin: '0 auto 12px' }} />
-          <p style={{ fontSize: '14px', fontWeight: '600' }}>No lectures scheduled for today</p>
+          <Calendar size={40} style={{ opacity: 0.3, margin: '0 auto 12px', color: 'var(--color-primary)' }} />
+          <p style={{ fontSize: '14px', fontWeight: '700', color: 'var(--color-primary)' }}>No lectures scheduled for today</p>
           <p style={{ fontSize: '12px', marginTop: '4px' }}>Enjoy your day off or check upcoming assignments!</p>
         </div>
       ) : (
@@ -96,11 +99,11 @@ export default function TimetablePage() {
               <div
                 key={slot.period}
                 style={{
-                  background: isCurrent ? 'rgba(59, 130, 246, 0.12)' : 'var(--color-surface)',
-                  border: `1px solid ${isCurrent ? '#3B82F6' : 'var(--color-border)'}`,
-                  borderRadius: 'var(--radius-lg)',
+                  background: isCurrent ? '#FFFBEB' : '#FFFFFF',
+                  border: `1px solid ${isCurrent ? '#F59E0B' : 'var(--color-border)'}`,
+                  borderRadius: 'var(--radius-xl)',
                   padding: '16px',
-                  boxShadow: isCurrent ? 'var(--shadow-glow)' : 'var(--shadow-card)',
+                  boxShadow: 'var(--shadow-card)',
                   position: 'relative',
                   overflow: 'hidden'
                 }}
@@ -113,9 +116,9 @@ export default function TimetablePage() {
                     right: '12px',
                     fontSize: '10px',
                     fontWeight: '800',
-                    padding: '3px 8px',
+                    padding: '3px 9px',
                     borderRadius: 'var(--radius-pill)',
-                    background: '#3B82F6',
+                    background: 'var(--color-accent)',
                     color: '#FFFFFF'
                   }}>
                     LIVE NOW
@@ -128,11 +131,11 @@ export default function TimetablePage() {
                     right: '12px',
                     fontSize: '10px',
                     fontWeight: '800',
-                    padding: '3px 8px',
+                    padding: '3px 9px',
                     borderRadius: 'var(--radius-pill)',
-                    background: 'rgba(245, 158, 11, 0.2)',
-                    color: '#FBBF24',
-                    border: '1px solid rgba(245, 158, 11, 0.4)'
+                    background: 'var(--color-surface-hover)',
+                    color: 'var(--color-primary)',
+                    border: '1px solid var(--color-border)'
                   }}>
                     UP NEXT
                   </div>
@@ -140,19 +143,19 @@ export default function TimetablePage() {
 
                 {/* Period & Time */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '8px' }}>
-                  <Clock size={14} color="#60A5FA" />
-                  <span style={{ fontWeight: '700', color: '#93C5FD' }}>Period {slot.period}</span>
+                  <Clock size={14} color="var(--color-accent-text)" />
+                  <span style={{ fontWeight: '800', color: 'var(--color-accent-text)' }}>Period {slot.period}</span>
                   <span>•</span>
                   <span>{slot.startTime} - {slot.endTime}</span>
                 </div>
 
                 {/* Subject Name & Code */}
-                <h3 style={{ fontSize: '15px', fontWeight: '800', color: '#FFFFFF', marginBottom: '8px' }}>
+                <h3 style={{ fontSize: '15px', fontWeight: '800', color: 'var(--color-primary)', marginBottom: '8px' }}>
                   {slot.subject?.name || 'Class Lecture'} {slot.subject?.code ? `(${slot.subject.code})` : ''}
                 </h3>
 
                 {/* Instructor & Room */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontSize: '12px', color: 'var(--color-text-muted)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontSize: '12px', color: 'var(--color-text-muted)', fontWeight: 600 }}>
                   {slot.teacher?.name && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                       <User size={13} />

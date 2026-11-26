@@ -99,10 +99,11 @@ export default function CampusMapWidget() {
 
   return (
     <div style={{
-      margin: '0 16px 16px',
-      background: 'var(--color-surface)',
-      borderRadius: '16px',
+      margin: '0 0 16px',
+      background: '#FFFFFF',
+      borderRadius: 'var(--radius-xl)',
       border: '1px solid var(--color-border)',
+      boxShadow: 'var(--shadow-card)',
       overflow: 'hidden',
     }}>
       {/* Toggle Header */}
@@ -115,8 +116,8 @@ export default function CampusMapWidget() {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <MapPin size={16} color="#3B82F6" />
-          <span style={{ fontSize: '14px', fontWeight: 700 }}>Campus Map</span>
+          <MapPin size={16} color="var(--color-accent)" />
+          <span style={{ fontSize: '14px', fontWeight: 800, color: 'var(--color-primary)' }}>Campus Map</span>
           {/* Inline status badge when collapsed */}
           {!expanded && (status === 'on_campus' || status === 'off_campus') && (
             <span style={{

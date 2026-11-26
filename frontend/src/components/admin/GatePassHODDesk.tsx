@@ -3,7 +3,7 @@ import {
   CheckCircle, XCircle, Clock, User, MapPin, ShieldCheck,
   RefreshCw, AlertCircle, MessageSquare, LogIn, FileText, ExternalLink
 } from 'lucide-react';
-import api from '../../lib/api';
+import { api } from '../../lib/api';
 
 interface GatePass {
   id: number;

@@ -94,4 +94,10 @@ export default defineConfig({
       },
     },
   },
+  optimizeDeps: {
+    include: ['react-router', 'react-router-dom'],
+  },
+  build: {
+    cssMinify: 'esbuild',
+  },
 });

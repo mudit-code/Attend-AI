@@ -129,27 +129,27 @@ export default function FaceCheckinModal({
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 100,
-      background: 'rgba(0, 0, 0, 0.88)', backdropFilter: 'blur(8px)',
+      background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(8px)',
       display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px'
     }}>
       <div style={{
-        background: '#131927', border: '1px solid #1E293B', borderRadius: '24px',
-        maxWidth: '400px', width: '100%', overflow: 'hidden', color: '#FFFFFF',
-        boxShadow: '0 20px 40px rgba(0,0,0,0.6)'
+        background: '#FFFFFF', border: '1px solid var(--color-border)', borderRadius: '24px',
+        maxWidth: '400px', width: '100%', overflow: 'hidden', color: 'var(--color-primary)',
+        boxShadow: 'var(--shadow-float)'
       }}>
         {/* Header */}
         <div style={{
-          padding: '16px 20px', borderBottom: '1px solid #1E293B',
+          padding: '16px 20px', borderBottom: '1px solid var(--color-border)',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between'
         }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Sparkles size={18} color="#10B981" />
-              <span style={{ fontWeight: 700, fontSize: '15px' }}>Face Check-in</span>
+              <Sparkles size={18} color="var(--color-accent)" />
+              <span style={{ fontWeight: 800, fontSize: '15px', color: 'var(--color-primary)' }}>Face Check-in</span>
             </div>
-            <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#94A3B8' }}>{subjectName}</p>
+            <p style={{ margin: '2px 0 0', fontSize: '12px', color: 'var(--color-text-muted)', fontWeight: 600 }}>{subjectName}</p>
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#64748B', cursor: 'pointer' }}>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--color-text-muted)', cursor: 'pointer' }}>
             <X size={20} />
           </button>
         </div>
@@ -186,8 +186,8 @@ export default function FaceCheckinModal({
                 )}
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '12px', color: '#94A3B8', marginBottom: '16px' }}>
-                <MapPin size={13} color="#10B981" />
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '16px', fontWeight: 600 }}>
+                <MapPin size={13} color="var(--color-success)" />
                 <span>GPS Geofence + Biometric Verified</span>
               </div>
 
@@ -195,10 +195,11 @@ export default function FaceCheckinModal({
                 onClick={verifyAndCheckIn}
                 disabled={step === 'verifying'}
                 style={{
-                  width: '100%', padding: '14px', borderRadius: '12px',
-                  background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
-                  border: 'none', color: '#FFFFFF', fontWeight: 700, fontSize: '14px',
-                  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
+                  width: '100%', padding: '13px', borderRadius: 'var(--radius-pill)',
+                  background: 'var(--color-primary)',
+                  border: 'none', color: '#FFFFFF', fontWeight: 800, fontSize: '14px',
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                  boxShadow: '0 4px 14px rgba(15, 23, 42, 0.25)'
                 }}
               >
                 {step === 'verifying' ? (
@@ -214,10 +215,10 @@ export default function FaceCheckinModal({
               <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#10B981', margin: '0 0 6px' }}>
                 Attendance Marked!
               </h3>
-              <p style={{ fontSize: '14px', fontWeight: 600, color: '#FFFFFF', marginBottom: '4px' }}>
+              <p style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-primary)', marginBottom: '4px' }}>
                 {resultData?.studentName} ({resultData?.rollNo})
               </p>
-              <p style={{ fontSize: '12px', color: '#94A3B8' }}>
+              <p style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
                 Status: <strong>Present (FACE ID ✅)</strong> · Confidence: {resultData?.confidence}%
               </p>
             </div>
@@ -227,15 +228,15 @@ export default function FaceCheckinModal({
               <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#EF4444', margin: '0 0 6px' }}>
                 Verification Failed
               </h3>
-              <p style={{ fontSize: '13px', color: '#94A3B8', marginBottom: '16px' }}>
+              <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', marginBottom: '16px' }}>
                 {errorMsg}
               </p>
               <button
                 onClick={() => { setStep('camera'); startCamera(); }}
                 style={{
-                  padding: '10px 20px', borderRadius: '10px',
-                  background: '#1E293B', border: '1px solid #334155', color: '#FFFFFF',
-                  fontWeight: 600, cursor: 'pointer'
+                  padding: '10px 24px', borderRadius: 'var(--radius-pill)',
+                  background: 'var(--color-surface-hover)', border: '1px solid var(--color-border)', color: 'var(--color-primary)',
+                  fontWeight: 700, cursor: 'pointer'
                 }}
               >
                 Try Again

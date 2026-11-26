@@ -44,18 +44,18 @@ export default function ProfilePage() {
     <div style={{ padding: '16px', maxWidth: '600px', margin: '0 auto', width: '100%', paddingBottom: '90px' }}>
       {/* Title */}
       <div style={{ marginBottom: '18px' }}>
-        <h1 style={{ fontSize: '20px', fontWeight: '800', color: '#FFFFFF', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <User size={22} color="#3B82F6" />
+        <h1 style={{ fontSize: '20px', fontWeight: '800', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <User size={22} color="var(--color-accent)" />
           <span>Student Profile</span>
         </h1>
-        <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', marginTop: '2px' }}>
+        <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', marginTop: '2px', fontWeight: 600 }}>
           Institutional identity and registered device details
         </p>
       </div>
 
       {/* ID Card Box */}
       <div style={{
-        background: 'linear-gradient(135deg, #1E2638 0%, #131927 100%)',
+        background: '#FFFFFF',
         borderRadius: 'var(--radius-xl)',
         border: '1px solid var(--color-border)',
         boxShadow: 'var(--shadow-card)',
@@ -64,91 +64,81 @@ export default function ProfilePage() {
         position: 'relative',
         overflow: 'hidden'
       }}>
-        {/* Glow accent */}
-        <div style={{
-          position: 'absolute',
-          top: '-30px',
-          right: '-30px',
-          width: '120px',
-          height: '120px',
-          borderRadius: '50%',
-          background: 'rgba(59, 130, 246, 0.15)',
-          filter: 'blur(30px)'
-        }} />
-
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '20px' }}>
           <div style={{
             width: '54px',
             height: '54px',
             borderRadius: '16px',
-            background: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)',
+            background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             fontSize: '22px',
             fontWeight: '800',
-            color: '#FFFFFF'
+            color: '#F59E0B',
+            boxShadow: '0 4px 12px rgba(15, 23, 42, 0.2)'
           }}>
             {user?.name ? user.name.charAt(0).toUpperCase() : 'S'}
           </div>
           <div>
-            <h2 style={{ fontSize: '18px', fontWeight: '800', color: '#FFFFFF' }}>
+            <h2 style={{ fontSize: '18px', fontWeight: '800', color: 'var(--color-primary)' }}>
               {user?.name || 'Enrolled Student'}
             </h2>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
               <span style={{
                 fontSize: '11px',
-                fontWeight: '700',
+                fontWeight: '800',
                 padding: '2px 8px',
                 borderRadius: 'var(--radius-pill)',
-                background: 'rgba(16, 185, 129, 0.15)',
-                color: '#34D399',
-                border: '1px solid rgba(16, 185, 129, 0.3)'
+                background: 'var(--color-success-light)',
+                color: 'var(--color-success-text)',
+                border: '1px solid #A7F3D0'
               }}>
                 ACTIVE STUDENT
               </span>
-              <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
-                • Roll: <strong style={{ color: '#FFFFFF' }}>{user?.student?.rollNo || 'N/A'}</strong>
+              <span style={{ fontSize: '12px', color: 'var(--color-text-muted)', fontWeight: 600 }}>
+                • Roll: <strong style={{ color: 'var(--color-primary)' }}>{user?.student?.rollNo || 'N/A'}</strong>
               </span>
             </div>
           </div>
         </div>
 
         {/* Details Grid */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', borderTop: '1px solid var(--color-border)', paddingTop: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px' }}>
             <Mail size={16} color="var(--color-text-faint)" />
-            <span style={{ color: 'var(--color-text-muted)' }}>Email:</span>
-            <span style={{ color: '#FFFFFF', fontWeight: '600' }}>{user?.email}</span>
+            <span style={{ color: 'var(--color-text-muted)', fontWeight: 600 }}>Email:</span>
+            <span style={{ color: 'var(--color-primary)', fontWeight: '700' }}>{user?.email}</span>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px' }}>
             <Building2 size={16} color="var(--color-text-faint)" />
-            <span style={{ color: 'var(--color-text-muted)' }}>Section:</span>
-            <span style={{ color: '#93C5FD', fontWeight: '700' }}>
+            <span style={{ color: 'var(--color-text-muted)', fontWeight: 600 }}>Section:</span>
+            <span style={{ color: 'var(--color-accent-text)', fontWeight: '800' }}>
               {user?.student?.section?.name || 'Assigned Section'}
             </span>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px' }}>
             <Hash size={16} color="var(--color-text-faint)" />
-            <span style={{ color: 'var(--color-text-muted)' }}>System ID:</span>
-            <span style={{ color: '#FFFFFF', fontWeight: '600' }}>#{user?.id}</span>
+            <span style={{ color: 'var(--color-text-muted)', fontWeight: 600 }}>System ID:</span>
+            <span style={{ color: 'var(--color-primary)', fontWeight: '700' }}>#{user?.id}</span>
           </div>
         </div>
       </div>
 
       {/* Device Registration & Security Card */}
       <div style={{
-        background: 'var(--color-surface)',
-        borderRadius: 'var(--radius-lg)',
+        background: '#FFFFFF',
+        borderRadius: 'var(--radius-xl)',
         border: '1px solid var(--color-border)',
+        boxShadow: 'var(--shadow-card)',
         padding: '18px',
         marginBottom: '20px'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-          <Smartphone size={18} color="#10B981" />
-          <h3 style={{ fontSize: '14px', fontWeight: '700', color: '#FFFFFF' }}>
+          <Smartphone size={18} color="var(--color-success)" />
+          <h3 style={{ fontSize: '14px', fontWeight: '800', color: 'var(--color-primary)' }}>
             Hardware Device Lock
           </h3>
         </div>
@@ -162,7 +152,8 @@ export default function ProfilePage() {
           border: '1px solid var(--color-border)',
           fontFamily: 'monospace',
           fontSize: '11px',
-          color: '#93C5FD'
+          fontWeight: 700,
+          color: 'var(--color-primary)'
         }}>
           {deviceId}
         </div>
@@ -170,23 +161,25 @@ export default function ProfilePage() {
 
       {/* Biometric Face ID Card */}
       <div style={{
-        background: 'var(--color-surface)',
-        borderRadius: 'var(--radius-lg)',
+        background: '#FFFFFF',
+        borderRadius: 'var(--radius-xl)',
         border: '1px solid var(--color-border)',
+        boxShadow: 'var(--shadow-card)',
         padding: '18px',
         marginBottom: '20px'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Sparkles size={18} color="#8B5CF6" />
-            <h3 style={{ fontSize: '14px', fontWeight: '700', color: '#FFFFFF' }}>
+            <Sparkles size={18} color="var(--color-accent)" />
+            <h3 style={{ fontSize: '14px', fontWeight: '800', color: 'var(--color-primary)' }}>
               Biometric Face ID
             </h3>
           </div>
           <span style={{
-            fontSize: '11px', fontWeight: '700', padding: '3px 8px', borderRadius: '12px',
-            background: isFaceRegistered ? 'rgba(16,185,129,0.15)' : 'rgba(245,158,11,0.15)',
-            color: isFaceRegistered ? '#10B981' : '#F59E0B'
+            fontSize: '11px', fontWeight: '800', padding: '3px 8px', borderRadius: '12px',
+            background: isFaceRegistered ? 'var(--color-success-light)' : 'var(--color-warning-light)',
+            color: isFaceRegistered ? 'var(--color-success-text)' : 'var(--color-warning-text)',
+            border: `1px solid ${isFaceRegistered ? '#A7F3D0' : '#FDE68A'}`
           }}>
             {isFaceRegistered ? 'Registered ✅' : 'Setup Required ⚠️'}
           </span>
@@ -199,14 +192,15 @@ export default function ProfilePage() {
         <button
           onClick={() => setIsFaceModalOpen(true)}
           style={{
-            padding: '8px 16px',
-            borderRadius: 'var(--radius-md)',
-            background: isFaceRegistered ? 'transparent' : 'linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%)',
-            border: isFaceRegistered ? '1px solid #8B5CF6' : 'none',
-            color: '#FFFFFF',
+            padding: '9px 18px',
+            borderRadius: 'var(--radius-pill)',
+            background: isFaceRegistered ? '#FFFFFF' : 'var(--color-primary)',
+            border: isFaceRegistered ? '1px solid var(--color-border)' : 'none',
+            color: isFaceRegistered ? 'var(--color-primary)' : '#FFFFFF',
             fontSize: '12px',
-            fontWeight: '700',
-            cursor: 'pointer'
+            fontWeight: '800',
+            cursor: 'pointer',
+            boxShadow: isFaceRegistered ? 'none' : '0 2px 8px rgba(15, 23, 42, 0.2)'
           }}
         >
           {isFaceRegistered ? 'Update Face ID' : 'Register Face ID Now'}
@@ -215,20 +209,21 @@ export default function ProfilePage() {
 
       {/* No Dues & Clearances */}
       <div style={{
-        background: 'var(--color-surface)',
-        borderRadius: 'var(--radius-lg)',
+        background: '#FFFFFF',
+        borderRadius: 'var(--radius-xl)',
         border: '1px solid var(--color-border)',
+        boxShadow: 'var(--shadow-card)',
         padding: '18px',
         marginBottom: '24px'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-          <ShieldCheck size={18} color="#3B82F6" />
-          <h3 style={{ fontSize: '14px', fontWeight: '700', color: '#FFFFFF' }}>
+          <ShieldCheck size={18} color="var(--color-primary)" />
+          <h3 style={{ fontSize: '14px', fontWeight: '800', color: 'var(--color-primary)' }}>
             Clearances & Standing
           </h3>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: '#A7F3D0' }}>
-          <CheckCircle2 size={16} color="#10B981" />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: 'var(--color-success-text)', fontWeight: 600 }}>
+          <CheckCircle2 size={16} color="var(--color-success)" />
           <span>Institutional clearance valid for the current semester.</span>
         </div>
       </div>
@@ -242,13 +237,13 @@ export default function ProfilePage() {
           alignItems: 'center',
           justifyContent: 'center',
           gap: '8px',
-          padding: '14px',
-          borderRadius: 'var(--radius-md)',
-          background: 'rgba(239, 68, 68, 0.12)',
-          border: '1px solid rgba(239, 68, 68, 0.3)',
-          color: '#F87171',
+          padding: '13px',
+          borderRadius: 'var(--radius-pill)',
+          background: 'var(--color-danger-light)',
+          border: '1px solid #FECACA',
+          color: 'var(--color-danger-text)',
           fontSize: '14px',
-          fontWeight: '700',
+          fontWeight: '800',
           cursor: 'pointer'
         }}
       >

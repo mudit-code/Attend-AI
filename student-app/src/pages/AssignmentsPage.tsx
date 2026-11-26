@@ -68,10 +68,8 @@ export default function AssignmentsPage() {
     }
 
     setSubmitting(true);
-    setSubmitError(null);
-
     try {
-      await api.put(`/assignments/${activeAssignment.id}/submission`, {
+      await api.post(`/assignments/${activeAssignment.id}/submit`, {
         driveUrl: driveUrl.trim(),
       });
 
@@ -92,11 +90,11 @@ export default function AssignmentsPage() {
     <div style={{ padding: '16px', maxWidth: '600px', margin: '0 auto', width: '100%', paddingBottom: '90px' }}>
       {/* Title */}
       <div style={{ marginBottom: '18px' }}>
-        <h1 style={{ fontSize: '20px', fontWeight: '800', color: '#FFFFFF', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <FileText size={22} color="#3B82F6" />
+        <h1 style={{ fontSize: '20px', fontWeight: '800', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <FileText size={22} color="var(--color-accent)" />
           <span>Assignments & Submissions</span>
         </h1>
-        <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', marginTop: '2px' }}>
+        <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', marginTop: '2px', fontWeight: 600 }}>
           Submit Google Drive PDF links and track marks
         </p>
       </div>
@@ -112,9 +110,11 @@ export default function AssignmentsPage() {
           gap: '10px',
           padding: '14px',
           borderRadius: 'var(--radius-md)',
-          background: 'rgba(239, 68, 68, 0.12)',
-          color: '#FCA5A5',
-          fontSize: '13px'
+          background: 'var(--color-danger-light)',
+          color: 'var(--color-danger-text)',
+          border: '1px solid #FECACA',
+          fontSize: '13px',
+          fontWeight: 600
         }}>
           <AlertCircle size={18} />
           <span>{error}</span>
@@ -123,13 +123,14 @@ export default function AssignmentsPage() {
         <div style={{
           padding: '40px 20px',
           textAlign: 'center',
-          background: 'var(--color-surface)',
-          borderRadius: 'var(--radius-lg)',
+          background: '#FFFFFF',
+          borderRadius: 'var(--radius-xl)',
           border: '1px solid var(--color-border)',
+          boxShadow: 'var(--shadow-card)',
           color: 'var(--color-text-muted)'
         }}>
-          <FileText size={40} style={{ opacity: 0.3, margin: '0 auto 12px' }} />
-          <p style={{ fontSize: '14px', fontWeight: '600' }}>No pending assignments</p>
+          <FileText size={40} style={{ opacity: 0.3, margin: '0 auto 12px', color: 'var(--color-primary)' }} />
+          <p style={{ fontSize: '14px', fontWeight: '700', color: 'var(--color-primary)' }}>No pending assignments</p>
           <p style={{ fontSize: '12px', marginTop: '4px' }}>Great job! You are all caught up.</p>
         </div>
       ) : (
@@ -143,8 +144,8 @@ export default function AssignmentsPage() {
               <div
                 key={asg.id}
                 style={{
-                  background: 'var(--color-surface)',
-                  borderRadius: 'var(--radius-lg)',
+                  background: '#FFFFFF',
+                  borderRadius: 'var(--radius-xl)',
                   border: '1px solid var(--color-border)',
                   padding: '18px',
                   boxShadow: 'var(--shadow-card)'
@@ -152,24 +153,24 @@ export default function AssignmentsPage() {
               >
                 {/* Header: Subject & Status */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <span style={{ fontSize: '11px', fontWeight: '700', color: '#60A5FA', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
+                  <span style={{ fontSize: '11px', fontWeight: '800', color: 'var(--color-accent-text)', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
                     {asg.subject?.name} {asg.subject?.code ? `(${asg.subject.code})` : ''}
                   </span>
                   <span style={{
                     fontSize: '10px',
                     fontWeight: '800',
-                    padding: '3px 8px',
+                    padding: '3px 9px',
                     borderRadius: 'var(--radius-pill)',
-                    background: isGraded ? 'rgba(16, 185, 129, 0.15)' : isSubmitted ? 'rgba(59, 130, 246, 0.15)' : 'rgba(245, 158, 11, 0.15)',
-                    color: isGraded ? '#34D399' : isSubmitted ? '#60A5FA' : '#FBBF24',
-                    border: `1px solid ${isGraded ? 'rgba(16, 185, 129, 0.3)' : isSubmitted ? 'rgba(59, 130, 246, 0.3)' : 'rgba(245, 158, 11, 0.3)'}`
+                    background: isGraded ? 'var(--color-success-light)' : isSubmitted ? '#EFF6FF' : 'var(--color-warning-light)',
+                    color: isGraded ? 'var(--color-success-text)' : isSubmitted ? '#1E40AF' : 'var(--color-warning-text)',
+                    border: `1px solid ${isGraded ? '#A7F3D0' : isSubmitted ? '#BFDBFE' : '#FDE68A'}`
                   }}>
                     {isGraded ? 'GRADED' : isSubmitted ? 'SUBMITTED' : 'PENDING'}
                   </span>
                 </div>
 
                 {/* Assignment Title */}
-                <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#FFFFFF', marginBottom: '6px' }}>
+                <h3 style={{ fontSize: '16px', fontWeight: '800', color: 'var(--color-primary)', marginBottom: '6px' }}>
                   {asg.title}
                 </h3>
 
@@ -181,8 +182,8 @@ export default function AssignmentsPage() {
                 )}
 
                 {/* Faculty & Max Marks */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontSize: '12px', color: 'var(--color-text-faint)', marginBottom: '14px' }}>
-                  <span>Max Score: <strong style={{ color: '#FFFFFF' }}>{asg.maxMarks}</strong></span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontSize: '12px', color: 'var(--color-text-faint)', marginBottom: '14px', fontWeight: 600 }}>
+                  <span>Max Score: <strong style={{ color: 'var(--color-primary)' }}>{asg.maxMarks}</strong></span>
                   {asg.dueAt && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                       <Clock size={12} />
@@ -199,17 +200,17 @@ export default function AssignmentsPage() {
                     justifyContent: 'space-between',
                     padding: '10px 14px',
                     borderRadius: 'var(--radius-md)',
-                    background: 'rgba(16, 185, 129, 0.1)',
-                    border: '1px solid rgba(16, 185, 129, 0.25)',
+                    background: 'var(--color-success-light)',
+                    border: '1px solid #A7F3D0',
                     marginBottom: '12px'
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <Award size={16} color="#10B981" />
-                      <span style={{ fontSize: '12px', color: '#A7F3D0' }}>
+                      <Award size={16} color="var(--color-success)" />
+                      <span style={{ fontSize: '12px', color: 'var(--color-success-text)', fontWeight: 600 }}>
                         Evaluated by {asg.teacher?.user?.name || 'Faculty'}
                       </span>
                     </div>
-                    <div style={{ fontSize: '14px', fontWeight: '900', color: '#10B981' }}>
+                    <div style={{ fontSize: '14px', fontWeight: '900', color: 'var(--color-success-text)' }}>
                       {submission.marks} / {asg.maxMarks}
                     </div>
                   </div>
@@ -226,18 +227,18 @@ export default function AssignmentsPage() {
                         display: 'flex',
                         alignItems: 'center',
                         gap: '5px',
-                        padding: '8px 12px',
-                        borderRadius: 'var(--radius-md)',
-                        background: 'var(--color-surface-2)',
+                        padding: '8px 14px',
+                        borderRadius: 'var(--radius-pill)',
+                        background: 'var(--color-surface-hover)',
                         border: '1px solid var(--color-border)',
-                        color: '#93C5FD',
+                        color: 'var(--color-primary)',
                         fontSize: '12px',
-                        fontWeight: '600',
+                        fontWeight: '700',
                         textDecoration: 'none'
                       }}
                     >
                       <ExternalLink size={14} />
-                      <span>View My PDF</span>
+                      <span>View PDF</span>
                     </a>
                   )}
 
@@ -249,14 +250,15 @@ export default function AssignmentsPage() {
                       alignItems: 'center',
                       justifyContent: 'center',
                       gap: '6px',
-                      padding: '9px 14px',
-                      borderRadius: 'var(--radius-md)',
-                      background: isSubmitted ? 'var(--color-surface-2)' : '#3B82F6',
-                      color: '#FFFFFF',
+                      padding: '9px 16px',
+                      borderRadius: 'var(--radius-pill)',
+                      background: isSubmitted ? 'var(--color-surface-hover)' : 'var(--color-primary)',
+                      color: isSubmitted ? 'var(--color-primary)' : '#FFFFFF',
                       border: isSubmitted ? '1px solid var(--color-border)' : 'none',
                       fontSize: '12px',
-                      fontWeight: '700',
-                      cursor: 'pointer'
+                      fontWeight: '800',
+                      cursor: 'pointer',
+                      boxShadow: isSubmitted ? 'none' : '0 2px 8px rgba(15, 23, 42, 0.2)'
                     }}
                   >
                     <Send size={13} />
@@ -275,8 +277,8 @@ export default function AssignmentsPage() {
           position: 'fixed',
           inset: 0,
           zIndex: 100,
-          background: 'rgba(0, 0, 0, 0.85)',
-          backdropFilter: 'blur(10px)',
+          background: 'rgba(15, 23, 42, 0.65)',
+          backdropFilter: 'blur(8px)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -285,13 +287,13 @@ export default function AssignmentsPage() {
           <div style={{
             width: '100%',
             maxWidth: '440px',
-            background: 'var(--color-surface)',
+            background: '#FFFFFF',
             borderRadius: 'var(--radius-xl)',
             border: '1px solid var(--color-border)',
             padding: '24px 20px',
-            boxShadow: 'var(--shadow-card)'
+            boxShadow: 'var(--shadow-float)'
           }}>
-            <h2 style={{ fontSize: '17px', fontWeight: '800', color: '#FFFFFF', marginBottom: '4px' }}>
+            <h2 style={{ fontSize: '17px', fontWeight: '800', color: 'var(--color-primary)', marginBottom: '4px' }}>
               Submit: {activeAssignment.title}
             </h2>
             <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '16px' }}>
@@ -302,9 +304,11 @@ export default function AssignmentsPage() {
               <div style={{
                 padding: '10px 12px',
                 borderRadius: 'var(--radius-md)',
-                background: 'rgba(239, 68, 68, 0.12)',
-                color: '#FCA5A5',
+                background: 'var(--color-danger-light)',
+                border: '1px solid #FECACA',
+                color: 'var(--color-danger-text)',
                 fontSize: '12px',
+                fontWeight: 600,
                 marginBottom: '12px'
               }}>
                 {submitError}
@@ -315,9 +319,11 @@ export default function AssignmentsPage() {
               <div style={{
                 padding: '10px 12px',
                 borderRadius: 'var(--radius-md)',
-                background: 'rgba(16, 185, 129, 0.15)',
-                color: '#6EE7B7',
+                background: 'var(--color-success-light)',
+                border: '1px solid #A7F3D0',
+                color: 'var(--color-success-text)',
                 fontSize: '12px',
+                fontWeight: 700,
                 marginBottom: '12px',
                 display: 'flex',
                 alignItems: 'center',
@@ -330,7 +336,7 @@ export default function AssignmentsPage() {
 
             <form onSubmit={handleSubmit}>
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: 'var(--color-text-muted)', marginBottom: '5px' }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: 'var(--color-text)', marginBottom: '5px' }}>
                   Google Drive PDF Link *
                 </label>
                 <input
@@ -343,9 +349,9 @@ export default function AssignmentsPage() {
                     width: '100%',
                     padding: '11px 12px',
                     borderRadius: 'var(--radius-md)',
-                    background: 'var(--color-surface-2)',
+                    background: '#F8FAFC',
                     border: '1px solid var(--color-border)',
-                    color: '#FFFFFF',
+                    color: 'var(--color-text)',
                     fontSize: '13px',
                     outline: 'none'
                   }}
@@ -359,12 +365,12 @@ export default function AssignmentsPage() {
                   style={{
                     flex: 1,
                     padding: '11px',
-                    borderRadius: 'var(--radius-md)',
-                    background: 'var(--color-surface-2)',
+                    borderRadius: 'var(--radius-pill)',
+                    background: 'var(--color-surface-hover)',
                     color: 'var(--color-text-muted)',
                     border: '1px solid var(--color-border)',
                     fontSize: '13px',
-                    fontWeight: '600',
+                    fontWeight: '700',
                     cursor: 'pointer'
                   }}
                 >
@@ -376,12 +382,12 @@ export default function AssignmentsPage() {
                   style={{
                     flex: 1,
                     padding: '11px',
-                    borderRadius: 'var(--radius-md)',
-                    background: '#3B82F6',
+                    borderRadius: 'var(--radius-pill)',
+                    background: 'var(--color-primary)',
                     color: '#FFFFFF',
                     border: 'none',
                     fontSize: '13px',
-                    fontWeight: '700',
+                    fontWeight: '800',
                     cursor: submitting ? 'not-allowed' : 'pointer'
                   }}
                 >

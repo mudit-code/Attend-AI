@@ -1,5 +1,5 @@
 import { useAuthStore } from '../stores/useAuthStore';
-import { GraduationCap, LogOut } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export default function Header() {
@@ -17,46 +17,53 @@ export default function Header() {
       position: 'sticky',
       top: 0,
       zIndex: 40,
-      background: 'rgba(19, 25, 39, 0.92)',
+      background: 'rgba(255, 255, 255, 0.94)',
       backdropFilter: 'blur(16px)',
+      WebkitBackdropFilter: 'blur(16px)',
       borderBottom: '1px solid var(--color-border)',
       padding: '12px 16px',
       display: 'flex',
       alignItems: 'center',
-      justifyContent: 'space-between'
+      justifyContent: 'space-between',
+      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.03)'
     }}>
       {/* Brand & Student Badge */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        {/* Trombone Amber Squircle Icon */}
         <div style={{
-          width: '38px',
-          height: '38px',
+          width: '36px',
+          height: '36px',
+          minWidth: '36px',
           borderRadius: '10px',
-          background: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)',
+          background: 'linear-gradient(135deg, #FBBF24 0%, #F59E0B 100%)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          boxShadow: '0 4px 12px rgba(59, 130, 246, 0.35)'
+          color: '#0F172A',
+          fontWeight: '900',
+          fontSize: '1.25rem',
+          boxShadow: '0 2px 8px rgba(245, 158, 11, 0.3)'
         }}>
-          <GraduationCap size={22} color="#FFFFFF" />
+          a
         </div>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ fontSize: '15px', fontWeight: '800', color: '#FFFFFF', letterSpacing: '-0.3px' }}>
-              Attend<span style={{ color: '#3B82F6' }}>AI</span>
+            <span style={{ fontSize: '15px', fontWeight: '800', color: 'var(--color-primary)', letterSpacing: '-0.3px' }}>
+              attend<span style={{ color: 'var(--color-accent)' }}>.ai</span>
             </span>
             <span style={{
               fontSize: '10px',
-              fontWeight: '700',
-              padding: '2px 6px',
+              fontWeight: '800',
+              padding: '2px 7px',
               borderRadius: 'var(--radius-pill)',
-              background: 'rgba(59, 130, 246, 0.15)',
-              color: '#60A5FA',
-              border: '1px solid rgba(59, 130, 246, 0.3)'
+              background: 'var(--color-accent-light)',
+              color: 'var(--color-accent-text)',
+              border: '1px solid #FDE68A'
             }}>
               STUDENT
             </span>
           </div>
-          <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', lineHeight: '1.2' }}>
+          <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', lineHeight: '1.2', fontWeight: 600 }}>
             {user?.name || 'Student Portal'} {user?.student?.rollNo ? `• ${user.student.rollNo}` : ''}
           </p>
         </div>
@@ -69,20 +76,18 @@ export default function Header() {
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '6px',
+          justifyContent: 'center',
+          width: '36px',
+          height: '36px',
           background: 'var(--color-surface-2)',
           border: '1px solid var(--color-border)',
           borderRadius: 'var(--radius-md)',
-          padding: '8px 12px',
           color: 'var(--color-text-muted)',
-          fontSize: '12px',
-          fontWeight: '600',
           cursor: 'pointer',
           transition: 'all 0.15s ease'
         }}
       >
-        <LogOut size={15} />
-        <span style={{ display: 'none' }}>Logout</span>
+        <LogOut size={16} />
       </button>
     </header>
   );

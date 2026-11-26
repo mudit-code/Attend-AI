@@ -109,9 +109,9 @@ function QRModal({ pass, rawToken, onClose }: { pass: GatePass; rawToken: string
         </div>
       </div>
       <button onClick={onClose} style={{
-        marginTop: '20px', padding: '12px 36px', background: '#3B82F6',
-        color: '#fff', border: 'none', borderRadius: '12px', fontSize: '15px',
-        fontWeight: 600, cursor: 'pointer'
+        marginTop: '20px', padding: '12px 36px', background: 'var(--color-primary)',
+        color: '#fff', border: 'none', borderRadius: 'var(--radius-pill)', fontSize: '15px',
+        fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 12px rgba(15, 23, 42, 0.3)'
       }}>
         Close
       </button>
@@ -239,7 +239,7 @@ export default function GatePassPage() {
       </div>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', margin: '0 16px 16px', background: 'var(--color-surface)', borderRadius: '12px', padding: '4px' }}>
+      <div style={{ display: 'flex', margin: '0 16px 16px', background: '#FFFFFF', border: '1px solid var(--color-border)', borderRadius: '12px', padding: '4px', boxShadow: 'var(--shadow-card)' }}>
         {[
           { key: 'mypasses', label: 'My Passes', icon: <ClipboardList size={15} /> },
           { key: 'apply', label: 'Apply New', icon: <PlusCircle size={15} /> },
@@ -249,9 +249,9 @@ export default function GatePassPage() {
             onClick={() => setTab(t.key as any)}
             style={{
               flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-              padding: '9px', borderRadius: '10px', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 600,
+              padding: '9px', borderRadius: '9px', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 700,
               background: tab === t.key ? 'var(--color-primary)' : 'transparent',
-              color: tab === t.key ? '#fff' : 'var(--color-text-faint)',
+              color: tab === t.key ? '#fff' : 'var(--color-text-muted)',
               transition: 'all 0.2s',
             }}
           >
@@ -503,10 +503,11 @@ export default function GatePassPage() {
             type="submit"
             disabled={submitting}
             style={{
-              padding: '14px', background: submitting ? '#6B7280' : 'var(--color-primary)',
-              color: '#fff', border: 'none', borderRadius: '12px', fontWeight: 700,
+              padding: '13px', background: submitting ? '#6B7280' : 'var(--color-primary)',
+              color: '#fff', border: 'none', borderRadius: 'var(--radius-pill)', fontWeight: 800,
               fontSize: '15px', cursor: submitting ? 'not-allowed' : 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+              boxShadow: '0 4px 14px rgba(15, 23, 42, 0.25)'
             }}
           >
             {submitting ? <><Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} /> Submitting...</> : '📤 Submit Application'}

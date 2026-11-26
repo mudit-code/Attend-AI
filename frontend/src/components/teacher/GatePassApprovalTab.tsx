@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { CheckCircle, XCircle, Clock, User, MapPin, FileText, ExternalLink, RefreshCw, AlertCircle } from 'lucide-react';
-import api from '../../lib/api';
+import { api } from '../../lib/api';
 
 interface GatePass {
   id: number;

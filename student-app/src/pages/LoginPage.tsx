@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { api } from '../lib/api';
 import { useAuthStore } from '../stores/useAuthStore';
-import { GraduationCap, Lock, Mail, Eye, EyeOff, AlertCircle, ArrowRight, Sparkles } from 'lucide-react';
+import { Lock, Mail, Eye, EyeOff, AlertCircle, ArrowRight, Sparkles } from 'lucide-react';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -33,7 +33,7 @@ export default function LoginPage() {
       const { accessToken, user } = res.data;
 
       if (user.role !== 'STUDENT') {
-        setError('Access Denied: This portal is exclusively for Students. Faculty & Admins should use the main portal.');
+        setError('Access Denied: This portal is exclusively for Students. Faculty & Admins should use the main portal (Port 5173).');
         setLoading(false);
         return;
       }
@@ -62,15 +62,15 @@ export default function LoginPage() {
       justifyContent: 'center',
       alignItems: 'center',
       padding: '20px 16px',
-      background: 'radial-gradient(ellipse at 50% 0%, #1A2238 0%, #0B0F19 75%)'
+      background: 'var(--color-bg)'
     }}>
       <div style={{
         width: '100%',
         maxWidth: '420px',
-        background: 'var(--color-surface)',
+        background: '#FFFFFF',
         borderRadius: 'var(--radius-xl)',
         border: '1px solid var(--color-border)',
-        boxShadow: 'var(--shadow-card)',
+        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)',
         padding: '32px 24px',
         animation: 'fadeIn 0.3s ease-out'
       }}>
@@ -80,19 +80,22 @@ export default function LoginPage() {
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',
-            width: '56px',
-            height: '56px',
-            borderRadius: '16px',
-            background: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)',
-            boxShadow: '0 8px 24px rgba(59, 130, 246, 0.35)',
-            marginBottom: '16px'
+            width: '52px',
+            height: '52px',
+            borderRadius: '14px',
+            background: 'linear-gradient(135deg, #FBBF24 0%, #F59E0B 100%)',
+            boxShadow: '0 4px 14px rgba(245, 158, 11, 0.35)',
+            marginBottom: '14px',
+            color: '#0F172A',
+            fontWeight: '900',
+            fontSize: '1.75rem'
           }}>
-            <GraduationCap size={30} color="#FFFFFF" />
+            a
           </div>
-          <h1 style={{ fontSize: '24px', fontWeight: '800', letterSpacing: '-0.5px', color: '#FFFFFF' }}>
-            Attend<span style={{ color: '#3B82F6' }}>AI</span>
+          <h1 style={{ fontSize: '24px', fontWeight: '800', letterSpacing: '-0.5px', color: 'var(--color-primary)' }}>
+            attend<span style={{ color: 'var(--color-accent)' }}>.ai</span>
           </h1>
-          <p style={{ fontSize: '14px', color: 'var(--color-text-muted)', marginTop: '4px' }}>
+          <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', marginTop: '4px', fontWeight: 600 }}>
             Student Portal & Smart Attendance
           </p>
         </div>
@@ -105,10 +108,11 @@ export default function LoginPage() {
             gap: '10px',
             padding: '12px 14px',
             borderRadius: 'var(--radius-md)',
-            background: 'rgba(239, 68, 68, 0.12)',
-            border: '1px solid rgba(239, 68, 68, 0.3)',
-            color: '#FCA5A5',
+            background: 'var(--color-danger-light)',
+            border: '1px solid #FECACA',
+            color: 'var(--color-danger-text)',
             fontSize: '13px',
+            fontWeight: 600,
             marginBottom: '20px'
           }}>
             <AlertCircle size={18} style={{ flexShrink: 0 }} />
@@ -119,21 +123,21 @@ export default function LoginPage() {
         {/* Login Form */}
         <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: 'var(--color-text-muted)', marginBottom: '6px' }}>
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: 'var(--color-text)', marginBottom: '6px' }}>
               College Email
             </label>
             <div style={{
               position: 'relative',
               display: 'flex',
               alignItems: 'center',
-              background: 'var(--color-surface-2)',
+              background: '#F8FAFC',
               border: '1px solid var(--color-border)',
               borderRadius: 'var(--radius-md)'
             }}>
               <Mail size={18} style={{ position: 'absolute', left: '14px', color: 'var(--color-text-faint)' }} />
               <input
                 type="email"
-                placeholder="student@attendai.com"
+                placeholder="student1@attendai.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -143,22 +147,23 @@ export default function LoginPage() {
                   background: 'transparent',
                   border: 'none',
                   outline: 'none',
-                  color: '#FFFFFF',
-                  fontSize: '14px'
+                  color: 'var(--color-text)',
+                  fontSize: '14px',
+                  fontWeight: 500
                 }}
               />
             </div>
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: 'var(--color-text-muted)', marginBottom: '6px' }}>
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: 'var(--color-text)', marginBottom: '6px' }}>
               Password
             </label>
             <div style={{
               position: 'relative',
               display: 'flex',
               alignItems: 'center',
-              background: 'var(--color-surface-2)',
+              background: '#F8FAFC',
               border: '1px solid var(--color-border)',
               borderRadius: 'var(--radius-md)'
             }}>
@@ -175,8 +180,9 @@ export default function LoginPage() {
                   background: 'transparent',
                   border: 'none',
                   outline: 'none',
-                  color: '#FFFFFF',
-                  fontSize: '14px'
+                  color: 'var(--color-text)',
+                  fontSize: '14px',
+                  fontWeight: 500
                 }}
               />
               <button
@@ -206,18 +212,18 @@ export default function LoginPage() {
               justifyContent: 'center',
               gap: '8px',
               width: '100%',
-              padding: '14px',
-              borderRadius: 'var(--radius-md)',
-              background: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)',
+              padding: '13px',
+              borderRadius: 'var(--radius-pill)',
+              background: 'var(--color-primary)',
               color: '#FFFFFF',
               border: 'none',
               fontSize: '15px',
-              fontWeight: '700',
+              fontWeight: '800',
               cursor: loading ? 'not-allowed' : 'pointer',
               marginTop: '8px',
-              boxShadow: '0 4px 14px rgba(59, 130, 246, 0.4)',
+              boxShadow: '0 4px 14px rgba(15, 23, 42, 0.25)',
               opacity: loading ? 0.7 : 1,
-              transition: 'transform 0.15s ease'
+              transition: 'all 0.15s ease'
             }}
           >
             {loading ? 'Authenticating...' : (
@@ -238,13 +244,13 @@ export default function LoginPage() {
               display: 'inline-flex',
               alignItems: 'center',
               gap: '6px',
-              background: 'rgba(245, 158, 11, 0.12)',
-              border: '1px solid rgba(245, 158, 11, 0.25)',
+              background: 'var(--color-accent-light)',
+              border: '1px solid #FDE68A',
               borderRadius: 'var(--radius-pill)',
               padding: '6px 14px',
               fontSize: '12px',
-              fontWeight: '600',
-              color: '#FBBF24',
+              fontWeight: '700',
+              color: 'var(--color-accent-text)',
               cursor: 'pointer'
             }}
           >
@@ -266,9 +272,9 @@ export default function LoginPage() {
           <Link
             to="/register"
             style={{
-              color: '#3B82F6',
-              fontWeight: '700',
-              textDecoration: 'none'
+              color: 'var(--color-primary)',
+              fontWeight: '800',
+              textDecoration: 'underline'
             }}
           >
             Create your account here

@@ -223,10 +223,10 @@ export default function QRScannerModal({ isOpen, onClose, onAttendanceMarked }: 
       <div style={{
         width: '100%',
         maxWidth: '440px',
-        background: 'var(--color-surface)',
+        background: '#FFFFFF',
         borderRadius: 'var(--radius-xl)',
         border: '1px solid var(--color-border)',
-        boxShadow: 'var(--shadow-card)',
+        boxShadow: 'var(--shadow-float)',
         padding: '24px 20px',
         display: 'flex',
         flexDirection: 'column',
@@ -239,7 +239,7 @@ export default function QRScannerModal({ isOpen, onClose, onAttendanceMarked }: 
             position: 'absolute',
             top: '16px',
             right: '16px',
-            background: 'var(--color-surface-2)',
+            background: 'var(--color-surface-hover)',
             border: 'none',
             borderRadius: '50%',
             width: '32px',
@@ -256,10 +256,10 @@ export default function QRScannerModal({ isOpen, onClose, onAttendanceMarked }: 
 
         {/* Modal Title */}
         <div style={{ marginBottom: '16px' }}>
-          <h2 style={{ fontSize: '18px', fontWeight: '800', color: '#FFFFFF' }}>
+          <h2 style={{ fontSize: '18px', fontWeight: '800', color: 'var(--color-primary)' }}>
             Mark Lecture Attendance
           </h2>
-          <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '2px' }}>
+          <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '2px', fontWeight: 600 }}>
             Scan the rotating QR code projected in class
           </p>
         </div>
@@ -269,7 +269,7 @@ export default function QRScannerModal({ isOpen, onClose, onAttendanceMarked }: 
           display: 'grid',
           gridTemplateColumns: '1fr 1fr',
           gap: '6px',
-          background: 'var(--color-surface-2)',
+          background: '#F1F5F9',
           padding: '4px',
           borderRadius: 'var(--radius-md)',
           marginBottom: '16px'
@@ -284,11 +284,11 @@ export default function QRScannerModal({ isOpen, onClose, onAttendanceMarked }: 
               gap: '6px',
               padding: '8px',
               borderRadius: 'var(--radius-sm)',
-              background: mode === 'camera' ? '#3B82F6' : 'transparent',
+              background: mode === 'camera' ? 'var(--color-primary)' : 'transparent',
               color: mode === 'camera' ? '#FFFFFF' : 'var(--color-text-muted)',
               border: 'none',
               fontSize: '13px',
-              fontWeight: '600',
+              fontWeight: '700',
               cursor: 'pointer'
             }}
           >
@@ -306,11 +306,11 @@ export default function QRScannerModal({ isOpen, onClose, onAttendanceMarked }: 
               gap: '6px',
               padding: '8px',
               borderRadius: 'var(--radius-sm)',
-              background: mode === 'manual' ? '#3B82F6' : 'transparent',
+              background: mode === 'manual' ? 'var(--color-primary)' : 'transparent',
               color: mode === 'manual' ? '#FFFFFF' : 'var(--color-text-muted)',
               border: 'none',
               fontSize: '13px',
-              fontWeight: '600',
+              fontWeight: '700',
               cursor: 'pointer'
             }}
           >
@@ -327,10 +327,11 @@ export default function QRScannerModal({ isOpen, onClose, onAttendanceMarked }: 
             gap: '8px',
             padding: '12px',
             borderRadius: 'var(--radius-md)',
-            background: statusMessage.type === 'success' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-            border: `1px solid ${statusMessage.type === 'success' ? 'rgba(16, 185, 129, 0.35)' : 'rgba(239, 68, 68, 0.35)'}`,
-            color: statusMessage.type === 'success' ? '#6EE7B7' : '#FCA5A5',
+            background: statusMessage.type === 'success' ? 'var(--color-success-light)' : 'var(--color-danger-light)',
+            border: `1px solid ${statusMessage.type === 'success' ? '#A7F3D0' : '#FECACA'}`,
+            color: statusMessage.type === 'success' ? 'var(--color-success-text)' : 'var(--color-danger-text)',
             fontSize: '13px',
+            fontWeight: 600,
             marginBottom: '14px'
           }}>
             {statusMessage.type === 'success' ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
@@ -391,7 +392,7 @@ export default function QRScannerModal({ isOpen, onClose, onAttendanceMarked }: 
                   position: 'absolute',
                   width: '160px',
                   height: '160px',
-                  border: '2px solid #3B82F6',
+                  border: '2px solid var(--color-accent)',
                   borderRadius: '16px',
                   boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.45)'
                 }} />
@@ -420,7 +421,7 @@ export default function QRScannerModal({ isOpen, onClose, onAttendanceMarked }: 
           /* Manual Code Mode */
           <form onSubmit={handleManualSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: 'var(--color-text-muted)', marginBottom: '4px' }}>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: 'var(--color-text)', marginBottom: '4px' }}>
                 Session ID
               </label>
               <input
@@ -433,17 +434,18 @@ export default function QRScannerModal({ isOpen, onClose, onAttendanceMarked }: 
                   width: '100%',
                   padding: '10px 12px',
                   borderRadius: 'var(--radius-md)',
-                  background: 'var(--color-surface-2)',
+                  background: '#F8FAFC',
                   border: '1px solid var(--color-border)',
-                  color: '#FFFFFF',
+                  color: 'var(--color-text)',
                   fontSize: '14px',
+                  fontWeight: 600,
                   outline: 'none'
                 }}
               />
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: 'var(--color-text-muted)', marginBottom: '4px' }}>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: 'var(--color-text)', marginBottom: '4px' }}>
                 8-Character Token
               </label>
               <input
@@ -457,11 +459,11 @@ export default function QRScannerModal({ isOpen, onClose, onAttendanceMarked }: 
                   width: '100%',
                   padding: '10px 12px',
                   borderRadius: 'var(--radius-md)',
-                  background: 'var(--color-surface-2)',
+                  background: '#F8FAFC',
                   border: '1px solid var(--color-border)',
-                  color: '#FFFFFF',
+                  color: 'var(--color-primary)',
                   fontSize: '16px',
-                  fontWeight: '700',
+                  fontWeight: '800',
                   letterSpacing: '2px',
                   outline: 'none'
                 }}
@@ -474,13 +476,14 @@ export default function QRScannerModal({ isOpen, onClose, onAttendanceMarked }: 
               style={{
                 marginTop: '6px',
                 padding: '12px',
-                borderRadius: 'var(--radius-md)',
-                background: '#3B82F6',
+                borderRadius: 'var(--radius-pill)',
+                background: 'var(--color-primary)',
                 color: '#FFFFFF',
                 border: 'none',
-                fontWeight: '700',
+                fontWeight: '800',
                 fontSize: '14px',
-                cursor: submitting ? 'not-allowed' : 'pointer'
+                cursor: submitting ? 'not-allowed' : 'pointer',
+                boxShadow: '0 4px 14px rgba(15, 23, 42, 0.25)'
               }}
             >
               {submitting ? 'Verifying Token...' : 'Confirm Attendance'}

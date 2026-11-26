@@ -4,6 +4,7 @@ import { useAuthStore } from './stores/useAuthStore';
 import Header from './components/Header';
 import BottomNav from './components/BottomNav';
 import QRScannerModal from './components/QRScannerModal';
+import ErrorBoundary from './components/ErrorBoundary';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
@@ -19,7 +20,9 @@ function StudentLayout() {
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: 'var(--color-bg)' }}>
       <Header />
       <main style={{ flex: 1 }}>
-        <Outlet />
+        <ErrorBoundary fallbackTitle="Could not load view">
+          <Outlet />
+        </ErrorBoundary>
       </main>
       <BottomNav onOpenScanner={() => setIsScannerOpen(true)} />
       <QRScannerModal
@@ -38,7 +41,11 @@ function ProtectedRoute() {
     return <Navigate to="/login" replace />;
   }
 
-  return <StudentLayout />;
+  return (
+    <ErrorBoundary fallbackTitle="Portal encountered an error">
+      <StudentLayout />
+    </ErrorBoundary>
+  );
 }
 
 export default function App() {

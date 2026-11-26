@@ -27,10 +27,19 @@ export const registerSchema = z.object({
   name: z.string().min(2),
   email: z.string().email(),
   password: z.string().min(6),
-  role: z.literal('STUDENT'),
-  rollNo: z.string().min(2).max(20),
-  sectionId: z.number().int().positive(),
+  role: z.enum(['STUDENT', 'TEACHER', 'ADMIN']).default('STUDENT'),
   phone: z.string().optional(),
+  // Student fields
+  rollNo: z.string().min(2).max(20).optional(),
+  sectionId: z.number().int().positive().optional(),
+  // Teacher fields
+  employeeCode: z.string().min(2).max(30).optional(),
+  departmentId: z.number().int().positive().optional(),
+  designation: z.string().optional(),
+  isClassTeacher: z.boolean().optional(),
+  classTeacherSectionId: z.number().int().positive().optional(),
+  // Admin fields
+  adminPasscode: z.string().optional(),
 });
 
 export type RegisterInput = z.infer<typeof registerSchema>;

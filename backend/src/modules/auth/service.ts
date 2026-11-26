@@ -31,6 +31,17 @@ async function createRefreshToken(userId: number): Promise<string> {
 }
 
 // ─── Login ───────────────────────────────────────────────────────
+export async function listRegistrationDepartments() {
+  return prisma.department.findMany({
+    select: {
+      id: true,
+      name: true,
+      code: true,
+    },
+    orderBy: { name: 'asc' },
+  });
+}
+
 export async function listRegistrationSections() {
   return prisma.section.findMany({
     select: {
@@ -224,57 +235,118 @@ export async function registerService(input: RegisterInput) {
     }
   }
 
-  const existingRoll = await prisma.student.findUnique({
-    where: { rollNo: input.rollNo },
-    select: { id: true },
-  });
-  if (existingRoll) {
-    throw { code: 'ROLL_EXISTS', status: 409, message: 'An account with this roll number already exists' };
-  }
-
-  const section = await prisma.section.findUnique({
-    where: { id: input.sectionId },
-    select: { id: true },
-  });
-  if (!section) {
-    throw { code: 'SECTION_NOT_FOUND', status: 400, message: 'The selected class no longer exists. Refresh and choose a valid class.' };
-  }
-
   const passwordHash = await bcrypt.hash(input.password, 10);
-  const user = await prisma.user.create({
-    data: {
-      email: input.email,
-      name: input.name,
-      passwordHash,
-      role: input.role,
-      status: 'ACTIVE',
-      phone: input.phone || undefined,
-      student: {
-        create: {
-          rollNo: input.rollNo,
-          sectionId: input.sectionId,
+  const role = input.role || 'STUDENT';
+
+  let createdUser: any;
+
+  if (role === 'STUDENT') {
+    if (!input.rollNo || !input.sectionId) {
+      throw { code: 'MISSING_FIELDS', status: 400, message: 'Roll number and class section are required for student registration' };
+    }
+
+    const existingRoll = await prisma.student.findUnique({
+      where: { rollNo: input.rollNo },
+      select: { id: true },
+    });
+    if (existingRoll) {
+      throw { code: 'ROLL_EXISTS', status: 409, message: 'An account with this roll number already exists' };
+    }
+
+    const section = await prisma.section.findUnique({
+      where: { id: input.sectionId },
+      select: { id: true },
+    });
+    if (!section) {
+      throw { code: 'SECTION_NOT_FOUND', status: 400, message: 'The selected class no longer exists. Refresh and choose a valid class.' };
+    }
+
+    createdUser = await prisma.user.create({
+      data: {
+        email: input.email,
+        name: input.name,
+        passwordHash,
+        role: 'STUDENT',
+        status: 'ACTIVE',
+        phone: input.phone || undefined,
+        student: {
+          create: {
+            rollNo: input.rollNo,
+            sectionId: input.sectionId,
+          },
         },
       },
-    },
-    include: {
-      student: { select: { id: true, sectionId: true, rollNo: true } },
-    },
-  });
+      include: {
+        student: { select: { id: true, sectionId: true, rollNo: true } },
+      },
+    });
+  } else if (role === 'TEACHER') {
+    const empCode = input.employeeCode?.trim() || `FAC-${Date.now().toString().slice(-4)}`;
+    const existingEmp = await prisma.teacher.findUnique({
+      where: { employeeCode: empCode },
+      select: { id: true },
+    });
+    if (existingEmp) {
+      throw { code: 'EMPLOYEE_CODE_EXISTS', status: 409, message: 'A faculty member with this employee code already exists' };
+    }
 
-  const accessToken = generateAccessToken(user.id, user.role);
-  const refreshToken = await createRefreshToken(user.id);
+    let deptId = input.departmentId;
+    if (!deptId) {
+      const firstDept = await prisma.department.findFirst({ select: { id: true } });
+      deptId = firstDept ? firstDept.id : 1;
+    }
 
-  logger.info('New user registered', { userId: user.id, role: user.role });
+    createdUser = await prisma.user.create({
+      data: {
+        email: input.email,
+        name: input.name,
+        passwordHash,
+        role: 'TEACHER',
+        status: 'ACTIVE',
+        phone: input.phone || undefined,
+        teacher: {
+          create: {
+            employeeCode: empCode,
+            departmentId: deptId,
+            isClassTeacher: input.isClassTeacher ?? false,
+            classTeacherSectionId: input.classTeacherSectionId || null,
+          },
+        },
+      },
+      include: {
+        teacher: { select: { id: true, employeeCode: true, departmentId: true } },
+      },
+    });
+  } else if (role === 'ADMIN') {
+    createdUser = await prisma.user.create({
+      data: {
+        email: input.email,
+        name: input.name,
+        passwordHash,
+        role: 'ADMIN',
+        status: 'ACTIVE',
+        phone: input.phone || undefined,
+      },
+    });
+  } else {
+    throw { code: 'INVALID_ROLE', status: 400, message: 'Invalid role specified' };
+  }
+
+  const accessToken = generateAccessToken(createdUser.id, createdUser.role, createdUser.teacher?.departmentId);
+  const refreshToken = await createRefreshToken(createdUser.id);
+
+  logger.info('New user registered', { userId: createdUser.id, role: createdUser.role });
 
   return {
     accessToken,
     refreshToken,
     user: {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      student: user.student,
+      id: createdUser.id,
+      name: createdUser.name,
+      email: createdUser.email,
+      role: createdUser.role,
+      student: createdUser.student || null,
+      teacher: createdUser.teacher || null,
     },
   };
 }
