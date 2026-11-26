@@ -94,6 +94,9 @@ export default defineConfig({
       },
     },
   },
+  preview: {
+    allowedHosts: true,
+  },
   optimizeDeps: {
     include: ['react-router', 'react-router-dom'],
   },
