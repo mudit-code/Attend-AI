@@ -1,8 +1,10 @@
 import axios from 'axios';
 import { useAuthStore } from '../stores/useAuthStore';
 
+const apiOrigin = import.meta.env.VITE_API_URL || '';
+
 export const api = axios.create({
-  baseURL: '/api/v1',
+  baseURL: `${apiOrigin}/api/v1`,
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
@@ -33,7 +35,7 @@ api.interceptors.response.use(
       originalRequest._retry = true;
       try {
         const refreshRes = await axios.post(
-          '/api/v1/auth/refresh',
+          `${apiOrigin}/api/v1/auth/refresh`,
           {},
           { withCredentials: true }
         );

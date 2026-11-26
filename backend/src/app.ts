@@ -52,6 +52,7 @@ app.use(
 // ─── CORS ─────────────────────────────────────────────────────────
 const allowedOrigins = [
   env.FRONTEND_URL,
+  process.env.STUDENT_APP_URL,
   'http://localhost:5173',
   'http://localhost:5174',
   'http://127.0.0.1:5173',
@@ -62,7 +63,15 @@ app.use(
   cors({
     origin: (origin, callback) => {
       if (!origin) return callback(null, true);
-      if (allowedOrigins.includes(origin) || origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) {
+      if (
+        allowedOrigins.includes(origin) ||
+        origin.startsWith('http://localhost:') ||
+        origin.startsWith('http://127.0.0.1:') ||
+        origin.endsWith('.railway.app') ||
+        origin.endsWith('.up.railway.app') ||
+        origin.endsWith('.vercel.app') ||
+        origin.endsWith('.netlify.app')
+      ) {
         return callback(null, true);
       }
       return callback(null, false);

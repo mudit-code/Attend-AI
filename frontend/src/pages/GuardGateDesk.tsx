@@ -3,7 +3,7 @@ import { Camera, CheckCircle, XCircle, Clock, LogIn, List, RefreshCw, AlertCircl
 import jsQR from 'jsqr';
 
 const GUARD_TOKEN = import.meta.env.VITE_GUARD_TOKEN ?? '';
-const API_BASE = '/api/v1/gatepass';
+const API_BASE = (import.meta.env.VITE_API_URL || '') + '/api/v1/gatepass';
 const GATEPASS_SECRET = import.meta.env.VITE_GATEPASS_SECRET || import.meta.env.VITE_GUARD_TOKEN || 'attendai_gatepass_secure_offline_key_2026';
 
 interface ScanResult {
