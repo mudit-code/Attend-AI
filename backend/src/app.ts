@@ -98,7 +98,7 @@ app.use(
   })
 );
 
-// ─── Health Check ─────────────────────────────────────────────────
+// ─── Health & Root Check ──────────────────────────────────────────
 const handleHealthCheck = (_req: express.Request, res: express.Response) => {
   res.json({
     status: 'ok',
@@ -106,6 +106,19 @@ const handleHealthCheck = (_req: express.Request, res: express.Response) => {
     timestamp: new Date().toISOString(),
   });
 };
+app.get('/', (_req, res) => {
+  res.json({
+    name: 'AttendAI Backend API Gateway',
+    status: 'online',
+    version: env.APP_VERSION,
+    timestamp: new Date().toISOString(),
+    endpoints: {
+      health: '/health',
+      auth: '/api/v1/auth',
+      attendance: '/api/v1/attendance',
+    },
+  });
+});
 app.get('/health', handleHealthCheck);
 app.get('/api/health', handleHealthCheck);
 app.get('/api/v1/health', handleHealthCheck);
