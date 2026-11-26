@@ -21,7 +21,7 @@ async function main() {
     logger.warn('Redis connection failed, continuing without cache', { error: redisErr });
   }
 
-  const server = app.listen(env.PORT, () => {
+  const server = app.listen(env.PORT, '0.0.0.0', () => {
     logger.info(`AttendAI backend running on port ${env.PORT}`, {
       env: env.NODE_ENV,
       version: env.APP_VERSION,
