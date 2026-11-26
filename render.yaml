@@ -1,0 +1,32 @@
+services:
+  # ─── AttendAI Backend API Gateway ─────────────────────────────────
+  - type: web
+    name: attendai-backend
+    runtime: node
+    plan: free
+    region: singapore # Choose singapore, frankfurt, or oregon based on your location
+    rootDir: backend
+    buildCommand: npm install && npx prisma generate && npm run build
+    startCommand: npx prisma migrate deploy && npm run start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: FRONTEND_URL
+        sync: false
+      - key: STUDENT_APP_URL
+        sync: false
+      - key: QR_ENABLED
+        value: "false"
+      - key: LEAVE_ENABLED
+        value: "true"
+      - key: NOTIFICATIONS_ENABLED
+        value: "false"
