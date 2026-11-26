@@ -1,0 +1,89 @@
+================================================================================
+           ATTENDAI INSTITUTIONAL ACCOUNTS & PASSWORDS DIRECTORY                
+================================================================================
+
+ADMIN & HOD ACCOUNTS:
+--------------------------------------------------------------------------------
+1. System Administrator  | admin@attendai.com   | Admin@123   | Central Admin
+2. HOD CSE (Dr. Rajesh)  | hod.cs@attendai.com  | Hod@123     | CSE Dept
+3. HOD ECE (Dr. Arvind)  | hod.ece@attendai.com | Hod@123     | ECE Dept
+
+20 TEACHERS (Password: Teacher@123 for all):
+--------------------------------------------------------------------------------
+CSE Faculty (10):
+  - teacher1@attendai.com   | Teacher@123 | T-CSE-001
+  - teacher2@attendai.com   | Teacher@123 | T-CSE-002
+  - teacher3@attendai.com   | Teacher@123 | T-CSE-003
+  - teacher4@attendai.com   | Teacher@123 | T-CSE-004
+  - teacher5@attendai.com   | Teacher@123 | T-CSE-005
+  - teacher6@attendai.com   | Teacher@123 | T-CSE-006
+  - teacher7@attendai.com   | Teacher@123 | T-CSE-007
+  - teacher8@attendai.com   | Teacher@123 | T-CSE-008
+  - teacher9@attendai.com   | Teacher@123 | T-CSE-009
+  - teacher10@attendai.com   | Teacher@123 | T-CSE-010
+ECE Faculty (10):
+  - teacher11@attendai.com  | Teacher@123 | T-ECE-001
+  - teacher12@attendai.com  | Teacher@123 | T-ECE-002
+  - teacher13@attendai.com  | Teacher@123 | T-ECE-003
+  - teacher14@attendai.com  | Teacher@123 | T-ECE-004
+  - teacher15@attendai.com  | Teacher@123 | T-ECE-005
+  - teacher16@attendai.com  | Teacher@123 | T-ECE-006
+  - teacher17@attendai.com  | Teacher@123 | T-ECE-007
+  - teacher18@attendai.com  | Teacher@123 | T-ECE-008
+  - teacher19@attendai.com  | Teacher@123 | T-ECE-009
+  - teacher20@attendai.com  | Teacher@123 | T-ECE-010
+
+50 STUDENTS (Password: Student@123 for all):
+--------------------------------------------------------------------------------
+CSE Students (25):
+  - Roll: 23CSE001 | student1@attendai.com  | Student@123 | CSE 3rd Year A
+  - Roll: 23CSE002 | student2@attendai.com  | Student@123 | CSE 3rd Year A
+  - Roll: 23CSE003 | student3@attendai.com  | Student@123 | CSE 3rd Year A
+  - Roll: 23CSE004 | student4@attendai.com  | Student@123 | CSE 3rd Year A
+  - Roll: 23CSE005 | student5@attendai.com  | Student@123 | CSE 3rd Year A
+  - Roll: 23CSE006 | student6@attendai.com  | Student@123 | CSE 3rd Year A
+  - Roll: 23CSE007 | student7@attendai.com  | Student@123 | CSE 3rd Year A
+  - Roll: 23CSE008 | student8@attendai.com  | Student@123 | CSE 3rd Year A
+  - Roll: 23CSE009 | student9@attendai.com  | Student@123 | CSE 3rd Year A
+  - Roll: 23CSE010 | student10@attendai.com  | Student@123 | CSE 3rd Year A
+  - Roll: 23CSE011 | student11@attendai.com  | Student@123 | CSE 3rd Year A
+  - Roll: 23CSE012 | student12@attendai.com  | Student@123 | CSE 3rd Year A
+  - Roll: 23CSE013 | student13@attendai.com  | Student@123 | CSE 3rd Year A
+  - Roll: 23CSE014 | student14@attendai.com  | Student@123 | CSE 3rd Year A
+  - Roll: 23CSE015 | student15@attendai.com  | Student@123 | CSE 3rd Year A
+  - Roll: 23CSE016 | student16@attendai.com  | Student@123 | CSE 3rd Year A
+  - Roll: 23CSE017 | student17@attendai.com  | Student@123 | CSE 3rd Year A
+  - Roll: 23CSE018 | student18@attendai.com  | Student@123 | CSE 3rd Year A
+  - Roll: 23CSE019 | student19@attendai.com  | Student@123 | CSE 3rd Year A
+  - Roll: 23CSE020 | student20@attendai.com  | Student@123 | CSE 3rd Year A
+  - Roll: 23CSE021 | student21@attendai.com  | Student@123 | CSE 3rd Year A
+  - Roll: 23CSE022 | student22@attendai.com  | Student@123 | CSE 3rd Year A
+  - Roll: 23CSE023 | student23@attendai.com  | Student@123 | CSE 3rd Year A
+  - Roll: 23CSE024 | student24@attendai.com  | Student@123 | CSE 3rd Year A
+  - Roll: 23CSE025 | student25@attendai.com  | Student@123 | CSE 3rd Year A
+ECE Students (25):
+  - Roll: 23ECE001 | student26@attendai.com | Student@123 | ECE 3rd Year A
+  - Roll: 23ECE002 | student27@attendai.com | Student@123 | ECE 3rd Year A
+  - Roll: 23ECE003 | student28@attendai.com | Student@123 | ECE 3rd Year A
+  - Roll: 23ECE004 | student29@attendai.com | Student@123 | ECE 3rd Year A
+  - Roll: 23ECE005 | student30@attendai.com | Student@123 | ECE 3rd Year A
+  - Roll: 23ECE006 | student31@attendai.com | Student@123 | ECE 3rd Year A
+  - Roll: 23ECE007 | student32@attendai.com | Student@123 | ECE 3rd Year A
+  - Roll: 23ECE008 | student33@attendai.com | Student@123 | ECE 3rd Year A
+  - Roll: 23ECE009 | student34@attendai.com | Student@123 | ECE 3rd Year A
+  - Roll: 23ECE010 | student35@attendai.com | Student@123 | ECE 3rd Year A
+  - Roll: 23ECE011 | student36@attendai.com | Student@123 | ECE 3rd Year A
+  - Roll: 23ECE012 | student37@attendai.com | Student@123 | ECE 3rd Year A
+  - Roll: 23ECE013 | student38@attendai.com | Student@123 | ECE 3rd Year A
+  - Roll: 23ECE014 | student39@attendai.com | Student@123 | ECE 3rd Year A
+  - Roll: 23ECE015 | student40@attendai.com | Student@123 | ECE 3rd Year A
+  - Roll: 23ECE016 | student41@attendai.com | Student@123 | ECE 3rd Year A
+  - Roll: 23ECE017 | student42@attendai.com | Student@123 | ECE 3rd Year A
+  - Roll: 23ECE018 | student43@attendai.com | Student@123 | ECE 3rd Year A
+  - Roll: 23ECE019 | student44@attendai.com | Student@123 | ECE 3rd Year A
+  - Roll: 23ECE020 | student45@attendai.com | Student@123 | ECE 3rd Year A
+  - Roll: 23ECE021 | student46@attendai.com | Student@123 | ECE 3rd Year A
+  - Roll: 23ECE022 | student47@attendai.com | Student@123 | ECE 3rd Year A
+  - Roll: 23ECE023 | student48@attendai.com | Student@123 | ECE 3rd Year A
+  - Roll: 23ECE024 | student49@attendai.com | Student@123 | ECE 3rd Year A
+  - Roll: 23ECE025 | student50@attendai.com | Student@123 | ECE 3rd Year A
