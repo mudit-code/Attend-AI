@@ -397,3 +397,235 @@ export async function getTeacherAssignedClasses(userId: number) {
 
   return chips;
 }
+
+// ─── Faculty Substitution / Class Adjustment ─────────────────────
+export async function createClassAdjustment(assignedByUserId: number, input: {
+  date: string;
+  period: number;
+  sectionId: number;
+  subjectId: number;
+  originalTeacherId: number;
+  substituteTeacherId: number;
+  reason?: string;
+}) {
+  const adjustmentDate = new Date(`${input.date}T00:00:00.000Z`);
+  return prisma.classAdjustment.upsert({
+    where: {
+      date_period_sectionId: {
+        date: adjustmentDate,
+        period: input.period,
+        sectionId: input.sectionId,
+      },
+    },
+    update: {
+      subjectId: input.subjectId,
+      originalTeacherId: input.originalTeacherId,
+      substituteTeacherId: input.substituteTeacherId,
+      reason: input.reason,
+      status: 'ACTIVE',
+      assignedBy: assignedByUserId,
+    },
+    create: {
+      date: adjustmentDate,
+      period: input.period,
+      sectionId: input.sectionId,
+      subjectId: input.subjectId,
+      originalTeacherId: input.originalTeacherId,
+      substituteTeacherId: input.substituteTeacherId,
+      reason: input.reason,
+      status: 'ACTIVE',
+      assignedBy: assignedByUserId,
+    },
+    include: {
+      section: true,
+      subject: true,
+      originalTeacher: { include: { user: { select: { name: true, email: true } } } },
+      substituteTeacher: { include: { user: { select: { name: true, email: true } } } },
+    },
+  });
+}
+
+export async function getTeacherAdjustments(userId: number, dateStr?: string) {
+  const teacher = await prisma.teacher.findUnique({ where: { userId } });
+  if (!teacher) return [];
+  const targetDate = dateStr ? new Date(`${dateStr}T00:00:00.000Z`) : new Date(new Date().toISOString().slice(0, 10) + 'T00:00:00.000Z');
+
+  return prisma.classAdjustment.findMany({
+    where: {
+      substituteTeacherId: teacher.id,
+      date: targetDate,
+      status: 'ACTIVE',
+    },
+    include: {
+      section: true,
+      subject: true,
+      originalTeacher: { include: { user: { select: { name: true } } } },
+    },
+    orderBy: { period: 'asc' },
+  });
+}
+
+export async function getDepartmentAdjustments(dateStr?: string, departmentId?: number) {
+  const targetDate = dateStr ? new Date(`${dateStr}T00:00:00.000Z`) : new Date(new Date().toISOString().slice(0, 10) + 'T00:00:00.000Z');
+
+  return prisma.classAdjustment.findMany({
+    where: {
+      date: targetDate,
+      ...(departmentId ? { section: { course: { departmentId } } } : {}),
+    },
+    include: {
+      section: true,
+      subject: true,
+      originalTeacher: { include: { user: { select: { name: true, email: true } } } },
+      substituteTeacher: { include: { user: { select: { name: true, email: true } } } },
+    },
+    orderBy: { period: 'asc' },
+  });
+}
+
+export async function deleteClassAdjustment(id: number) {
+  return prisma.classAdjustment.delete({ where: { id } });
+}
+
+// ─── Semester Roll-over & Batch Promotion ────────────────────────
+export async function promoteSectionBatch(adminUserId: number, input: {
+  sourceSectionId: number;
+  targetSectionId: number;
+  academicYearId?: number;
+}) {
+  if (input.sourceSectionId === input.targetSectionId) {
+    throw { code: 'INVALID_TARGET', status: 400, message: 'Source and target sections cannot be identical.' };
+  }
+
+  const [sourceSection, targetSection] = await Promise.all([
+    prisma.section.findUnique({
+      where: { id: input.sourceSectionId },
+      include: { students: true, course: true },
+    }),
+    prisma.section.findUnique({
+      where: { id: input.targetSectionId },
+      include: { course: true },
+    }),
+  ]);
+
+  if (!sourceSection || !targetSection) {
+    throw { code: 'NOT_FOUND', status: 404, message: 'Source or target section not found.' };
+  }
+
+  const studentCount = sourceSection.students.length;
+  if (studentCount === 0) {
+    throw { code: 'NO_STUDENTS', status: 400, message: 'No students found in source section to promote.' };
+  }
+
+  const result = await prisma.$transaction(async (tx) => {
+    // 1. Update all students in source section to target section and increment semester
+    await tx.student.updateMany({
+      where: { sectionId: input.sourceSectionId },
+      data: {
+        sectionId: input.targetSectionId,
+        currentSemester: { increment: 1 },
+      },
+    });
+
+    // 2. Mark source section as archived
+    await tx.section.update({
+      where: { id: input.sourceSectionId },
+      data: { isArchived: true },
+    });
+
+    // 3. Create log
+    const log = await tx.semesterPromotionLog.create({
+      data: {
+        sourceSectionId: input.sourceSectionId,
+        targetSectionId: input.targetSectionId,
+        promotedCount: studentCount,
+        academicYearId: input.academicYearId || targetSection.academicYearId,
+        promotedBy: adminUserId,
+      },
+    });
+
+    return log;
+  });
+
+  return {
+    success: true,
+    promotedCount: studentCount,
+    sourceSectionName: sourceSection.name,
+    targetSectionName: targetSection.name,
+    logId: result.id,
+  };
+}
+
+export async function getPromotionLogs() {
+  return prisma.semesterPromotionLog.findMany({
+    include: {
+      sourceSection: true,
+      targetSection: true,
+    },
+    orderBy: { promotedAt: 'desc' },
+    take: 50,
+  });
+}
+
+export async function getStudentAcademicHistory(studentUserId: number) {
+  const student = await prisma.student.findUnique({
+    where: { userId: studentUserId },
+    include: { section: { include: { course: true } } },
+  });
+
+  if (!student) throw { code: 'STUDENT_NOT_FOUND', status: 404, message: 'Student profile not found.' };
+
+  // Fetch all attendance records across all sections for this student
+  const records = await prisma.attendanceRecord.findMany({
+    where: { studentId: student.id },
+    include: {
+      session: {
+        include: {
+          section: true,
+          subject: true,
+        },
+      },
+    },
+  });
+
+  // Group by section
+  const sectionMap = new Map<number, {
+    sectionId: number;
+    sectionName: string;
+    isCurrent: boolean;
+    total: number;
+    present: number;
+    percentage: number;
+  }>();
+
+  for (const r of records) {
+    const secId = r.session.sectionId;
+    if (!sectionMap.has(secId)) {
+      sectionMap.set(secId, {
+        sectionId: secId,
+        sectionName: r.session.section.name,
+        isCurrent: secId === student.sectionId,
+        total: 0,
+        present: 0,
+        percentage: 0,
+      });
+    }
+    const item = sectionMap.get(secId)!;
+    item.total += 1;
+    if (r.status === 'P' || r.status === 'OD') {
+      item.present += 1;
+    }
+  }
+
+  const history = Array.from(sectionMap.values()).map((item) => ({
+    ...item,
+    percentage: item.total > 0 ? Number(((item.present / item.total) * 100).toFixed(1)) : 100,
+  }));
+
+  return {
+    currentSemester: student.currentSemester,
+    currentSection: student.section.name,
+    courseName: student.section.course.name,
+    history,
+  };
+}

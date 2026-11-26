@@ -123,6 +123,7 @@ model Section {
   courseId       Int
   academicYearId Int
   isFaceAttendanceEnabled Boolean @default(true)
+  isArchived     Boolean      @default(false)
 
   course         Course       @relation(fields: [courseId], references: [id])
   academicYear   AcademicYear @relation(fields: [academicYearId], references: [id])
@@ -131,6 +132,9 @@ model Section {
   teacherSubjects TeacherSubject[]
   attendanceSessions AttendanceSession[]
   assignments Assignment[]
+  classAdjustments ClassAdjustment[]
+  sourcePromotions SemesterPromotionLog[] @relation("SourcePromotions")
+  targetPromotions SemesterPromotionLog[] @relation("TargetPromotions")
 
   @@map("sections")
 }
@@ -153,6 +157,8 @@ model Teacher {
   leaveRequests TeacherLeaveRequest[]
   assignments  Assignment[]
   mentorGatePasses GatePass[] @relation("GatePassMentor")
+  originalAdjustments ClassAdjustment[] @relation("OriginalAdjustments")
+  substituteAdjustments ClassAdjustment[] @relation("SubstituteAdjustments")
 
   @@map("teachers")
 }
@@ -165,6 +171,7 @@ model Student {
   parentId   Int?
   faceDescriptor Float[] @default([])
   faceRegisteredAt DateTime?
+  currentSemester Int @default(1)
 
   user       User    @relation(fields: [userId], references: [id])
   section    Section @relation(fields: [sectionId], references: [id])
@@ -204,6 +211,7 @@ model Subject {
   teacherSubjects TeacherSubject[]
   attendanceSessions AttendanceSession[]
   assignments Assignment[]
+  classAdjustments ClassAdjustment[]
 
   @@map("subjects")
 }
@@ -264,6 +272,8 @@ model AttendanceSession {
   lockedAt    DateTime?
   faceWindowActive Boolean @default(false)
   faceWindowExpiresAt DateTime?
+  conductedByTeacherId Int?
+  isSubstitution       Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -279,6 +289,43 @@ model AttendanceSession {
   @@index([sectionId, date])
   @@index([teacherId, date])
   @@map("attendance_sessions")
+}
+
+model ClassAdjustment {
+  id                  Int       @id @default(autoincrement())
+  date                DateTime  @db.Date
+  period              Int
+  sectionId           Int
+  subjectId           Int
+  originalTeacherId   Int
+  substituteTeacherId Int
+  status              String    @default("ACTIVE") // ACTIVE, COMPLETED, CANCELLED
+  reason              String?
+  assignedBy          Int       // HOD/Admin userId
+  createdAt           DateTime  @default(now())
+
+  section             Section   @relation(fields: [sectionId], references: [id])
+  subject             Subject   @relation(fields: [subjectId], references: [id])
+  originalTeacher     Teacher   @relation("OriginalAdjustments", fields: [originalTeacherId], references: [id])
+  substituteTeacher   Teacher   @relation("SubstituteAdjustments", fields: [substituteTeacherId], references: [id])
+
+  @@unique([date, period, sectionId])
+  @@map("class_adjustments")
+}
+
+model SemesterPromotionLog {
+  id              Int      @id @default(autoincrement())
+  sourceSectionId Int
+  targetSectionId Int
+  promotedCount   Int
+  academicYearId  Int
+  promotedBy      Int      // Admin userId
+  promotedAt      DateTime @default(now())
+
+  sourceSection   Section  @relation("SourcePromotions", fields: [sourceSectionId], references: [id])
+  targetSection   Section  @relation("TargetPromotions", fields: [targetSectionId], references: [id])
+
+  @@map("semester_promotion_logs")
 }
 
 model AttendanceRecord {

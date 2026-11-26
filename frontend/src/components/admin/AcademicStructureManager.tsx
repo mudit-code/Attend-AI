@@ -36,6 +36,15 @@ interface Subject {
   teacherSubjects: SubjectAllocation[];
 }
 
+interface PromotionLog {
+  id: number;
+  promotedCount: number;
+  promotedAt: string;
+  sourceSection: { id: number; name: string; year: number; course?: { name: string; code: string } };
+  targetSection: { id: number; name: string; year: number; course?: { name: string; code: string } };
+  academicYear?: { id: number; name: string } | null;
+}
+
 function getErrorMessage(error: unknown): string {
   if (typeof error === 'object' && error !== null && 'response' in error) {
     const response = (error as { response?: { data?: { error?: { message?: string } } } }).response;
@@ -67,6 +76,60 @@ export default function AcademicStructureManager() {
   const [allocationTeacherId, setAllocationTeacherId] = useState<number | ''>('');
   const [allocationSectionId, setAllocationSectionId] = useState<number | ''>('');
   const [allocationSubjectId, setAllocationSubjectId] = useState<number | ''>('');
+
+  // Batch Promotion state
+  const [promotionLogs, setPromotionLogs] = useState<PromotionLog[]>([]);
+  const [sourceSectionId, setSourceSectionId] = useState<number | ''>('');
+  const [targetSectionId, setTargetSectionId] = useState<number | ''>('');
+  const [targetSemester, setTargetSemester] = useState<number>(2);
+  const [archiveSource, setArchiveSource] = useState<boolean>(true);
+  const [promoting, setPromoting] = useState<boolean>(false);
+  const [promotionMessage, setPromotionMessage] = useState<string | null>(null);
+  const [promotionError, setPromotionError] = useState<string | null>(null);
+
+  async function loadPromotionLogs() {
+    try {
+      const res = await api.get('/academic/batch-promotion/logs');
+      setPromotionLogs(res.data?.data || []);
+    } catch {
+      setPromotionLogs([]);
+    }
+  }
+
+  async function handlePromoteBatch(e: FormEvent) {
+    e.preventDefault();
+    if (!sourceSectionId || !targetSectionId) {
+      setPromotionError('Please select both source section and target section.');
+      return;
+    }
+    if (sourceSectionId === targetSectionId) {
+      setPromotionError('Source section and target section cannot be the same.');
+      return;
+    }
+    const confirmMsg = `Are you sure you want to promote all students from the source section to the target section (Semester ${targetSemester})? Historical attendance and facial biometrics will be safely preserved.`;
+    if (!window.confirm(confirmMsg)) return;
+
+    setPromoting(true);
+    setPromotionError(null);
+    setPromotionMessage(null);
+
+    try {
+      const res = await api.post('/academic/batch-promotion', {
+        sourceSectionId: Number(sourceSectionId),
+        targetSectionId: Number(targetSectionId),
+        newSemester: Number(targetSemester),
+        archiveSource,
+      });
+
+      setPromotionMessage(res.data?.message || 'Batch promoted successfully with zero data loss!');
+      await loadData();
+      await loadPromotionLogs();
+    } catch (err) {
+      setPromotionError(getErrorMessage(err));
+    } finally {
+      setPromoting(false);
+    }
+  }
 
   async function loadData() {
     setLoading(true);
@@ -114,6 +177,7 @@ export default function AcademicStructureManager() {
 
   useEffect(() => {
     void loadData();
+    void loadPromotionLogs();
   }, []);
 
   async function createSubject(event: FormEvent) {
@@ -407,6 +471,141 @@ export default function AcademicStructureManager() {
             </table>
           </div>
         )}
+      </div>
+
+      {/* ── BATCH PROMOTION & SEMESTER ROLL-OVER (Zero Re-registration Engine) ── */}
+      <div className="card" style={{ marginTop: '1.5rem', borderLeft: '4px solid #10b981' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+          <div>
+            <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span>🎓</span> Semester Roll-Over & Batch Promotion Engine
+            </h3>
+            <p className="text-xs text-muted" style={{ margin: '0.25rem 0 0 0' }}>
+              Promote an entire section to the next semester in 1-click without students re-registering. Biometric face embeddings, credentials, roll numbers, and historical attendance logs are automatically preserved.
+            </p>
+          </div>
+          <span style={{ fontSize: '0.75rem', background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', padding: '0.25rem 0.6rem', borderRadius: '999px', fontWeight: 700 }}>
+            Zero-Data-Loss Guaranteed
+          </span>
+        </div>
+
+        {promotionError && (
+          <div style={{ marginBottom: '1rem', padding: '0.75rem', borderRadius: '8px', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.2)', fontSize: '0.875rem' }}>
+            ⚠️ {promotionError}
+          </div>
+        )}
+
+        {promotionMessage && (
+          <div style={{ marginBottom: '1rem', padding: '0.75rem', borderRadius: '8px', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.2)', fontSize: '0.875rem' }}>
+            ✅ {promotionMessage}
+          </div>
+        )}
+
+        <form onSubmit={handlePromoteBatch} style={{ display: 'grid', gap: '1rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+            <label className="form-group">
+              <span className="form-label" style={{ fontWeight: 600 }}>Source Section (Current Semester)</span>
+              <select
+                className="input"
+                value={sourceSectionId}
+                onChange={(e) => setSourceSectionId(e.target.value ? Number(e.target.value) : '')}
+                required
+                disabled={loading || sections.length === 0}
+              >
+                <option value="" disabled>Select current section</option>
+                {sections.map((sec) => (
+                  <option key={sec.id} value={sec.id}>
+                    {sec.name} · {sec.course?.code || ''} (Year {sec.year})
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="form-group">
+              <span className="form-label" style={{ fontWeight: 600, color: '#10b981' }}>Target Section (Next Semester)</span>
+              <select
+                className="input"
+                value={targetSectionId}
+                onChange={(e) => setTargetSectionId(e.target.value ? Number(e.target.value) : '')}
+                required
+                disabled={loading || sections.length === 0}
+              >
+                <option value="" disabled>Select target section</option>
+                {sections.map((sec) => (
+                  <option key={sec.id} value={sec.id}>
+                    {sec.name} · {sec.course?.code || ''} (Year {sec.year})
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="form-group">
+              <span className="form-label" style={{ fontWeight: 600 }}>New Semester Number</span>
+              <input
+                type="number"
+                className="input"
+                min={1}
+                max={10}
+                value={targetSemester}
+                onChange={(e) => setTargetSemester(Number(e.target.value))}
+                required
+              />
+            </label>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.875rem' }}>
+              <input
+                type="checkbox"
+                checked={archiveSource}
+                onChange={(e) => setArchiveSource(e.target.checked)}
+              />
+              <span>Archive source section after promotion (prevent new attendance marking in old semester)</span>
+            </label>
+
+            <button
+              type="submit"
+              className="btn btn--primary"
+              disabled={promoting || loading || !sourceSectionId || !targetSectionId}
+              style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', border: 'none' }}
+            >
+              {promoting ? 'Promoting Batch...' : '🚀 Execute Batch Promotion'}
+            </button>
+          </div>
+        </form>
+
+        {/* Promotion History Logs */}
+        <div style={{ marginTop: '1.5rem', borderTop: '1px solid var(--color-border)', paddingTop: '1rem' }}>
+          <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '0.9rem' }}>Recent Batch Promotion Audit Logs</h4>
+          {promotionLogs.length === 0 ? (
+            <p className="text-xs text-muted">No semester promotions logged yet.</p>
+          ) : (
+            <div className="table-responsive">
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.8rem' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
+                    <th style={{ padding: '0.5rem' }}>Date & Time</th>
+                    <th style={{ padding: '0.5rem' }}>Source Section</th>
+                    <th style={{ padding: '0.5rem' }}>Target Section</th>
+                    <th style={{ padding: '0.5rem' }}>Students Promoted</th>
+                    <th style={{ padding: '0.5rem' }}>Academic Year</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {promotionLogs.map((log) => (
+                    <tr key={log.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
+                      <td style={{ padding: '0.5rem' }}>{new Date(log.promotedAt).toLocaleString()}</td>
+                      <td style={{ padding: '0.5rem' }}>{log.sourceSection?.name} (Year {log.sourceSection?.year})</td>
+                      <td style={{ padding: '0.5rem', color: '#10b981', fontWeight: 600 }}>{log.targetSection?.name} (Year {log.targetSection?.year})</td>
+                      <td style={{ padding: '0.5rem', fontWeight: 700 }}>{log.promotedCount} students</td>
+                      <td style={{ padding: '0.5rem' }}>{log.academicYear?.name || 'Current'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       </div>
     </section>
   );

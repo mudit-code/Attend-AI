@@ -18,6 +18,7 @@ import UserProfileDrawer from '../../components/common/UserProfileDrawer';
 import ProjectorQRMode from '../../components/teacher/ProjectorQRMode';
 import InstallAppPrompt from '../../components/common/InstallAppPrompt';
 import BrandLogo from '../../components/common/BrandLogo';
+import FacultyAdjustmentHODDesk from '../../components/admin/FacultyAdjustmentHODDesk';
 
 interface StudentItem {
   id: number;
@@ -54,13 +55,25 @@ interface AssignedChip {
   subjectCode: string;
 }
 
+interface ProxyAdjustmentItem {
+  id: number;
+  period: number;
+  sectionId: number;
+  subjectId: number;
+  status: string;
+  reason?: string | null;
+  section: { id: number; name: string; course?: { code: string; name: string } };
+  subject: { id: number; name: string; code: string };
+  originalTeacher?: { user?: { name: string } };
+}
+
 export default function TeacherDashboard() {
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
   const { isOnline, pendingCount, isSyncing } = useSyncStore();
   const navigate = useNavigate();
 
-  const [activeTab, setActiveTab] = useState<'mark' | 'qr' | 'marks' | 'assignments' | 'approvals' | 'reports' | 'leaves'>('mark');
+  const [activeTab, setActiveTab] = useState<'mark' | 'qr' | 'marks' | 'assignments' | 'approvals' | 'reports' | 'leaves' | 'hod_adjustments'>('mark');
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   // Academic data
@@ -78,6 +91,7 @@ export default function TeacherDashboard() {
   const [assignedClassesError, setAssignedClassesError] = useState<string | null>(null);
   const [filterBranchCode, setFilterBranchCode] = useState<string>('ALL');
   const [activeChipKey, setActiveChipKey] = useState<string | null>(null);
+  const [proxyAdjustments, setProxyAdjustments] = useState<ProxyAdjustmentItem[]>([]);
 
   // Attendance roster
   const [students, setStudents] = useState<StudentItem[]>([]);
@@ -114,7 +128,17 @@ export default function TeacherDashboard() {
   // Initial load: fetch bootstrap data
   useEffect(() => {
     loadAssignedChips();
+    loadTodayAdjustments();
   }, []);
+
+  async function loadTodayAdjustments() {
+    try {
+      const res = await api.get('/academic/adjustments/today');
+      setProxyAdjustments(Array.isArray(res.data?.data) ? res.data.data : []);
+    } catch {
+      setProxyAdjustments([]);
+    }
+  }
 
   async function loadAssignedChips() {
     try {
@@ -749,6 +773,14 @@ export default function TeacherDashboard() {
         >
            Faculty Leaves
         </button>
+        {user?.role === 'HOD' && (
+          <button
+            className={`btn btn--sm ${activeTab === 'hod_adjustments' ? 'btn--primary' : 'btn--ghost'}`}
+            onClick={() => setActiveTab('hod_adjustments')}
+          >
+            🏛️ Proxy Adjustments
+          </button>
+        )}
       </nav>
 
       {/* Main Content */}
@@ -784,6 +816,102 @@ export default function TeacherDashboard() {
                   void handleStartQr(secId, subId, p);
                 }}
               />
+
+              {/* ── Today's Assigned Proxy / Substitution Classes Banner ── */}
+              {proxyAdjustments.length > 0 && (
+                <div
+                  style={{
+                    marginBottom: '1rem',
+                    padding: '1rem',
+                    background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(239, 68, 68, 0.12) 100%)',
+                    borderRadius: '12px',
+                    border: '1.5px solid #f59e0b',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.625rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <span style={{ fontSize: '1.25rem' }}>🔄</span>
+                      <div>
+                        <div style={{ fontWeight: 800, color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.8rem' }}>
+                          Substitution / Proxy Classes Assigned Today
+                        </div>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
+                          You are authorized to take attendance for absent faculty. Records will credit student attendance seamlessly.
+                        </div>
+                      </div>
+                    </div>
+                    <span style={{ fontSize: '0.725rem', background: '#f59e0b', color: '#000', borderRadius: '999px', padding: '0.2rem 0.6rem', fontWeight: 800 }}>
+                      {proxyAdjustments.length} Assigned
+                    </span>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '0.75rem' }}>
+                    {proxyAdjustments.map((proxy) => (
+                      <div
+                        key={proxy.id}
+                        style={{
+                          background: 'var(--color-surface)',
+                          border: '1px solid var(--color-border)',
+                          borderRadius: '10px',
+                          padding: '0.75rem 1rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: '0.75rem',
+                        }}
+                      >
+                        <div>
+                          <div style={{ fontWeight: 700, fontSize: '0.875rem' }}>
+                            Period {proxy.period} · {proxy.section?.name} ({proxy.section?.course?.code || 'Class'})
+                          </div>
+                          <div style={{ fontSize: '0.775rem', color: 'var(--color-text-muted)' }}>
+                            {proxy.subject?.name} ({proxy.subject?.code})
+                          </div>
+                          <div style={{ fontSize: '0.725rem', color: '#ef4444', marginTop: '0.2rem' }}>
+                            Substituting: {proxy.originalTeacher?.user?.name || 'Absent Faculty'} {proxy.reason ? `(${proxy.reason})` : ''}
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          className="btn btn--sm btn--primary"
+                          onClick={() => {
+                            if (!sections.some((s) => s.id === proxy.sectionId)) {
+                              setSections((prev) => [
+                                ...prev,
+                                {
+                                  id: proxy.section.id,
+                                  name: proxy.section.name,
+                                  year: 1,
+                                  courseName: proxy.section.course?.name || '',
+                                  courseCode: proxy.section.course?.code || '',
+                                },
+                              ]);
+                            }
+                            if (!subjects.some((s) => s.id === proxy.subjectId)) {
+                              setSubjects((prev) => [
+                                ...prev,
+                                {
+                                  id: proxy.subject.id,
+                                  name: proxy.subject.name,
+                                  code: proxy.subject.code,
+                                },
+                              ]);
+                            }
+                            setSelectedSection(proxy.sectionId);
+                            setSelectedSubject(proxy.subjectId);
+                            setPeriod(proxy.period);
+                            setActiveTab('mark');
+                            setTimeout(() => {
+                              document.getElementById('attendance-roster-section')?.scrollIntoView({ behavior: 'smooth' });
+                            }, 150);
+                          }}
+                        >
+                          ⚡ Take Class
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* ── My Assigned Classes Quick-Switch Chips ── */}
               {assignedChips.length > 0 && (
@@ -1677,6 +1805,7 @@ export default function TeacherDashboard() {
               TAB 6: FACULTY LEAVE MANAGEMENT
           ───────────────────────────────────────────────────────────── */}
           {activeTab === 'leaves' && <TeacherLeaveTab />}
+          {activeTab === 'hod_adjustments' && <FacultyAdjustmentHODDesk />}
         </div>
       </main>
 

@@ -280,5 +280,99 @@ router.get(
   }
 );
 
+// ─── Faculty Substitution / Class Adjustment ─────────────────────
+router.post(
+  '/adjustments',
+  requireRole('ADMIN', 'HOD'),
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const data = await academicService.createClassAdjustment(req.user!.id, req.body);
+      res.status(201).json({ success: true, data });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+router.get(
+  '/adjustments/today',
+  requireRole('TEACHER', 'HOD'),
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const data = await academicService.getTeacherAdjustments(req.user!.id, req.query.date as string | undefined);
+      res.json({ success: true, data });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+router.get(
+  '/adjustments/department',
+  requireRole('ADMIN', 'HOD'),
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const deptId = req.query.departmentId ? Number(req.query.departmentId) : undefined;
+      const data = await academicService.getDepartmentAdjustments(req.query.date as string | undefined, deptId);
+      res.json({ success: true, data });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+router.delete(
+  '/adjustments/:id',
+  requireRole('ADMIN', 'HOD'),
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      await academicService.deleteClassAdjustment(Number(req.params.id));
+      res.json({ success: true, message: 'Class adjustment cancelled successfully.' });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+// ─── Semester Roll-over & Batch Promotion ────────────────────────
+router.post(
+  '/batch-promotion',
+  requireRole('ADMIN'),
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const result = await academicService.promoteSectionBatch(req.user!.id, req.body);
+      res.json(result);
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+router.get(
+  '/batch-promotion/logs',
+  requireRole('ADMIN', 'HOD'),
+  async (_req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const data = await academicService.getPromotionLogs();
+      res.json({ success: true, data });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+router.get(
+  '/student-history',
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const targetUserId = req.query.userId ? Number(req.query.userId) : req.user!.id;
+      const data = await academicService.getStudentAcademicHistory(targetUserId);
+      res.json({ success: true, data });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
 export default router;
 

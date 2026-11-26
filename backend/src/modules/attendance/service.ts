@@ -27,10 +27,41 @@ export async function createSession(teacherId: number, input: CreateSessionInput
 
   if (existing) {
     if (existing.teacherId !== teacherId) {
-      throw { code: 'SESSION_OWNED_BY_ANOTHER_TEACHER', status: 409, message: 'This attendance session belongs to another teacher.' };
+      const adjustment = await prisma.classAdjustment.findFirst({
+        where: {
+          sectionId: input.sectionId,
+          date: sessionDate,
+          period: input.period,
+          substituteTeacherId: teacherId,
+          status: 'ACTIVE',
+        },
+      });
+      if (!adjustment) {
+        throw { code: 'SESSION_OWNED_BY_ANOTHER_TEACHER', status: 409, message: 'This attendance session belongs to another teacher.' };
+      }
+      return prisma.attendanceSession.update({
+        where: { id: existing.id },
+        data: { conductedByTeacherId: teacherId, isSubstitution: true },
+        include: {
+          section: true,
+          subject: true,
+          teacher: { include: { user: { select: { name: true } } } },
+        },
+      });
     }
     return existing;
   }
+
+  // Check if caller is taking as substitute
+  const adjustment = await prisma.classAdjustment.findFirst({
+    where: {
+      sectionId: input.sectionId,
+      date: sessionDate,
+      period: input.period,
+      substituteTeacherId: teacherId,
+      status: 'ACTIVE',
+    },
+  });
 
   // Check for conflict: another session by different teacher in this section at same date/period
   const conflictingSession = await prisma.attendanceSession.findFirst({
@@ -43,7 +74,9 @@ export async function createSession(teacherId: number, input: CreateSessionInput
 
   const session = await prisma.attendanceSession.create({
     data: {
-      teacherId,
+      teacherId: adjustment ? adjustment.originalTeacherId : teacherId,
+      conductedByTeacherId: adjustment ? teacherId : null,
+      isSubstitution: Boolean(adjustment),
       sectionId: input.sectionId,
       subjectId: input.subjectId,
       date: sessionDate,
@@ -116,7 +149,12 @@ export async function markRecords(
   }
 
   const teacher = await prisma.teacher.findUnique({ where: { userId } });
-  if (teacher && session.teacherId !== teacher.id) {
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
+  const isSuper = user?.role === 'HOD' || user?.role === 'ADMIN';
+  const isSubstitute = teacher && session.conductedByTeacherId === teacher.id;
+  const isOwner = teacher && session.teacherId === teacher.id;
+
+  if (teacher && !isOwner && !isSubstitute && !isSuper) {
     throw { code: 'FORBIDDEN', status: 403, message: 'You cannot edit attendance for another teacher’s session.' };
   }
 

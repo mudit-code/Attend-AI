@@ -18,13 +18,14 @@ import UserProfileDrawer from '../../components/common/UserProfileDrawer';
 import InstallAppPrompt from '../../components/common/InstallAppPrompt';
 import BrandLogo from '../../components/common/BrandLogo';
 import GatePassHODDesk from '../../components/admin/GatePassHODDesk';
+import FacultyAdjustmentHODDesk from '../../components/admin/FacultyAdjustmentHODDesk';
 
 export default function AdminDashboard() {
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
   const navigate = useNavigate();
 
-  const [activeTab, setActiveTab] = useState<'stats' | 'academic' | 'schedule' | 'clearance' | 'notices' | 'grievance' | 'placement' | 'users' | 'rules' | 'audit' | 'leaves' | 'feedback' | 'allocations' | 'dispensary' | 'devices' | 'unlock' | 'gatepass'>('stats');
+  const [activeTab, setActiveTab] = useState<'stats' | 'academic' | 'schedule' | 'clearance' | 'notices' | 'grievance' | 'placement' | 'users' | 'rules' | 'audit' | 'leaves' | 'feedback' | 'allocations' | 'dispensary' | 'devices' | 'unlock' | 'gatepass' | 'adjustments'>('stats');
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   // Stats
@@ -595,6 +596,12 @@ export default function AdminDashboard() {
           onClick={() => setActiveTab('gatepass')}
         >
           🚪 HOD Gate Pass
+        </button>
+        <button
+          className={`btn btn--sm ${activeTab === 'adjustments' ? 'btn--primary' : 'btn--ghost'}`}
+          onClick={() => setActiveTab('adjustments')}
+        >
+          🔄 Proxy & Substitutions
         </button>
       </nav>
 
@@ -1470,6 +1477,7 @@ export default function AdminDashboard() {
           {/* TAB: CENTRAL LECTURE TIMETABLE SCHEDULER */}
           {activeTab === 'schedule' && <LectureScheduleManager />}
           {activeTab === 'gatepass' && <GatePassHODDesk />}
+          {activeTab === 'adjustments' && <FacultyAdjustmentHODDesk />}
         </div>
       </main>
 

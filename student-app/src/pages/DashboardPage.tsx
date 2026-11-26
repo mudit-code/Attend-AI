@@ -31,6 +31,32 @@ interface AttendanceReport {
   }>;
 }
 
+interface StudentAcademicHistory {
+  student: {
+    id: number;
+    rollNo: string;
+    currentSemester: number;
+    section?: { id: number; name: string; year: number; course?: { name: string; code: string } };
+  };
+  promotions: Array<{
+    id: number;
+    promotedAt: string;
+    academicYear?: { name: string };
+    sourceSection: { id: number; name: string; year: number };
+    targetSection: { id: number; name: string; year: number };
+  }>;
+  currentAttendance: {
+    totalSessions: number;
+    attendedSessions: number;
+    percentage: number;
+  };
+  allTimeAttendance: {
+    totalSessions: number;
+    attendedSessions: number;
+    percentage: number;
+  };
+}
+
 interface Notice {
   id: number;
   title: string;
@@ -43,6 +69,7 @@ export default function DashboardPage() {
   const user = useAuthStore((state) => state.user);
 
   const [report, setReport] = useState<AttendanceReport | null>(null);
+  const [academicHistory, setAcademicHistory] = useState<StudentAcademicHistory | null>(null);
   const [loadingReport, setLoadingReport] = useState(true);
   const [notices, setNotices] = useState<Notice[]>([]);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
@@ -101,6 +128,15 @@ export default function DashboardPage() {
     }
 
     try {
+      const histRes = await api.get('/academic/student-history');
+      if (histRes.data?.data) {
+        setAcademicHistory(histRes.data.data);
+      }
+    } catch (err) {
+      console.warn('Academic history not loaded:', err);
+    }
+
+    try {
       const notRes = await api.get('/notices');
       const noticeList = notRes.data?.data || notRes.data;
       if (Array.isArray(noticeList)) {
@@ -146,13 +182,50 @@ export default function DashboardPage() {
   return (
     <div style={{ padding: '16px', maxWidth: '600px', margin: '0 auto', width: '100%', paddingBottom: '90px' }}>
       {/* Welcome Banner */}
-      <div style={{ marginBottom: '18px' }}>
+      <div style={{ marginBottom: '16px' }}>
         <h1 style={{ fontSize: '20px', fontWeight: '800', color: '#FFFFFF' }}>
           Welcome back, {user?.name?.split(' ')[0] || 'Student'}! 👋
         </h1>
         <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', marginTop: '2px' }}>
           Section: <span style={{ color: '#60A5FA', fontWeight: '600' }}>{user?.student?.section?.name || 'Classroom'}</span> • Roll: <span style={{ color: '#FFFFFF', fontWeight: '600' }}>{user?.student?.rollNo || 'N/A'}</span>
         </p>
+      </div>
+
+      {/* Semester & Academic Progression Card */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          background: 'rgba(255, 255, 255, 0.04)',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
+          borderRadius: '12px',
+          padding: '10px 14px',
+          marginBottom: '16px',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <span style={{ fontSize: '20px' }}>🎓</span>
+          <div>
+            <div style={{ fontSize: '13px', fontWeight: '700', color: '#FFFFFF' }}>
+              Semester {academicHistory?.student?.currentSemester || 1}
+              <span style={{ marginLeft: '8px', fontSize: '11px', background: 'rgba(16, 185, 129, 0.2)', color: '#10B981', padding: '1px 6px', borderRadius: '4px' }}>
+                Active
+              </span>
+            </div>
+            <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
+              {academicHistory?.student?.section?.name || user?.student?.section?.name || 'Section'} • Year {academicHistory?.student?.section?.year || 1}
+            </div>
+          </div>
+        </div>
+
+        {academicHistory?.promotions && academicHistory.promotions.length > 0 && (
+          <div style={{ textAlign: 'right' }}>
+            <span style={{ fontSize: '11px', color: '#60A5FA', fontWeight: '600', background: 'rgba(96, 165, 250, 0.12)', padding: '3px 8px', borderRadius: '6px' }}>
+              Promoted from {academicHistory.promotions[0].sourceSection?.name} ➔ {academicHistory.promotions[0].targetSection?.name}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Live Lecture Face Attendance Notification Banner */}
@@ -328,6 +401,23 @@ export default function DashboardPage() {
           }}>
             {bunkInfo.safe ? <TrendingUp size={18} style={{ flexShrink: 0, marginTop: '2px' }} /> : <AlertTriangle size={18} style={{ flexShrink: 0, marginTop: '2px' }} />}
             <span>{bunkInfo.text}</span>
+          </div>
+        )}
+
+        {/* Semester vs All-time stats comparison if promoted */}
+        {academicHistory?.allTimeAttendance && academicHistory.promotions && academicHistory.promotions.length > 0 && (
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            paddingTop: '12px',
+            marginTop: '12px',
+            borderTop: '1px solid var(--color-border)',
+            fontSize: '12px',
+            color: 'var(--color-text-muted)'
+          }}>
+            <span>Current Sem ({academicHistory.student.currentSemester}): <strong style={{ color: '#FFFFFF' }}>{academicHistory.currentAttendance.percentage}%</strong></span>
+            <span>Cumulative (All Semesters): <strong style={{ color: '#60A5FA' }}>{academicHistory.allTimeAttendance.percentage}%</strong></span>
           </div>
         )}
       </div>
