@@ -7,17 +7,23 @@ echo ===========================================================================
 echo                AttendAI - Shutdown Utility
 echo ===============================================================================
 echo.
-echo Stopping Node.js dev server processes on ports 4000 and 5173...
+echo Stopping Node.js dev server processes on ports 4000, 5173, and 5174...
 
-:: Find and terminate processes listening on port 4000
+:: Find and terminate processes listening on port 4000 (Backend)
 for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":4000" ^| findstr "LISTENING"') do (
-    echo [INFO] Stopping process on port 4000 [PID: %%a]...
+    echo [INFO] Stopping Backend API on port 4000 [PID: %%a]...
     taskkill /F /PID %%a >nul 2>&1
 )
 
-:: Find and terminate processes listening on port 5173
+:: Find and terminate processes listening on port 5173 (Faculty / Admin Frontend)
 for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":5173" ^| findstr "LISTENING"') do (
-    echo [INFO] Stopping process on port 5173 [PID: %%a]...
+    echo [INFO] Stopping Faculty/Admin Portal on port 5173 [PID: %%a]...
+    taskkill /F /PID %%a >nul 2>&1
+)
+
+:: Find and terminate processes listening on port 5174 (Student PWA)
+for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":5174" ^| findstr "LISTENING"') do (
+    echo [INFO] Stopping Student Portal on port 5174 [PID: %%a]...
     taskkill /F /PID %%a >nul 2>&1
 )
 
@@ -25,7 +31,7 @@ for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":5173" ^| findstr "LISTENING
 echo.
 where docker >nul 2>&1
 if not errorlevel 1 (
-    echo [INFO] Stopping Docker Compose containers - PostgreSQL ^& Redis...
+    echo [INFO] Stopping Docker Compose containers...
     docker compose -f "%~dp0docker-compose.yml" down >nul 2>&1
     echo [OK] Docker containers stopped.
 )

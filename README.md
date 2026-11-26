@@ -1,7 +1,7 @@
 # 📋 AttendAI — Offline-First Smart Attendance & College ERP System
 
-> **Enterprise-grade, offline-first Progressive Web App (PWA) attendance platform and integrated College ERP engineered specifically for engineering and professional degree institutions (AKTU aligned).**
-> Fast classroom attendance marking (< 1 minute for 60 students), 10-second rotating QR code proxy elimination with **Fullscreen Projector Mode**, single-device hardware fingerprint binding with administrative device manager, IndexedDB offline queuing, background sync engine, automated defaulter email warnings, campus dispensary OPD desk, 4-pillar no-dues clearance, certified AKTU marksheet generator, and verified fee payment receipts.
+> **Enterprise-grade, offline-first Progressive Web App (PWA) attendance platform, AI Biometric Face Recognition, Multi-Tier Gate Pass Clearance, and integrated College ERP engineered specifically for higher education institutions.**
+> Fast classroom attendance marking (< 1 minute for 60 students), **AI Face Attendance with Liveness Blink Detection & Campus Geofencing**, 10-second rotating QR proxy elimination with **Fullscreen Projector Mode**, automated **Absentee & Defaulter Email Alerts via Nodemailer**, **Digital Gate Pass Clearance with Offline Web Crypto HMAC Verification**, dedicated **Student Mobile PWA (Port 5174)**, single-device hardware fingerprint binding, IndexedDB offline queuing, campus dispensary OPD desk, 4-pillar no-dues clearance, certified marksheet generator, and verified fee receipts.
 
 ---
 
@@ -27,13 +27,19 @@
    - [Attendance Dispute Redressal & Claim Matrix](#13-attendance-dispute-redressal--claim-matrix)
    - [System Hardening & Enterprise Resilience Engineering](#14-system-hardening--enterprise-resilience-engineering)
    - [Assignment Submission & Review](#15-assignment-submission--review)
+   - [AI Face Attendance & Triple Anti-Proxy Engine](#16-ai-face-attendance--triple-anti-proxy-engine)
+   - [Automated Email Notification Engine (Absentee & Defaulters)](#17-automated-email-notification-engine-nodemailer)
+   - [Multi-Tier Gate Pass Clearance & Guard Kiosk](#18-multi-tier-gate-pass-clearance--guard-kiosk)
+   - [Dedicated Student Mobile Portal (PWA)](#19-dedicated-student-mobile-portal-pwa)
 7. [Database Architecture & Data Modeling](#-database-architecture--data-modeling)
 8. [Complete REST API Specification](#-complete-rest-api-specification)
 9. [Folder Structure](#-folder-structure)
 10. [Architecture Documentation Files (Root Folder)](#-architecture-documentation-files-root-folder)
 11. [Getting Started & Local Setup](#-getting-started--local-setup)
     - [1-Click Windows Launch (start.bat)](#-1-click-windows-launch-startbat)
-    - [Clean Shutdown (stop.bat)](#-clean-shutdown-stopbat)
+    - [1-Click Linux / macOS Launch (start.sh)](#-1-click-linux--macos-launch-startsh)
+    - [Dedicated Student App Launch (start-student.bat)](#-dedicated-student-app-launch-start-studentbat)
+    - [Clean Shutdown (stop.bat / stop.sh)](#-clean-shutdown-stopbat--stopsh)
     - [Manual CLI Setup](#-manual-cli-setup)
 12. [1-Click Instant Demo Credentials](#-1-click-instant-demo-credentials)
 13. [Testing & Quality Verification](#-testing--quality-verification)
@@ -267,6 +273,27 @@ graph TD
 - Students submit Google Drive file links. The backend verifies public access and checks the PDF file signature before accepting a submission.
 - Teachers review submissions, add feedback and marks, then sign off. Students can view grades and feedback; signed-off submissions are locked.
 
+### 16. AI Face Attendance & Triple Anti-Proxy Engine
+- **Client-Side Biometric Embedding:** Leverages browser video canvas and normalized 128-dimensional biometric vectors. Zero external paid API dependencies.
+- **Anti-Spoof Liveness Detection:** Enforces randomized blink prompt verification on live camera video stream to prevent static photos and screen playback attacks.
+- **Campus GPS Geofencing:** Integrates pure Haversine distance verification (`COLLEGE_LAT`, `COLLEGE_LNG`, radius) ensuring students are physically within campus boundaries.
+- **Teacher-Controlled Live Session Window:** Teacher opens a 5-minute timed live window (`POST /sessions/:id/face-window/start`); Teacher Dashboard features 3.5s real-time auto-polling with live green `P` status and `👤 Face Verified` badges.
+- **Class-Wise Administrative Governance:** Admin can enable or disable Face Attendance per class/section in the Academic Structure Manager.
+
+### 17. Automated Email Notification Engine (Nodemailer)
+- **Instant Absentee Alerts:** Saving attendance automatically identifies students marked Absent (`A`) and triggers asynchronous, non-blocking HTML email notifications to their registered email addresses.
+- **Low-Attendance Defaulters Warning (<75%):** Dynamic calculation of attendance percentages, shortfall classes, and 1-click batch warning email dispatch to students and parents (`POST /communication/defaulters/send-warning-batch`).
+- **Resilient Zero-Crash Fallback:** Operates seamlessly with configured SMTP (Gmail / Custom SMTP) or safe simulated local audit logging (`DefaulterEmailLog`) when credentials are omitted.
+
+### 18. Multi-Tier Gate Pass Clearance & Guard Kiosk
+- **Digital Out-Pass Workflow:** Students apply for Day Outpass, Emergency Medical, or Market Leave from mobile (`/gatepass`).
+- **Hierarchical Approval:** Automated priority routing to Class Mentor/Teacher followed by Department HOD clearance desk.
+- **Guard Kiosk Scanner (`/guard`):** Live camera QR barcode scanning with native Web Crypto HMAC-SHA256 digital signature verification for instant offline gate checkout/checkin.
+
+### 19. Dedicated Student Mobile Portal (PWA)
+- Standalone responsive mobile portal operating on **Port 5174** (`student-app`).
+- Live attendance progress ring, timetable pulse, Google Drive assignment submissions, gate pass QR wallet, notices, and biometric face registration.
+
 ---
 
 ## 🗄️ Database Architecture & Data Modeling
@@ -486,22 +513,41 @@ Simply double-click the **`start.bat`** script located in the root directory:
 start.bat
 ```
 This automatically:
-1. Verifies Node.js installation (v20+).
+1. Verifies Node.js installation (v20+ LTS).
 2. Generates `backend\.env` from `.env.example` if not already present.
-3. Automatically installs dependencies (`npm install`) if `node_modules` is missing.
-4. Boots PostgreSQL 16 and Redis 7 containers via Docker Compose (with graceful fallback if Docker engine is offline).
-5. Generates the Prisma ORM Client.
-6. **Smart Port Collision Detection:** Checks if ports 4000 or 5173 are already running to prevent duplicate process conflicts.
-7. Launches the Backend API on `http://localhost:4000` in its own window.
-8. Launches the Frontend PWA on `http://localhost:5173` in its own window.
-9. Automatically opens `http://localhost:5173` in your default browser.
+3. Automatically installs dependencies across `backend/`, `frontend/`, and `student-app/`.
+4. Boots local database containers if Docker is active (with graceful local SQLite/PostgreSQL fallback).
+5. Generates the Prisma ORM Client (`npx prisma generate`).
+6. **Smart Port Collision Detection:** Checks ports 4000, 5173, and 5174 to prevent duplicate processes.
+7. Launches the **Backend API** on `http://localhost:4000`.
+8. Launches the **Faculty & Admin Portal** on `http://localhost:5173`.
+9. Launches the **Dedicated Student Mobile PWA** on `http://localhost:5174`.
+10. Automatically opens `http://localhost:5173` in your default browser.
 
-### 🛑 Clean Shutdown (`stop.bat`)
-To terminate all AttendAI services and containers cleanly:
-```cmd
-stop.bat
+### 🐧 1-Click Linux / macOS Launch (`start.sh`)
+For Linux and macOS environments:
+```bash
+chmod +x start.sh stop.sh
+./start.sh
 ```
-This safely stops processes listening on ports 4000 and 5173 and brings down Docker containers.
+
+### 📱 Dedicated Student Portal Launch (`start-student.bat`)
+To run only the mobile student PWA experience:
+```cmd
+start-student.bat
+```
+Direct access on `http://localhost:5174`.
+
+### 🛑 Clean Shutdown (`stop.bat` / `stop.sh`)
+To terminate all AttendAI services and microservices cleanly:
+```cmd
+# Windows:
+stop.bat
+
+# Linux / macOS:
+./stop.sh
+```
+This safely stops processes listening on ports 4000, 5173, and 5174 and brings down Docker containers.
 
 ---
 
@@ -510,44 +556,43 @@ This safely stops processes listening on ports 4000 and 5173 and brings down Doc
 #### 1. Prerequisites
 - **Node.js** (v20+ LTS): `node -v`
 - **npm** (v10+): `npm -v`
-- **Docker Desktop** (optional for PostgreSQL & Redis): `docker compose version`
 
-#### 2. Start PostgreSQL & Redis Containers
-```bash
-docker compose up -d
-```
-
-#### 3. Backend Setup
+#### 2. Backend Gateway Setup (Port 4000)
 ```bash
 cd backend
 cp .env.example .env
 npm install
 npx prisma generate
-npx prisma migrate dev --name init
-npm run db:seed
 npm run dev
 ```
-Backend API will listen on **`http://localhost:4000`**.
 
-#### 4. Frontend Setup
+#### 3. Faculty & Admin Portal Setup (Port 5173)
 ```bash
 cd ../frontend
 npm install
 npm run dev
 ```
-Frontend PWA will be available at **`http://localhost:5173`**.
+
+#### 4. Dedicated Student Mobile PWA Setup (Port 5174)
+```bash
+cd ../student-app
+npm install
+npm run dev -- --port 5174
+```
 
 ---
 
 ## 👥 1-Click Instant Demo Credentials
 
-AttendAI includes **1-Click Instant Demo Chips** at the top of the login screen (`/login`). You can access all portals instantly without typing passwords:
+AttendAI includes **1-Click Instant Demo Chips** at the login screen (`/login`). You can access all portals instantly:
 
-| Role | Demo Account | Default Email | Default Password | Access Path |
+| Role | Demo Name | Default Email | Default Password | Portal URL |
 |---|---|---|---|---|
-| **🎓 Student** | Aman Kumar | `student1@attendai.com` | `Student@123` | `/student` |
-| **👨‍🏫 Faculty** | Dr. Rajesh Sharma | `teacher1@attendai.com` | `Teacher@123` | `/teacher` |
-| **🏛️ Admin / Dean** | Dean Academics | `admin@attendai.com` | `Admin@123` | `/admin` |
+| **🏛️ Admin** | System Admin | `admin@attendai.com` | `Admin@123` | `http://localhost:5173/admin` |
+| **🏛️ HOD** | Dr. Rajesh Gupta (HOD CS) | `hod.cs@attendai.com` | `Hod@123` | `http://localhost:5173/hod` |
+| **👨‍🏫 Faculty** | Ramesh Kumar | `teacher1@attendai.com` | `Teacher@123` | `http://localhost:5173/teacher` |
+| **🎓 Student** | Student 1 (Roll: BCA3A001) | `student1@attendai.com` | `Student@123` | `http://localhost:5174/login` |
+| **🛡️ Guard Desk** | Gate Kiosk Scanner | *Token Authenticated* | `guard_attendai_2026_secure` | `http://localhost:5173/guard` |
 
 ---
 
