@@ -15,6 +15,7 @@ const TeacherDashboard = lazy(() => import('./pages/teacher/TeacherDashboard'));
 const StudentDashboard = lazy(() => import('./pages/student/StudentDashboard'));
 const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
 const LockScreen = lazy(() => import('./pages/LockScreen'));
+const GuardGateDesk = lazy(() => import('./pages/GuardGateDesk'));
 
 // ─── Route Guard ──────────────────────────────────────────────────
 function ProtectedRoute({ children, roles }: { children: React.ReactNode; roles?: string[] }) {
@@ -110,8 +111,8 @@ export default function App() {
             <Route
               path="/hod/*"
               element={
-                <ProtectedRoute roles={['HOD', 'ADMIN']}>
-                  <AdminDashboard />
+                <ProtectedRoute roles={['HOD']}>
+                  <TeacherDashboard />
                 </ProtectedRoute>
               }
             />
@@ -119,6 +120,8 @@ export default function App() {
             {/* Landing page & role redirect */}
             <Route path="/" element={<HomePage />} />
             <Route path="/dashboard" element={<RoleRedirect />} />
+            {/* Guard Desk — token-protected, no JWT needed */}
+            <Route path="/guard" element={<GuardGateDesk />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>

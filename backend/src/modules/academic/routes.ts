@@ -101,6 +101,21 @@ router.post(
   }
 );
 
+router.patch(
+  '/sections/:id/face-toggle',
+  requireRole('ADMIN'),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const id = Number(req.params.id);
+      const isEnabled = Boolean(req.body.isFaceAttendanceEnabled);
+      const data = await academicService.toggleSectionFaceAttendance(id, isEnabled);
+      res.json({ success: true, data });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
 // ─── Subjects ─────────────────────────────────────────────────────
 router.get('/subjects', async (_req: Request, res: Response, next: NextFunction) => {
   try {

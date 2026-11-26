@@ -57,6 +57,13 @@ export async function createSection(data: SectionInput) {
   return prisma.section.create({ data });
 }
 
+export async function toggleSectionFaceAttendance(id: number, isFaceAttendanceEnabled: boolean) {
+  return prisma.section.update({
+    where: { id },
+    data: { isFaceAttendanceEnabled },
+  });
+}
+
 // ─── Subjects ─────────────────────────────────────────────────────
 export async function getSubjects() {
   return prisma.subject.findMany({

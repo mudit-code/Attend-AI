@@ -1,4 +1,6 @@
 import { prisma } from '../../lib/prisma';
+import { isWithinCampus } from '../../lib/geofence';
+import { sendAbsenteeEmailBatch } from '../../lib/email';
 import type { AttendanceStatus, MarkingMethod } from '@prisma/client';
 import type {
   CreateSessionInput,
@@ -225,6 +227,51 @@ export async function markRecords(
     return updated;
   });
 
+  // ── Dispatch absentee notification emails asynchronously ──
+  const absentStudentIds = input.records
+    .filter((r) => r.status === 'A' && !leaveMap.has(r.studentId))
+    .map((r) => r.studentId);
+
+  if (absentStudentIds.length > 0) {
+    void (async () => {
+      try {
+        const fullSession = await prisma.attendanceSession.findUnique({
+          where: { id: sessionId },
+          include: {
+            subject: true,
+            teacher: { include: { user: { select: { name: true } } } },
+          },
+        });
+
+        const absentStudents = await prisma.student.findMany({
+          where: { id: { in: absentStudentIds } },
+          include: { user: { select: { name: true, email: true } } },
+        });
+
+        if (fullSession && absentStudents.length > 0) {
+          const sessionDateStr = session.date.toISOString().slice(0, 10);
+          const sessionInfo = {
+            subjectName: fullSession.subject.name,
+            subjectCode: fullSession.subject.code,
+            date: sessionDateStr,
+            period: fullSession.period,
+            teacherName: fullSession.teacher.user.name,
+          };
+
+          const payload = absentStudents.map((st) => ({
+            name: st.user.name,
+            email: st.user.email,
+            rollNo: st.rollNo,
+          }));
+
+          void sendAbsenteeEmailBatch(sessionInfo, payload);
+        }
+      } catch {
+        // Safe background error ignore
+      }
+    })();
+  }
+
   return results;
 }
 
@@ -332,4 +379,204 @@ export async function getTeacherSessions(teacherId: number, limit = 20) {
     orderBy: { createdAt: 'desc' },
     take: limit,
   });
+}
+
+// ─── Face Attendance Window & Check-in ─────────────────────────────
+
+function computeEuclideanDistance(v1: number[], v2: number[]): number {
+  if (!v1.length || !v2.length) return 1.0;
+  let sum = 0;
+  const len = Math.min(v1.length, v2.length);
+  for (let i = 0; i < len; i++) {
+    const diff = v1[i] - v2[i];
+    sum += diff * diff;
+  }
+  return Math.sqrt(sum);
+}
+
+export async function startFaceWindow(sessionId: string, teacherUserId: number, durationMinutes: number = 5) {
+  const session = await prisma.attendanceSession.findUnique({
+    where: { id: sessionId },
+    include: { section: true },
+  });
+
+  if (!session) {
+    throw { code: 'NOT_FOUND', status: 404, message: 'Session not found' };
+  }
+  if (session.locked) {
+    throw { code: 'SESSION_LOCKED', status: 400, message: 'Cannot start face window for a locked session' };
+  }
+
+  // Check section governance flag
+  if (!session.section.isFaceAttendanceEnabled) {
+    throw { code: 'FACE_DISABLED', status: 403, message: 'Face Attendance is disabled for this section by Admin.' };
+  }
+
+  const expiresAt = new Date(Date.now() + durationMinutes * 60 * 1000);
+
+  return prisma.attendanceSession.update({
+    where: { id: sessionId },
+    data: {
+      faceWindowActive: true,
+      faceWindowExpiresAt: expiresAt,
+    },
+    include: {
+      section: true,
+      subject: true,
+      records: {
+        include: {
+          student: {
+            include: { user: { select: { name: true } } },
+          },
+        },
+      },
+    },
+  });
+}
+
+export async function stopFaceWindow(sessionId: string, teacherUserId: number) {
+  return prisma.attendanceSession.update({
+    where: { id: sessionId },
+    data: {
+      faceWindowActive: false,
+      faceWindowExpiresAt: null,
+    },
+    include: {
+      section: true,
+      subject: true,
+    },
+  });
+}
+
+export async function getActiveFaceSessionForStudent(studentUserId: number) {
+  const student = await prisma.student.findUnique({
+    where: { userId: studentUserId },
+    select: { id: true, sectionId: true },
+  });
+  if (!student) return null;
+
+  const now = new Date();
+  const session = await prisma.attendanceSession.findFirst({
+    where: {
+      sectionId: student.sectionId,
+      locked: false,
+      faceWindowActive: true,
+      faceWindowExpiresAt: { gt: now },
+    },
+    include: {
+      subject: { select: { name: true, code: true } },
+      teacher: { include: { user: { select: { name: true } } } },
+      records: {
+        where: { studentId: student.id },
+        select: { id: true, status: true, method: true },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  if (!session) return null;
+
+  return {
+    sessionId: session.id,
+    subjectName: session.subject.name,
+    subjectCode: session.subject.code,
+    teacherName: session.teacher.user.name,
+    expiresAt: session.faceWindowExpiresAt,
+    alreadyMarked: session.records.length > 0,
+    status: session.records[0]?.status || null,
+  };
+}
+
+export async function faceCheckin(
+  studentUserId: number,
+  sessionId: string,
+  clientDescriptor: number[],
+  lat?: number,
+  lng?: number
+) {
+  // 1. Check Session validity
+  const session = await prisma.attendanceSession.findUnique({
+    where: { id: sessionId },
+    include: { section: true },
+  });
+
+  if (!session) {
+    throw { code: 'NOT_FOUND', status: 404, message: 'Lecture session not found' };
+  }
+  if (session.locked) {
+    throw { code: 'SESSION_LOCKED', status: 400, message: 'This attendance session is locked' };
+  }
+  if (!session.faceWindowActive || !session.faceWindowExpiresAt || new Date() > session.faceWindowExpiresAt) {
+    throw { code: 'WINDOW_CLOSED', status: 400, message: 'Face attendance window has closed for this lecture' };
+  }
+  if (!session.section.isFaceAttendanceEnabled) {
+    throw { code: 'FACE_DISABLED', status: 403, message: 'Face Attendance is disabled for this section by Admin' };
+  }
+
+  // 2. Geofence Verification
+  if (lat !== undefined && lng !== undefined) {
+    const inside = isWithinCampus(lat, lng);
+    if (!inside) {
+      throw { code: 'OUTSIDE_CAMPUS', status: 403, message: 'You must be inside college campus to mark attendance' };
+    }
+  }
+
+  // 3. Find Student and Registered Face Descriptor
+  const student = await prisma.student.findUnique({
+    where: { userId: studentUserId },
+    include: { user: { select: { name: true } } },
+  });
+
+  if (!student) {
+    throw { code: 'NOT_STUDENT', status: 403, message: 'Student profile not found' };
+  }
+  if (student.sectionId !== session.sectionId) {
+    throw { code: 'WRONG_SECTION', status: 403, message: 'You do not belong to this section' };
+  }
+  if (!student.faceDescriptor || student.faceDescriptor.length === 0) {
+    throw { code: 'NO_FACE_ID', status: 400, message: 'Face ID not registered. Please register your Face ID in your Profile first.' };
+  }
+
+  // 4. Biometric Matching: Euclidean distance threshold (standard is 0.6)
+  const distance = computeEuclideanDistance(clientDescriptor, student.faceDescriptor);
+  const MATCH_THRESHOLD = 0.62;
+
+  if (distance > MATCH_THRESHOLD) {
+    throw {
+      code: 'FACE_MISMATCH',
+      status: 401,
+      message: `Face verification failed. Confidence too low (${(1 - distance).toFixed(2)}). Ensure good lighting.`,
+    };
+  }
+
+  // 5. Mark Attendance
+  const record = await prisma.attendanceRecord.upsert({
+    where: {
+      sessionId_studentId: {
+        sessionId,
+        studentId: student.id,
+      },
+    },
+    create: {
+      sessionId,
+      studentId: student.id,
+      status: 'P' as AttendanceStatus,
+      method: 'FACE' as MarkingMethod,
+      clientTs: new Date(),
+    },
+    update: {
+      status: 'P' as AttendanceStatus,
+      method: 'FACE' as MarkingMethod,
+      clientTs: new Date(),
+    },
+  });
+
+  return {
+    success: true,
+    studentName: student.user.name,
+    rollNo: student.rollNo,
+    status: record.status,
+    method: record.method,
+    confidence: Math.round((1 - distance) * 100),
+  };
 }

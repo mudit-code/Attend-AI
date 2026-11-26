@@ -26,6 +26,7 @@ import feedbackRouter from './modules/feedback/routes';
 import communicationRouter from './modules/communication/routes';
 import dispensaryRouter from './modules/dispensary/routes';
 import assignmentsRouter from './modules/assignments/routes';
+import gatepassRouter from './modules/gatepass/routes';
 
 
 const app = express();
@@ -49,9 +50,23 @@ app.use(
 );
 
 // ─── CORS ─────────────────────────────────────────────────────────
+const allowedOrigins = [
+  env.FRONTEND_URL,
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'http://127.0.0.1:5173',
+  'http://127.0.0.1:5174',
+].filter(Boolean);
+
 app.use(
   cors({
-    origin: env.FRONTEND_URL,
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin) || origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) {
+        return callback(null, true);
+      }
+      return callback(null, false);
+    },
     credentials: true, // Required for cookies
     methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
   })
@@ -109,6 +124,7 @@ app.use('/api/v1/feedback', feedbackRouter);
 app.use('/api/v1/communication', communicationRouter);
 app.use('/api/v1/dispensary', dispensaryRouter);
 app.use('/api/v1/assignments', assignmentsRouter);
+app.use('/api/v1/gatepass', gatepassRouter);
 
 // 404 handler
 app.use((_req, res) => {

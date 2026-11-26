@@ -182,4 +182,87 @@ router.get('/my-sessions', requireRole('TEACHER'), async (req: AuthRequest, res:
   }
 });
 
+// ─── Face Attendance Window & Checkin Routes ──────────────────────
+
+router.post(
+  '/sessions/:id/face-window/start',
+  requireRole('TEACHER', 'HOD', 'ADMIN'),
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const sessionId = req.params.id as string;
+      const duration = Number(req.body.durationMinutes || 5);
+      const data = await attendanceService.startFaceWindow(sessionId, req.user!.id, duration);
+      res.json({ success: true, message: 'Face attendance window started', data });
+    } catch (err: unknown) {
+      const customErr = err as { code?: string; status?: number; message?: string };
+      if (customErr.status) {
+        res.status(customErr.status).json({ error: { code: customErr.code || 'ERROR', message: customErr.message } });
+        return;
+      }
+      next(err);
+    }
+  }
+);
+
+router.post(
+  '/sessions/:id/face-window/stop',
+  requireRole('TEACHER', 'HOD', 'ADMIN'),
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const sessionId = req.params.id as string;
+      const data = await attendanceService.stopFaceWindow(sessionId, req.user!.id);
+      res.json({ success: true, message: 'Face attendance window stopped', data });
+    } catch (err: unknown) {
+      const customErr = err as { code?: string; status?: number; message?: string };
+      if (customErr.status) {
+        res.status(customErr.status).json({ error: { code: customErr.code || 'ERROR', message: customErr.message } });
+        return;
+      }
+      next(err);
+    }
+  }
+);
+
+router.get(
+  '/face-window/active-for-me',
+  requireRole('STUDENT'),
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const data = await attendanceService.getActiveFaceSessionForStudent(req.user!.id);
+      res.json({ success: true, data });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+router.post(
+  '/face-checkin',
+  requireRole('STUDENT'),
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const { sessionId, descriptor, lat, lng } = req.body;
+      if (!sessionId || !Array.isArray(descriptor)) {
+        res.status(400).json({ error: { code: 'INVALID_INPUT', message: 'sessionId and face descriptor vector are required' } });
+        return;
+      }
+      const data = await attendanceService.faceCheckin(
+        req.user!.id,
+        sessionId,
+        descriptor,
+        lat !== undefined ? Number(lat) : undefined,
+        lng !== undefined ? Number(lng) : undefined
+      );
+      res.json({ success: true, message: 'Attendance marked via Face ID ✅', data });
+    } catch (err: unknown) {
+      const customErr = err as { code?: string; status?: number; message?: string };
+      if (customErr.status) {
+        res.status(customErr.status).json({ error: { code: customErr.code || 'ERROR', message: customErr.message } });
+        return;
+      }
+      next(err);
+    }
+  }
+);
+
 export default router;

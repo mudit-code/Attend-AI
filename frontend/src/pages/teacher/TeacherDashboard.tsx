@@ -24,6 +24,7 @@ interface StudentItem {
   rollNo: string;
   name: string;
   status: 'P' | 'A' | 'L' | 'LV' | 'OD';
+  method?: string;
 }
 
 interface SectionItem {
@@ -91,6 +92,13 @@ export default function TeacherDashboard() {
   const [qrError, setQrError] = useState<string | null>(null);
   const [projectorMode, setProjectorMode] = useState(false);
   const qrScannedCount = students.filter((s) => s.status === 'P').length;
+
+  // Face Attendance Window
+  const [faceSessionActive, setFaceSessionActive] = useState(false);
+  const [faceSessionId, setFaceSessionId] = useState<string | null>(null);
+  const [faceTimeLeft, setFaceTimeLeft] = useState<number>(0);
+  const [faceLoading, setFaceLoading] = useState(false);
+  const [faceMessage, setFaceMessage] = useState<string | null>(null);
 
   // Approvals
   const [leaves, setLeaves] = useState<any[]>([]);
@@ -388,6 +396,116 @@ export default function TeacherDashboard() {
       clearInterval(intervalId);
     };
   }, [qrActive, qrSessionId]);
+
+  // Face Window Handlers & Effects
+  async function handleStartFaceWindow(durationMinutes = 5) {
+    if (!selectedSection || !selectedSubject) {
+      alert('Please select a section and a subject first.');
+      return;
+    }
+    setFaceLoading(true);
+    setFaceMessage(null);
+    try {
+      const sessionRes = await api.post('/attendance/sessions', {
+        sectionId: selectedSection,
+        subjectId: selectedSubject,
+        date,
+        period,
+      });
+      const sessionId = sessionRes.data?.data?.id;
+      if (!sessionId) throw new Error('Could not establish attendance session.');
+
+      await api.post(`/attendance/sessions/${sessionId}/face-window/start`, {
+        durationMinutes,
+      });
+
+      setFaceSessionId(sessionId);
+      setFaceSessionActive(true);
+      setFaceTimeLeft(durationMinutes * 60);
+      setFaceMessage(`Face attendance window open for ${durationMinutes} minutes`);
+    } catch (err: any) {
+      const errMsg = err.response?.data?.error?.message || err.message || 'Failed to start face window';
+      setFaceMessage(`Error: ${errMsg}`);
+    } finally {
+      setFaceLoading(false);
+    }
+  }
+
+  async function handleStopFaceWindow() {
+    if (!faceSessionId) {
+      setFaceSessionActive(false);
+      return;
+    }
+    setFaceLoading(true);
+    try {
+      await api.post(`/attendance/sessions/${faceSessionId}/face-window/stop`);
+      setFaceSessionActive(false);
+      setFaceTimeLeft(0);
+      setFaceMessage('Face attendance window closed.');
+    } catch {
+      setFaceSessionActive(false);
+    } finally {
+      setFaceLoading(false);
+      setTimeout(() => setFaceMessage(null), 4000);
+    }
+  }
+
+  useEffect(() => {
+    if (!faceSessionActive || faceTimeLeft <= 0) {
+      if (faceSessionActive && faceTimeLeft <= 0) {
+        setFaceSessionActive(false);
+        setFaceMessage('Face window expired.');
+      }
+      return;
+    }
+    const timer = setInterval(() => {
+      setFaceTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          setFaceSessionActive(false);
+          setFaceMessage('Face window expired.');
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [faceSessionActive, faceTimeLeft]);
+
+  useEffect(() => {
+    if (!faceSessionActive || !faceSessionId) return;
+    let active = true;
+    const fetchLatestRecords = async () => {
+      try {
+        const res = await api.get(`/attendance/sessions/${faceSessionId}`);
+        if (!active) return;
+        const records = res.data?.data?.records ?? [];
+        if (records.length > 0) {
+          const recordMap = new Map<number, { status: StudentItem['status']; method?: string }>(
+            records.map((r: any) => [r.studentId, { status: r.status, method: r.method }])
+          );
+          setStudents((curr) =>
+            curr.map((st) => {
+              const matched = recordMap.get(st.id);
+              if (matched) {
+                return { ...st, status: matched.status, method: matched.method };
+              }
+              return st;
+            })
+          );
+        }
+      } catch {
+        // silent polling
+      }
+    };
+
+    void fetchLatestRecords();
+    const interval = setInterval(fetchLatestRecords, 3500);
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
+  }, [faceSessionActive, faceSessionId]);
 
   // Approvals logic
   async function loadApprovals() {
@@ -963,6 +1081,37 @@ export default function TeacherDashboard() {
                   <button className="btn btn--ghost btn--sm" onClick={() => markAll('A')}>
                     ✗ All Absent
                   </button>
+                  {!faceSessionActive ? (
+                    <button
+                      className="btn btn--sm"
+                      style={{
+                        background: 'linear-gradient(135deg, #0284c7 0%, #2563eb 100%)',
+                        color: '#fff',
+                        fontWeight: 600,
+                        border: 'none',
+                        boxShadow: '0 2px 8px rgba(37,99,235,0.25)',
+                      }}
+                      onClick={() => handleStartFaceWindow(5)}
+                      disabled={faceLoading || students.length === 0}
+                      title="Open a 5-minute live face attendance window for students"
+                    >
+                      {faceLoading ? 'Starting...' : '📷 Start Face Window (5m)'}
+                    </button>
+                  ) : (
+                    <button
+                      className="btn btn--sm"
+                      style={{
+                        background: '#dc2626',
+                        color: '#fff',
+                        fontWeight: 600,
+                        border: 'none',
+                      }}
+                      onClick={handleStopFaceWindow}
+                      disabled={faceLoading}
+                    >
+                      🛑 Stop Face Window
+                    </button>
+                  )}
                   <button
                     className="btn btn--primary"
                     onClick={handleSaveAttendance}
@@ -988,6 +1137,83 @@ export default function TeacherDashboard() {
                   }}
                 >
                   {saveMessage}
+                </div>
+              )}
+
+              {/* Live Face Attendance Active Banner */}
+              {faceSessionActive && (
+                <div
+                  style={{
+                    marginBottom: '1rem',
+                    padding: '0.85rem 1.25rem',
+                    borderRadius: '12px',
+                    background: 'linear-gradient(90deg, rgba(37,99,235,0.1), rgba(6,182,212,0.1))',
+                    border: '1.5px solid #2563eb',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: '0.75rem',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <span
+                      style={{
+                        display: 'inline-block',
+                        width: '12px',
+                        height: '12px',
+                        borderRadius: '50%',
+                        background: '#10b981',
+                        boxShadow: '0 0 10px #10b981',
+                      }}
+                    />
+                    <div>
+                      <strong style={{ color: '#1e40af', fontSize: '0.95rem' }}>
+                        Live Face Attendance Window is OPEN
+                      </strong>
+                      <div style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)' }}>
+                        Students can scan their face on their Student App. Attendance updates automatically.
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <div
+                      style={{
+                        fontFamily: 'monospace',
+                        fontWeight: 800,
+                        fontSize: '1.2rem',
+                        color: '#1e40af',
+                        background: 'rgba(255,255,255,0.85)',
+                        padding: '0.2rem 0.65rem',
+                        borderRadius: '6px',
+                        border: '1px solid rgba(37,99,235,0.3)',
+                      }}
+                    >
+                      ⏳ {Math.floor(faceTimeLeft / 60).toString().padStart(2, '0')}:{(faceTimeLeft % 60).toString().padStart(2, '0')}
+                    </div>
+                    <button
+                      className="btn btn--sm"
+                      style={{ background: '#ef4444', color: '#fff', border: 'none' }}
+                      onClick={handleStopFaceWindow}
+                    >
+                      Stop Window
+                    </button>
+                  </div>
+                </div>
+              )}
+              {faceMessage && !faceSessionActive && (
+                <div
+                  className="card"
+                  style={{
+                    marginBottom: '1rem',
+                    padding: '0.5rem 1rem',
+                    background: faceMessage.includes('Error') ? 'rgba(239, 68, 68, 0.1)' : 'rgba(37, 99, 235, 0.1)',
+                    border: `1px solid ${faceMessage.includes('Error') ? '#ef4444' : '#3b82f6'}`,
+                    fontSize: '0.88rem',
+                    fontWeight: 600,
+                  }}
+                >
+                  {faceMessage}
                 </div>
               )}
 
@@ -1017,6 +1243,22 @@ export default function TeacherDashboard() {
                         {st.rollNo}
                       </span>
                       <span className="font-semibold">{st.name}</span>
+                      {st.method === 'FACE' && (
+                        <span
+                          className="badge"
+                          style={{
+                            marginLeft: '0.5rem',
+                            background: '#dbeafe',
+                            color: '#1d4ed8',
+                            fontSize: '0.72rem',
+                            fontWeight: 700,
+                            border: '1px solid #bfdbfe',
+                          }}
+                          title="Attendance verified via Biometric Face Scan"
+                        >
+                          👤 Face Verified
+                        </span>
+                      )}
                     </div>
 
                     {/* 3-tap buttons: P, A, L, OD */}

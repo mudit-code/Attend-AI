@@ -108,6 +108,31 @@ async function main() {
   }
   console.log('✅ 3 Teachers created');
 
+  // ─── HOD User ─────────────────────────────────────────────────────
+  const hodPassword = await bcrypt.hash('Hod@123', 12);
+  const hodUser = await prisma.user.upsert({
+    where: { email: 'hod.cs@attendai.com' },
+    update: { role: 'HOD' },
+    create: {
+      email: 'hod.cs@attendai.com',
+      phone: '+919000000002',
+      passwordHash: hodPassword,
+      role: 'HOD',
+      name: 'Dr. Rajesh Gupta (HOD CS)',
+    },
+  });
+
+  await prisma.teacher.upsert({
+    where: { userId: hodUser.id },
+    update: { departmentId: dept.id },
+    create: {
+      userId: hodUser.id,
+      employeeCode: 'HOD001',
+      departmentId: dept.id,
+    },
+  });
+  console.log('✅ HOD user created:', hodUser.email);
+
   // ─── Subjects ────────────────────────────────────────────────────
   const subjectData = [
     { name: 'Data Structures', code: 'CS301' },
@@ -227,6 +252,7 @@ async function main() {
   console.log('\n🎉 Seed complete!');
   console.log('\n📋 Login credentials:');
   console.log('  Admin:    admin@attendai.com     / Admin@123');
+  console.log('  HOD:      hod.cs@attendai.com    / Hod@123');
   console.log('  Teacher:  teacher1@attendai.com  / Teacher@123');
   console.log('  Student:  student1@attendai.com  / Student@123');
 }

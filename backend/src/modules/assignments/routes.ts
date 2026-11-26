@@ -29,7 +29,21 @@ router.get(
   async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       const data = await assignmentService.listStudentAssignments(req.user!.id);
-      res.json({ data });
+      res.json({ success: true, data });
+    } catch (error) {
+      handleError(error, res, next);
+    }
+  }
+);
+
+// GET /api/v1/assignments/student (alias for /mine)
+router.get(
+  '/student',
+  requireRole('STUDENT'),
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const data = await assignmentService.listStudentAssignments(req.user!.id);
+      res.json({ success: true, data });
     } catch (error) {
       handleError(error, res, next);
     }

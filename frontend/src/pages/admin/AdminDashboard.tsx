@@ -17,13 +17,14 @@ import LectureScheduleManager from '../../components/admin/LectureScheduleManage
 import UserProfileDrawer from '../../components/common/UserProfileDrawer';
 import InstallAppPrompt from '../../components/common/InstallAppPrompt';
 import BrandLogo from '../../components/common/BrandLogo';
+import GatePassHODDesk from '../../components/admin/GatePassHODDesk';
 
 export default function AdminDashboard() {
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
   const navigate = useNavigate();
 
-  const [activeTab, setActiveTab] = useState<'stats' | 'academic' | 'schedule' | 'clearance' | 'notices' | 'grievance' | 'placement' | 'users' | 'rules' | 'audit' | 'leaves' | 'feedback' | 'allocations' | 'dispensary' | 'devices' | 'unlock'>('stats');
+  const [activeTab, setActiveTab] = useState<'stats' | 'academic' | 'schedule' | 'clearance' | 'notices' | 'grievance' | 'placement' | 'users' | 'rules' | 'audit' | 'leaves' | 'feedback' | 'allocations' | 'dispensary' | 'devices' | 'unlock' | 'gatepass'>('stats');
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   // Stats
@@ -588,6 +589,12 @@ export default function AdminDashboard() {
           onClick={() => setActiveTab('unlock')}
         >
            Session Unlock
+        </button>
+        <button
+          className={`btn btn--sm ${activeTab === 'gatepass' ? 'btn--primary' : 'btn--ghost'}`}
+          onClick={() => setActiveTab('gatepass')}
+        >
+          🚪 HOD Gate Pass
         </button>
       </nav>
 
@@ -1462,6 +1469,7 @@ export default function AdminDashboard() {
 
           {/* TAB: CENTRAL LECTURE TIMETABLE SCHEDULER */}
           {activeTab === 'schedule' && <LectureScheduleManager />}
+          {activeTab === 'gatepass' && <GatePassHODDesk />}
         </div>
       </main>
 

@@ -37,6 +37,58 @@ router.get('/students', requireRole('ADMIN', 'HOD', 'TEACHER'), async (req: Auth
   }
 });
 
+// ─── Student Face Registration & Status ───────────────────────────
+router.post(
+  '/student/register-face',
+  requireRole('STUDENT'),
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const { descriptor } = req.body;
+      if (!Array.isArray(descriptor) || descriptor.length < 50) {
+        res.status(400).json({ error: { code: 'INVALID_DESCRIPTOR', message: 'Valid face embedding vector required' } });
+        return;
+      }
+      const student = await prisma.student.update({
+        where: { userId: req.user!.id },
+        data: {
+          faceDescriptor: descriptor,
+          faceRegisteredAt: new Date(),
+        },
+      });
+      res.json({
+        success: true,
+        message: 'Face ID registered successfully',
+        data: { studentId: student.id, registeredAt: student.faceRegisteredAt },
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+router.get(
+  '/student/face-status',
+  requireRole('STUDENT'),
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const student = await prisma.student.findUnique({
+        where: { userId: req.user!.id },
+        select: { id: true, faceRegisteredAt: true, faceDescriptor: true },
+      });
+      const isRegistered = Boolean(student?.faceDescriptor && student.faceDescriptor.length > 0);
+      res.json({
+        success: true,
+        data: {
+          isRegistered,
+          registeredAt: student?.faceRegisteredAt,
+        },
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
 router.post(
   '/students',
   requireRole('ADMIN'),

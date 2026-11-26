@@ -122,6 +122,7 @@ model Section {
   year           Int          // 1, 2, 3 etc.
   courseId       Int
   academicYearId Int
+  isFaceAttendanceEnabled Boolean @default(true)
 
   course         Course       @relation(fields: [courseId], references: [id])
   academicYear   AcademicYear @relation(fields: [academicYearId], references: [id])
@@ -151,6 +152,7 @@ model Teacher {
   sessions     AttendanceSession[]
   leaveRequests TeacherLeaveRequest[]
   assignments  Assignment[]
+  mentorGatePasses GatePass[] @relation("GatePassMentor")
 
   @@map("teachers")
 }
@@ -161,6 +163,8 @@ model Student {
   rollNo     String  @unique
   sectionId  Int
   parentId   Int?
+  faceDescriptor Float[] @default([])
+  faceRegisteredAt DateTime?
 
   user       User    @relation(fields: [userId], references: [id])
   section    Section @relation(fields: [sectionId], references: [id])
@@ -175,6 +179,7 @@ model Student {
   libraryRecords     LibraryRecord[]
   grievanceTickets   GrievanceTicket[]
   driveRegistrations DriveRegistration[]
+  gatePasses         GatePass[]
 
   @@map("students")
 }
@@ -257,6 +262,8 @@ model AttendanceSession {
   period      Int
   locked      Boolean  @default(false)
   lockedAt    DateTime?
+  faceWindowActive Boolean @default(false)
+  faceWindowExpiresAt DateTime?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -800,5 +807,71 @@ model MedicineInventory {
   reorderThreshold Int      @default(20)
 
   @@map("medicine_inventory")
+}
+
+// =============================================
+// GATE PASS SYSTEM
+// =============================================
+model GatePass {
+  id                 String         @id @default(uuid())
+  studentId          Int
+
+  // ── Form Fields ───────────────────────────
+  reason             GatePassReason
+  reasonOther        String?        // Required when reason = OTHER
+  destination        String
+  additionalNote     String?
+  documentUrl        String?
+  outTime            DateTime       // Expected departure
+  expectedInTime     DateTime       // Expected return
+
+  // ── Dynamic Mentor (auto-assigned) ────────
+  mentorTeacherId    Int?
+  mentorAssignMethod String?        // "LIVE_SESSION"|"TIMETABLE_SLOT"|"FIRST_CLASS_TODAY"|"CLASS_TEACHER"
+
+  // ── HOD ───────────────────────────────────
+  hodUserId          Int?
+
+  // ── Approval Status ───────────────────────
+  mentorStatus       GatePassStatus @default(PENDING)
+  hodStatus          GatePassStatus @default(PENDING)
+  mentorNote         String?
+  hodNote            String?
+  mentorDecidedAt    DateTime?
+  hodDecidedAt       DateTime?
+
+  // ── QR Code (only after HOD approval) ─────
+  qrTokenHash        String?        @unique
+  qrExpiresAt        DateTime?
+  qrConsumedAt       DateTime?
+  actualOutTime      DateTime?
+  actualInTime       DateTime?
+
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  student  Student  @relation(fields: [studentId], references: [id])
+  mentor   Teacher? @relation("GatePassMentor", fields: [mentorTeacherId], references: [id])
+
+  @@index([studentId])
+  @@index([mentorTeacherId])
+  @@map("gate_passes")
+}
+
+enum GatePassStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum GatePassReason {
+  MEDICAL_EMERGENCY
+  DOCTOR_APPOINTMENT
+  FAMILY_EMERGENCY
+  BANK_WORK
+  COURT_LEGAL
+  TRAVEL
+  PERSONAL
+  OTHER
 }
 

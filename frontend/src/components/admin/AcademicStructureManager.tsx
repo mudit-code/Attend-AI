@@ -12,6 +12,7 @@ interface Section {
   name: string;
   year: number;
   course: { name: string; code: string };
+  isFaceAttendanceEnabled?: boolean;
 }
 
 interface Teacher {
@@ -202,6 +203,19 @@ export default function AcademicStructureManager() {
     }))
   );
 
+  const toggleFace = async (sectionId: number, enable: boolean) => {
+    try {
+      await api.patch(`/academic/sections/${sectionId}/face-toggle`, {
+        isFaceAttendanceEnabled: enable,
+      });
+      setSections((prev) =>
+        prev.map((s) => (s.id === sectionId ? { ...s, isFaceAttendanceEnabled: enable } : s))
+      );
+    } catch (err) {
+      setError(getErrorMessage(err));
+    }
+  };
+
   return (
     <section>
       <header className="card" style={{ marginBottom: '1rem' }}>
@@ -334,6 +348,59 @@ export default function AcademicStructureManager() {
                     <td>{allocation.teacher.user.name}</td>
                     <td>{subject.name} ({subject.code})</td>
                     <td>{allocation.section.name}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+      <div className="card" style={{ marginTop: '1rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+          <h3 style={{ margin: 0 }}>Class-wise Face Attendance Governance</h3>
+          <span className="text-xs text-muted">Admin toggle for AI Face Attendance per section</span>
+        </div>
+        {loading ? (
+          <p className="text-sm text-muted">Loading classes…</p>
+        ) : sections.length === 0 ? (
+          <p className="text-sm text-muted">No sections configured.</p>
+        ) : (
+          <div className="table-responsive">
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+              <thead>
+                <tr>
+                  <th>Section</th>
+                  <th>Course</th>
+                  <th>Year</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sections.map((sec) => (
+                  <tr key={sec.id}>
+                    <td style={{ fontWeight: 600 }}>{sec.name}</td>
+                    <td>{sec.course.name} ({sec.course.code})</td>
+                    <td>Year {sec.year}</td>
+                    <td>
+                      <span style={{
+                        display: 'inline-flex', alignItems: 'center', gap: '4px',
+                        padding: '3px 8px', borderRadius: '12px', fontSize: '12px', fontWeight: 600,
+                        background: sec.isFaceAttendanceEnabled !== false ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)',
+                        color: sec.isFaceAttendanceEnabled !== false ? '#10B981' : '#EF4444'
+                      }}>
+                        {sec.isFaceAttendanceEnabled !== false ? '🟢 Active' : '🔴 Disabled'}
+                      </span>
+                    </td>
+                    <td>
+                      <button
+                        type="button"
+                        className={`btn btn--sm ${sec.isFaceAttendanceEnabled !== false ? 'btn--ghost' : 'btn--primary'}`}
+                        onClick={() => toggleFace(sec.id, sec.isFaceAttendanceEnabled === false)}
+                      >
+                        {sec.isFaceAttendanceEnabled !== false ? 'Disable Face AI' : 'Enable Face AI'}
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
