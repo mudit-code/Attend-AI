@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>AttendAI Institutional Accounts & Credentials Directory</title>
+<style>
+  body { font-family: Calibri, Arial, sans-serif; margin: 30px; color: #1e293b; }
+  h1 { color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; font-size: 22pt; }
+  h2 { color: #1e293b; margin-top: 25px; border-bottom: 1.5px solid #cbd5e1; padding-bottom: 5px; font-size: 15pt; }
+  h3 { color: #334155; font-size: 12pt; margin-top: 15px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 10px; margin-bottom: 20px; font-size: 10pt; }
+  th { background-color: #f1f5f9; color: #0f172a; text-align: left; padding: 8px 10px; border: 1px solid #cbd5e1; font-weight: bold; }
+  td { padding: 7px 10px; border: 1px solid #e2e8f0; }
+  tr:nth-child(even) { background-color: #f8fafc; }
+  .badge { background-color: #e2e8f0; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 9pt; }
+  .pwd { font-family: Consolas, monospace; font-weight: bold; color: #0f172a; background: #e0f2fe; padding: 2px 6px; border-radius: 3px; }
+  .note { background-color: #fffbeb; border-left: 4px solid #f59e0b; padding: 10px 14px; margin: 15px 0; font-size: 10.5pt; }
+</style>
+</head>
+<body>
+
+<h1>🎓 AttendAI Institutional Accounts Directory</h1>
+<p><strong>Generation Date:</strong> November 26, 2026 | <strong>Status:</strong> Live on Localhost</p>
+<div class="note">
+  <strong>Quick Access Credentials:</strong><br>
+  • <strong>Admin Password:</strong> <span class="pwd">Admin@123</span><br>
+  • <strong>HOD Password:</strong> <span class="pwd">Hod@123</span><br>
+  • <strong>Faculty Password:</strong> <span class="pwd">Teacher@123</span><br>
+  • <strong>Student Password:</strong> <span class="pwd">Student@123</span>
+</div>
+
+<h2>🏛️ 1. Central Administration & Branch Leadership (HODs)</h2>
+<table>
+  <tr>
+    <th>#</th>
+    <th>Role</th>
+    <th>Name</th>
+    <th>Department / Branch</th>
+    <th>Email Address</th>
+    <th>Password</th>
+    <th>Code</th>
+  </tr>
+  <tr>
+    <td>1</td>
+    <td><strong>System Admin</strong></td>
+    <td>System Administrator</td>
+    <td>Central Campus Admin</td>
+    <td><strong>admin@attendai.com</strong></td>
+    <td><span class="pwd">Admin@123</span></td>
+    <td>ADM001</td>
+  </tr>
+  <tr>
+    <td>2</td>
+    <td><strong>HOD (Branch 1)</strong></td>
+    <td>Dr. Rajesh Gupta</td>
+    <td>Computer Science & Engg (CSE)</td>
+    <td><strong>hod.cs@attendai.com</strong></td>
+    <td><span class="pwd">Hod@123</span></td>
+    <td>HOD-CSE-01</td>
+  </tr>
+  <tr>
+    <td>3</td>
+    <td><strong>HOD (Branch 2)</strong></td>
+    <td>Dr. Arvind Swaminathan</td>
+    <td>Electronics & Comm. Engg (ECE)</td>
+    <td><strong>hod.ece@attendai.com</strong></td>
+    <td><span class="pwd">Hod@123</span></td>
+    <td>HOD-ECE-01</td>
+  </tr>
+</table>
+
+<h2>👨‍🏫 2. Faculty / Teachers Directory (20 Accounts)</h2>
+
+<h3>A. Computer Science & Engineering (CSE) Faculty</h3>
+<table>
+  <tr>
+    <th>#</th>
+    <th>Name</th>
+    <th>Email Address</th>
+    <th>Password</th>
+    <th>Emp Code</th>
+    <th>Allocated Subject</th>
+    <th>Section</th>
+  </tr>
+  <tr><td>1</td><td>Prof. Ramesh Kumar</td><td>teacher1@attendai.com</td><td><span class="pwd">Teacher@123</span></td><td>T-CSE-001</td><td>Data Structures & Algorithms (CS301)</td><td>CSE 3rd Year A</td></tr>
+  <tr><td>2</td><td>Prof. Priya Sharma</td><td>teacher2@attendai.com</td><td><span class="pwd">Teacher@123</span></td><td>T-CSE-002</td><td>Database Management Systems (CS302)</td><td>CSE 3rd Year A</td></tr>
+  <tr><td>3</td><td>Prof. Anita Singh</td><td>teacher3@attendai.com</td><td><span class="pwd">Teacher@123</span></td><td>T-CSE-003</td><td>Operating Systems & Linux (CS303)</td><td>CSE 3rd Year A</td></tr>
+  <tr><td>4</td><td>Prof. Vikram Malhotra</td><td>teacher4@attendai.com</td><td><span class="pwd">Teacher@123</span></td><td>T-CSE-004</td><td>Computer Networks & Security (CS304)</td><td>CSE 3rd Year A</td></tr>
+  <tr><td>5</td><td>Prof. Sunita Reddy</td><td>teacher5@attendai.com</td><td><span class="pwd">Teacher@123</span></td><td>T-CSE-005</td><td>Theory of Computation (CS305)</td><td>CSE 3rd Year A</td></tr>
+  <tr><td>6</td><td>Prof. Amit Joshi</td><td>teacher6@attendai.com</td><td><span class="pwd">Teacher@123</span></td><td>T-CSE-006</td><td>Software Engineering & Agile (CS306)</td><td>CSE 3rd Year A</td></tr>
+  <tr><td>7</td><td>Prof. Meera Nair</td><td>teacher7@attendai.com</td><td><span class="pwd">Teacher@123</span></td><td>T-CSE-007</td><td>Artificial Intelligence & ML (CS307)</td><td>CSE 3rd Year A</td></tr>
+  <tr><td>8</td><td>Prof. Sandeep Verma</td><td>teacher8@attendai.com</td><td><span class="pwd">Teacher@123</span></td><td>T-CSE-008</td><td>Cloud Computing & DevOps (CS308)</td><td>CSE 3rd Year A</td></tr>
+  <tr><td>9</td><td>Prof. Pooja Choudhary</td><td>teacher9@attendai.com</td><td><span class="pwd">Teacher@123</span></td><td>T-CSE-009</td><td>Computer Architecture (CS309)</td><td>CSE 3rd Year A</td></tr>
+  <tr><td>10</td><td>Prof. Rahul Saxena</td><td>teacher10@attendai.com</td><td><span class="pwd">Teacher@123</span></td><td>T-CSE-010</td><td>Cyber Security & Forensics (CS310)</td><td>CSE 3rd Year A</td></tr>
+</table>
+
+<h3>B. Electronics & Communication Engineering (ECE) Faculty</h3>
+<table>
+  <tr>
+    <th>#</th>
+    <th>Name</th>
+    <th>Email Address</th>
+    <th>Password</th>
+    <th>Emp Code</th>
+    <th>Allocated Subject</th>
+    <th>Section</th>
+  </tr>
+  <tr><td>11</td><td>Prof. K. S. Raman</td><td>teacher11@attendai.com</td><td><span class="pwd">Teacher@123</span></td><td>T-ECE-001</td><td>Signals and Systems (EC301)</td><td>ECE 3rd Year A</td></tr>
+  <tr><td>12</td><td>Prof. Divya Iyer</td><td>teacher12@attendai.com</td><td><span class="pwd">Teacher@123</span></td><td>T-ECE-002</td><td>Digital Signal Processing (EC302)</td><td>ECE 3rd Year A</td></tr>
+  <tr><td>13</td><td>Prof. Manoj Deshmukh</td><td>teacher13@attendai.com</td><td><span class="pwd">Teacher@123</span></td><td>T-ECE-003</td><td>Microcontrollers & ARM (EC303)</td><td>ECE 3rd Year A</td></tr>
+  <tr><td>14</td><td>Prof. Shalini Sen</td><td>teacher14@attendai.com</td><td><span class="pwd">Teacher@123</span></td><td>T-ECE-004</td><td>Analog & Digital Communication (EC304)</td><td>ECE 3rd Year A</td></tr>
+  <tr><td>15</td><td>Prof. Harish Patel</td><td>teacher15@attendai.com</td><td><span class="pwd">Teacher@123</span></td><td>T-ECE-005</td><td>VLSI Design & Verilog (EC305)</td><td>ECE 3rd Year A</td></tr>
+  <tr><td>16</td><td>Prof. Neha Bhatt</td><td>teacher16@attendai.com</td><td><span class="pwd">Teacher@123</span></td><td>T-ECE-006</td><td>Electromagnetic Field Theory (EC306)</td><td>ECE 3rd Year A</td></tr>
+  <tr><td>17</td><td>Prof. Deepak Sengupta</td><td>teacher17@attendai.com</td><td><span class="pwd">Teacher@123</span></td><td>T-ECE-007</td><td>Embedded Systems & IoT (EC307)</td><td>ECE 3rd Year A</td></tr>
+  <tr><td>18</td><td>Prof. Ritu Bansal</td><td>teacher18@attendai.com</td><td><span class="pwd">Teacher@123</span></td><td>T-ECE-008</td><td>Control Systems Engineering (EC308)</td><td>ECE 3rd Year A</td></tr>
+  <tr><td>19</td><td>Prof. Alok Trivedi</td><td>teacher19@attendai.com</td><td><span class="pwd">Teacher@123</span></td><td>T-ECE-009</td><td>Microwave & Radar Engineering (EC309)</td><td>ECE 3rd Year A</td></tr>
+  <tr><td>20</td><td>Prof. Kavita Menon</td><td>teacher20@attendai.com</td><td><span class="pwd">Teacher@123</span></td><td>T-ECE-010</td><td>Optical Fiber Communication (EC310)</td><td>ECE 3rd Year A</td></tr>
+</table>
+
+<h2>🎒 3. Enrolled Students Directory (50 Accounts)</h2>
+
+<h3>A. Computer Science & Engineering (CSE) Students</h3>
+<table>
+  <tr><th>#</th><th>Student Name</th><th>Roll Number</th><th>Email Address</th><th>Password</th><th>Section</th></tr>
+  <tr><td>1</td><td>Student 1 (CSE)</td><td>23CSE001</td><td>student1@attendai.com</td><td><span class="pwd">Student@123</span></td><td>CSE 3rd Year A</td></tr>
+  <tr><td>2</td><td>Student 2 (CSE)</td><td>23CSE002</td><td>student2@attendai.com</td><td><span class="pwd">Student@123</span></td><td>CSE 3rd Year A</td></tr>
+  <tr><td>3</td><td>Student 3 (CSE)</td><td>23CSE003</td><td>student3@attendai.com</td><td><span class="pwd">Student@123</span></td><td>CSE 3rd Year A</td></tr>
+  <tr><td>4</td><td>Student 4 (CSE)</td><td>23CSE004</td><td>student4@attendai.com</td><td><span class="pwd">Student@123</span></td><td>CSE 3rd Year A</td></tr>
+  <tr><td>5</td><td>Student 5 (CSE)</td><td>23CSE005</td><td>student5@attendai.com</td><td><span class="pwd">Student@123</span></td><td>CSE 3rd Year A</td></tr>
+  <tr><td>6</td><td>Student 6 (CSE)</td><td>23CSE006</td><td>student6@attendai.com</td><td><span class="pwd">Student@123</span></td><td>CSE 3rd Year A</td></tr>
+  <tr><td>7</td><td>Student 7 (CSE)</td><td>23CSE007</td><td>student7@attendai.com</td><td><span class="pwd">Student@123</span></td><td>CSE 3rd Year A</td></tr>
+  <tr><td>8</td><td>Student 8 (CSE)</td><td>23CSE008</td><td>student8@attendai.com</td><td><span class="pwd">Student@123</span></td><td>CSE 3rd Year A</td></tr>
+  <tr><td>9</td><td>Student 9 (CSE)</td><td>23CSE009</td><td>student9@attendai.com</td><td><span class="pwd">Student@123</span></td><td>CSE 3rd Year A</td></tr>
+  <tr><td>10</td><td>Student 10 (CSE)</td><td>23CSE010</td><td>student10@attendai.com</td><td><span class="pwd">Student@123</span></td><td>CSE 3rd Year A</td></tr>
+  <tr><td>11</td><td>Student 11 (CSE)</td><td>23CSE011</td><td>student11@attendai.com</td><td><span class="pwd">Student@123</span></td><td>CSE 3rd Year A</td></tr>
+  <tr><td>12</td><td>Student 12 (CSE)</td><td>23CSE012</td><td>student12@attendai.com</td><td><span class="pwd">Student@123</span></td><td>CSE 3rd Year A</td></tr>
+  <tr><td>13</td><td>Student 13 (CSE)</td><td>23CSE013</td><td>student13@attendai.com</td><td><span class="pwd">Student@123</span></td><td>CSE 3rd Year A</td></tr>
+  <tr><td>14</td><td>Student 14 (CSE)</td><td>23CSE014</td><td>student14@attendai.com</td><td><span class="pwd">Student@123</span></td><td>CSE 3rd Year A</td></tr>
+  <tr><td>15</td><td>Student 15 (CSE)</td><td>23CSE015</td><td>student15@attendai.com</td><td><span class="pwd">Student@123</span></td><td>CSE 3rd Year A</td></tr>
+  <tr><td>16</td><td>Student 16 (CSE)</td><td>23CSE016</td><td>student16@attendai.com</td><td><span class="pwd">Student@123</span></td><td>CSE 3rd Year A</td></tr>
+  <tr><td>17</td><td>Student 17 (CSE)</td><td>23CSE017</td><td>student17@attendai.com</td><td><span class="pwd">Student@123</span></td><td>CSE 3rd Year A</td></tr>
+  <tr><td>18</td><td>Student 18 (CSE)</td><td>23CSE018</td><td>student18@attendai.com</td><td><span class="pwd">Student@123</span></td><td>CSE 3rd Year A</td></tr>
+  <tr><td>19</td><td>Student 19 (CSE)</td><td>23CSE019</td><td>student19@attendai.com</td><td><span class="pwd">Student@123</span></td><td>CSE 3rd Year A</td></tr>
+  <tr><td>20</td><td>Student 20 (CSE)</td><td>23CSE020</td><td>student20@attendai.com</td><td><span class="pwd">Student@123</span></td><td>CSE 3rd Year A</td></tr>
+  <tr><td>21</td><td>Student 21 (CSE)</td><td>23CSE021</td><td>student21@attendai.com</td><td><span class="pwd">Student@123</span></td><td>CSE 3rd Year A</td></tr>
+  <tr><td>22</td><td>Student 22 (CSE)</td><td>23CSE022</td><td>student22@attendai.com</td><td><span class="pwd">Student@123</span></td><td>CSE 3rd Year A</td></tr>
+  <tr><td>23</td><td>Student 23 (CSE)</td><td>23CSE023</td><td>student23@attendai.com</td><td><span class="pwd">Student@123</span></td><td>CSE 3rd Year A</td></tr>
+  <tr><td>24</td><td>Student 24 (CSE)</td><td>23CSE024</td><td>student24@attendai.com</td><td><span class="pwd">Student@123</span></td><td>CSE 3rd Year A</td></tr>
+  <tr><td>25</td><td>Student 25 (CSE)</td><td>23CSE025</td><td>student25@attendai.com</td><td><span class="pwd">Student@123</span></td><td>CSE 3rd Year A</td></tr>
+</table>
+
+<h3>B. Electronics & Communication Engineering (ECE) Students</h3>
+<table>
+  <tr><th>#</th><th>Student Name</th><th>Roll Number</th><th>Email Address</th><th>Password</th><th>Section</th></tr>
+  <tr><td>26</td><td>Student 26 (ECE)</td><td>23ECE001</td><td>student26@attendai.com</td><td><span class="pwd">Student@123</span></td><td>ECE 3rd Year A</td></tr>
+  <tr><td>27</td><td>Student 27 (ECE)</td><td>23ECE002</td><td>student27@attendai.com</td><td><span class="pwd">Student@123</span></td><td>ECE 3rd Year A</td></tr>
+  <tr><td>28</td><td>Student 28 (ECE)</td><td>23ECE003</td><td>student28@attendai.com</td><td><span class="pwd">Student@123</span></td><td>ECE 3rd Year A</td></tr>
+  <tr><td>29</td><td>Student 29 (ECE)</td><td>23ECE004</td><td>student29@attendai.com</td><td><span class="pwd">Student@123</span></td><td>ECE 3rd Year A</td></tr>
+  <tr><td>30</td><td>Student 30 (ECE)</td><td>23ECE005</td><td>student30@attendai.com</td><td><span class="pwd">Student@123</span></td><td>ECE 3rd Year A</td></tr>
+  <tr><td>31</td><td>Student 31 (ECE)</td><td>23ECE006</td><td>student31@attendai.com</td><td><span class="pwd">Student@123</span></td><td>ECE 3rd Year A</td></tr>
+  <tr><td>32</td><td>Student 32 (ECE)</td><td>23ECE007</td><td>student32@attendai.com</td><td><span class="pwd">Student@123</span></td><td>ECE 3rd Year A</td></tr>
+  <tr><td>33</td><td>Student 33 (ECE)</td><td>23ECE008</td><td>student33@attendai.com</td><td><span class="pwd">Student@123</span></td><td>ECE 3rd Year A</td></tr>
+  <tr><td>34</td><td>Student 34 (ECE)</td><td>23ECE009</td><td>student34@attendai.com</td><td><span class="pwd">Student@123</span></td><td>ECE 3rd Year A</td></tr>
+  <tr><td>35</td><td>Student 35 (ECE)</td><td>23ECE010</td><td>student35@attendai.com</td><td><span class="pwd">Student@123</span></td><td>ECE 3rd Year A</td></tr>
+  <tr><td>36</td><td>Student 36 (ECE)</td><td>23ECE011</td><td>student36@attendai.com</td><td><span class="pwd">Student@123</span></td><td>ECE 3rd Year A</td></tr>
+  <tr><td>37</td><td>Student 37 (ECE)</td><td>23ECE012</td><td>student37@attendai.com</td><td><span class="pwd">Student@123</span></td><td>ECE 3rd Year A</td></tr>
+  <tr><td>38</td><td>Student 38 (ECE)</td><td>23ECE013</td><td>student38@attendai.com</td><td><span class="pwd">Student@123</span></td><td>ECE 3rd Year A</td></tr>
+  <tr><td>39</td><td>Student 39 (ECE)</td><td>23ECE014</td><td>student39@attendai.com</td><td><span class="pwd">Student@123</span></td><td>ECE 3rd Year A</td></tr>
+  <tr><td>40</td><td>Student 40 (ECE)</td><td>23ECE015</td><td>student40@attendai.com</td><td><span class="pwd">Student@123</span></td><td>ECE 3rd Year A</td></tr>
+  <tr><td>41</td><td>Student 41 (ECE)</td><td>23ECE016</td><td>student41@attendai.com</td><td><span class="pwd">Student@123</span></td><td>ECE 3rd Year A</td></tr>
+  <tr><td>42</td><td>Student 42 (ECE)</td><td>23ECE017</td><td>student42@attendai.com</td><td><span class="pwd">Student@123</span></td><td>ECE 3rd Year A</td></tr>
+  <tr><td>43</td><td>Student 43 (ECE)</td><td>23ECE018</td><td>student43@attendai.com</td><td><span class="pwd">Student@123</span></td><td>ECE 3rd Year A</td></tr>
+  <tr><td>44</td><td>Student 44 (ECE)</td><td>23ECE019</td><td>student44@attendai.com</td><td><span class="pwd">Student@123</span></td><td>ECE 3rd Year A</td></tr>
+  <tr><td>45</td><td>Student 45 (ECE)</td><td>23ECE020</td><td>student45@attendai.com</td><td><span class="pwd">Student@123</span></td><td>ECE 3rd Year A</td></tr>
+  <tr><td>46</td><td>Student 46 (ECE)</td><td>23ECE021</td><td>student46@attendai.com</td><td><span class="pwd">Student@123</span></td><td>ECE 3rd Year A</td></tr>
+  <tr><td>47</td><td>Student 47 (ECE)</td><td>23ECE022</td><td>student47@attendai.com</td><td><span class="pwd">Student@123</span></td><td>ECE 3rd Year A</td></tr>
+  <tr><td>48</td><td>Student 48 (ECE)</td><td>23ECE023</td><td>student48@attendai.com</td><td><span class="pwd">Student@123</span></td><td>ECE 3rd Year A</td></tr>
+  <tr><td>49</td><td>Student 49 (ECE)</td><td>23ECE024</td><td>student49@attendai.com</td><td><span class="pwd">Student@123</span></td><td>ECE 3rd Year A</td></tr>
+  <tr><td>50</td><td>Student 50 (ECE)</td><td>23ECE025</td><td>student50@attendai.com</td><td><span class="pwd">Student@123</span></td><td>ECE 3rd Year A</td></tr>
+</table>
+
+</body>
+</html>
