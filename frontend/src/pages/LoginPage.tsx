@@ -57,13 +57,22 @@ interface RegistrationDepartment {
   code: string;
 }
 
+export type AuthRole = 'TEACHER' | 'STUDENT' | 'ADMIN' | 'HOD';
+
+export const DEMO_CREDENTIALS: Record<AuthRole, { email: string; pass: string }> = {
+  TEACHER: { email: 'teacher1@attendai.com', pass: 'Teacher@123' },
+  STUDENT: { email: 'student1@attendai.com', pass: 'Student@123' },
+  ADMIN: { email: 'admin@attendai.com', pass: 'Admin@123' },
+  HOD: { email: 'hod.cs@attendai.com', pass: 'Hod@123' },
+};
+
 export default function LoginPage() {
   const [authMode, setAuthMode] = useState<'LOGIN' | 'REGISTER'>('LOGIN');
-  const [selectedRole, setSelectedRole] = useState<'TEACHER' | 'STUDENT' | 'ADMIN'>('TEACHER');
+  const [selectedRole, setSelectedRole] = useState<AuthRole>('TEACHER');
 
-  // Login credentials
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  // Login credentials - auto-filled for currently selected role
+  const [email, setEmail] = useState(DEMO_CREDENTIALS.TEACHER.email);
+  const [password, setPassword] = useState(DEMO_CREDENTIALS.TEACHER.pass);
 
   // Register credentials
   const [name, setName] = useState('');
@@ -109,7 +118,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     const quick = (location.state as any)?.quickRole;
-    if (quick === 'TEACHER' || quick === 'STUDENT' || quick === 'ADMIN') {
+    if (quick === 'TEACHER' || quick === 'STUDENT' || quick === 'ADMIN' || quick === 'HOD') {
       handleSelectRole(quick);
     }
   }, [location.state]);
@@ -157,10 +166,14 @@ export default function LoginPage() {
     };
   }, []);
 
-  function handleSelectRole(role: 'TEACHER' | 'STUDENT' | 'ADMIN') {
+  function handleSelectRole(role: AuthRole) {
     setSelectedRole(role);
     setError('');
     setSuccessMsg('');
+    if (authMode === 'LOGIN' && DEMO_CREDENTIALS[role]) {
+      setEmail(DEMO_CREDENTIALS[role].email);
+      setPassword(DEMO_CREDENTIALS[role].pass);
+    }
   }
 
   // Handle standard login
@@ -338,6 +351,10 @@ export default function LoginPage() {
               setAuthMode('LOGIN');
               setError('');
               setSuccessMsg('');
+              if (DEMO_CREDENTIALS[selectedRole]) {
+                setEmail(DEMO_CREDENTIALS[selectedRole].email);
+                setPassword(DEMO_CREDENTIALS[selectedRole].pass);
+              }
             }}
             id="tab-sign-in"
             style={{
@@ -395,7 +412,7 @@ export default function LoginPage() {
               Select Your Role
             </label>
             <span style={{ fontSize: '0.72rem', color: 'var(--color-primary)', fontWeight: 700 }}>
-              {selectedRole === 'STUDENT' ? ' Student Portal' : selectedRole === 'TEACHER' ? ' Faculty Portal' : ' Admin Cell'}
+              {selectedRole === 'STUDENT' ? ' Student Portal' : selectedRole === 'TEACHER' ? ' Faculty Portal' : selectedRole === 'HOD' ? ' HOD Portal' : ' Admin Cell'}
             </span>
           </div>
 
@@ -406,7 +423,7 @@ export default function LoginPage() {
               alignItems: 'center',
             }}
           >
-            {(['TEACHER', 'STUDENT', 'ADMIN'] as const).map((role) => {
+            {(['TEACHER', 'STUDENT', 'ADMIN', 'HOD'] as const).map((role) => {
               const active = selectedRole === role;
               return (
                 <button
@@ -418,7 +435,7 @@ export default function LoginPage() {
                   aria-pressed={active}
                 >
                   <span className="auth-role-indicator" aria-hidden="true" />
-                  {role.charAt(0) + role.slice(1).toLowerCase()}
+                  {role === 'HOD' ? 'HOD' : role.charAt(0) + role.slice(1).toLowerCase()}
                 </button>
               );
             })}
@@ -459,6 +476,25 @@ export default function LoginPage() {
         {/* ─── TAB 1: SIGN IN FORM ─── */}
         {authMode === 'LOGIN' ? (
           <form onSubmit={handleLoginSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+            {/* Auto-filled Demo Notification Badge */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '0.45rem 0.75rem',
+                borderRadius: '8px',
+                background: 'rgba(255, 60, 40, 0.06)',
+                border: '1px solid rgba(255, 60, 40, 0.15)',
+                fontSize: '0.78rem',
+                color: 'var(--color-primary)',
+                fontWeight: 600,
+              }}
+            >
+              <span>⚡ Credentials auto-filled for <strong>{selectedRole}</strong></span>
+              <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)' }}>Demo Ready</span>
+            </div>
+
             {/* Email / Username */}
             <div>
               <div style={{ position: 'relative' }}>
@@ -536,7 +572,7 @@ export default function LoginPage() {
                   Entering Dashboard...
                 </>
               ) : (
-                `Sign In as ${selectedRole.charAt(0) + selectedRole.slice(1).toLowerCase()} →`
+                `Sign In as ${selectedRole === 'HOD' ? 'HOD' : selectedRole.charAt(0) + selectedRole.slice(1).toLowerCase()} →`
               )}
             </button>
           </form>
