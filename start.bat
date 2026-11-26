@@ -78,8 +78,8 @@ if errorlevel 1 (
 )
 echo.
 
-:: 5. Initialize Prisma Database Client
-echo [5/6] Generating Prisma ORM Client...
+:: 5. Initialize Prisma Database Client & Deploy Migrations
+echo [5/6] Generating Prisma ORM Client and applying migrations...
 cd /d "%~dp0backend"
 call npx prisma generate >nul 2>&1
 if errorlevel 1 (
@@ -87,6 +87,13 @@ if errorlevel 1 (
     call npx prisma generate
 ) else (
     echo [OK] Prisma client generated.
+)
+call npx prisma migrate deploy >nul 2>&1
+if errorlevel 1 (
+    echo [INFO] Running pending migrations...
+    call npx prisma migrate deploy
+) else (
+    echo [OK] Database schema up to date.
 )
 cd /d "%~dp0"
 echo.
@@ -128,7 +135,7 @@ echo                       AttendAI is running successfully!
 echo ===============================================================================
 echo.
 echo   [Web Endpoints]
-echo     - Faculty / Admin Portal:       http://localhost:5173
+echo     - Faculty / Admin / HOD Portal: http://localhost:5173
 echo     - Dedicated Student Mobile PWA: http://localhost:5174
 echo     - Guard Gate Desk (Kiosk):      http://localhost:5173/guard
 echo     - Backend API Gateway:          http://localhost:4000

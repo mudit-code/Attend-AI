@@ -31,6 +31,8 @@
    - [Automated Email Notification Engine (Absentee & Defaulters)](#17-automated-email-notification-engine-nodemailer)
    - [Multi-Tier Gate Pass Clearance & Guard Kiosk](#18-multi-tier-gate-pass-clearance--guard-kiosk)
    - [Dedicated Student Mobile Portal (PWA)](#19-dedicated-student-mobile-portal-pwa)
+   - [Faculty Proxy Substitution & Class Adjustment System (Proxy Lecture Engine)](#20-faculty-proxy-substitution--class-adjustment-system-proxy-lecture-engine)
+   - [Semester Roll-Over & Batch Promotion Engine (Zero Re-registration)](#21-semester-roll-over--batch-promotion-engine-zero-re-registration)
 7. [Database Architecture & Data Modeling](#-database-architecture--data-modeling)
 8. [Complete REST API Specification](#-complete-rest-api-specification)
 9. [Folder Structure](#-folder-structure)
@@ -78,6 +80,8 @@ In traditional colleges and universities, classroom attendance consumes 10–15 
 | **Paper Marksheets & Receipts** | Instant digital AKTU Semester Marksheets (SGPA 8.42) and verified Paid Fee Payment Receipts. |
 | **Tampered Attendance Records** | Append-only immutable audit trail + session auto-lock + Proctor/HOD unlock workflow. |
 | **Device Swapping & Proxy Scan** | Device fingerprint lock with administrative reset desk for verified handset changes. |
+| **Teacher Absence & Cancelled Classes** | HOD assigns substitute faculty in 1-click; proxy teacher takes attendance with full authorization, credited directly to regular subject. |
+| **New Semester Re-registration Chaos** | 1-Click Batch Promotion advances semester with zero student re-registration, preserving face vectors, credentials, and historical logs. |
 
 ---
 
@@ -294,6 +298,19 @@ graph TD
 - Standalone responsive mobile portal operating on **Port 5174** (`student-app`).
 - Live attendance progress ring, timetable pulse, Google Drive assignment submissions, gate pass QR wallet, notices, and biometric face registration.
 
+### 20. Faculty Proxy Substitution & Class Adjustment System (Proxy Lecture Engine)
+- **HOD / Dean Substitution Desk (`FacultyAdjustmentHODDesk.tsx`):** Allows Department Heads and Admins to assign an available substitute teacher when a regular faculty member is on leave or unavailable.
+- **Collision Prevention:** Database unique constraint on `[date, period, sectionId]` eliminates timetable conflicts and multiple proxy assignments for the same slot.
+- **Authorized Attendance Rights:** Substitute faculty is granted full permissions to create sessions and record attendance using Manual, 10-Second QR Projector, or AI Face Scan without getting 403 Forbidden errors.
+- **Transparent Academic Credit:** Student attendance seamlessly credits the regular subject and course curriculum, while session audit fields (`conductedByTeacherId`, `isSubstitution: true`) maintain an immutable institutional audit trail.
+- **Teacher Dashboard Proxy Launcher:** Substitute teachers receive a high-visibility notification banner in `TeacherDashboard.tsx` with a 1-click `[⚡ Take Class]` button that pre-selects Section, Subject, and Period to start roll call instantly.
+
+### 21. Semester Roll-Over & Batch Promotion Engine (Zero Re-registration)
+- **1-Click Batch Promotion (`AcademicStructureManager.tsx`):** Administrators can promote an entire section/batch from one semester to the next (e.g. Sem 3 ➔ Sem 4) in a single click.
+- **Zero Student Re-Registration:** Students retain their existing login credentials, university roll numbers, personal profile details, and registered **512-dimensional biometric AI Face embeddings**.
+- **Historical Attendance Preservation:** Past semester attendance sessions and records are archived with zero data loss. The new semester begins with a clean attendance ledger for fresh percentage tracking.
+- **Student Progression Transparency (`DashboardPage.tsx`):** Students see their current semester badge (`🎓 Semester 4 (Active)`), batch progression chips (e.g. *Promoted from CS-A Sem 3 ➔ Sem 4*), and a comparative breakdown of Current Semester vs. All-Time Cumulative attendance.
+
 ---
 
 ## 🗄️ Database Architecture & Data Modeling
@@ -324,6 +341,11 @@ erDiagram
     MedicineInventory ||--o{ DispensaryVisit : "prescribed in"
     Teacher ||--o{ DefaulterEmailLog : "dispatches"
     Student ||--o{ DefaulterEmailLog : "receives"
+
+    Teacher ||--o{ ClassAdjustment : "appointed as substitute in"
+    Section ||--o{ ClassAdjustment : "adjusted for"
+    Subject ||--o{ ClassAdjustment : "subject for"
+    Section ||--o{ SemesterPromotionLog : "source/target section in"
 ```
 
 ---
@@ -403,6 +425,21 @@ All endpoints are mounted under `/api/v1`.
 | `POST` | `/admin/devices/reset` | Admin | Resets a student's bound hardware device ID |
 | `POST` | `/academic/students/bulk` | Admin | Bulk CSV student roster import |
 
+### 8. Faculty Substitution & Class Adjustments (`/api/v1/academic/adjustments`)
+| Method | Endpoint | Access | Description |
+|---|---|---|---|
+| `POST` | `/academic/adjustments` | Admin, HOD | Appoints substitute faculty for a section, subject, date, and period |
+| `GET` | `/academic/adjustments/today` | Teacher, HOD | Retrieves today's proxy lectures assigned to the logged-in teacher |
+| `GET` | `/academic/adjustments/department` | Admin, HOD | Lists all active and scheduled class adjustments |
+| `DELETE` | `/academic/adjustments/:id` | Admin, HOD | Cancels a scheduled proxy adjustment |
+
+### 9. Semester Roll-Over & Batch Promotion (`/api/v1/academic/batch-promotion`)
+| Method | Endpoint | Access | Description |
+|---|---|---|---|
+| `POST` | `/academic/batch-promotion` | Admin | 1-Click batch promotion of students from source section to target section & new semester |
+| `GET` | `/academic/batch-promotion/logs` | Admin, HOD | Retrieves historical audit logs of all past semester promotions |
+| `GET` | `/academic/student-history` | Authenticated | Retrieves student academic progression timeline, current semester attendance, and cumulative stats |
+
 ---
 
 ## 🗂️ Folder Structure
@@ -415,7 +452,10 @@ AttendAI/
 ├── AttendAI_System_Architecture_and_System_Diagrams.docx  # Architecture & system diagrams document
 ├── docker-compose.yml                                     # PostgreSQL 16 & Redis 7 services
 ├── start.bat                                              # 1-Click Windows startup launcher
-├── stop.bat                                               # 1-Click clean shutdown launcher
+├── start-student.bat                                      # 1-Click Dedicated Student Portal launcher (Port 5174)
+├── start.sh                                               # 1-Click Linux / macOS startup launcher
+├── stop.bat                                               # 1-Click clean shutdown launcher (Windows)
+├── stop.sh                                                # 1-Click clean shutdown launcher (Linux / macOS)
 ├── README.md                                              # Complete project documentation
 │
 ├── backend/                                               # Node.js + Express 5 + TypeScript API
@@ -454,6 +494,8 @@ AttendAI/
         │   │   ├── CampusDispensaryDesk.tsx               # Clinic ledger, pharmacy, emergency
         │   │   ├── ClearanceManager.tsx                   # 4-Pillar digital No-Dues desk
         │   │   ├── DeviceManagerModal.tsx                 # Hardware device ID reset manager
+        │   │   ├── FacultyAdjustmentHODDesk.tsx           # Proxy substitution & class adjustment desk
+        │   │   ├── GatePassHODDesk.tsx                    # Multi-tier gate pass approval desk
         │   │   ├── InstitutionalFeedbackManager.tsx       # Institutional feedback metrics
         │   │   ├── LeaveApprovalDesk.tsx                  # Leave sanctions + Clinic verification
         │   │   ├── NoticePublisher.tsx                    # Campus notices & circulars

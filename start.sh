@@ -34,9 +34,10 @@ echo "[INFO] Verifying package dependencies..."
 [ ! -d "frontend/node_modules" ] && (cd frontend && npm install)
 [ ! -d "student-app/node_modules" ] && (cd student-app && npm install)
 
-# 4. Prisma Client Generation
-echo "[INFO] Generating Prisma Client..."
+# 4. Prisma Client Generation & Migrations
+echo "[INFO] Generating Prisma Client and applying migrations..."
 (cd backend && npx prisma generate >/dev/null 2>&1 || npx prisma generate)
+(cd backend && npx prisma migrate deploy >/dev/null 2>&1 || true)
 
 # 5. Launch Microservices in background
 echo "[INFO] Launching AttendAI Microservices..."
