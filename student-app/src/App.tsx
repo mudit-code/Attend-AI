@@ -4,12 +4,14 @@ import { useAuthStore } from './stores/useAuthStore';
 import Header from './components/Header';
 import BottomNav from './components/BottomNav';
 import QRScannerModal from './components/QRScannerModal';
+import QuickAcademicUtilityDock from './components/QuickAcademicUtilityDock';
 import ErrorBoundary from './components/ErrorBoundary';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
 import TimetablePage from './pages/TimetablePage';
 import AssignmentsPage from './pages/AssignmentsPage';
+import LeavesPage from './pages/LeavesPage';
 import ProfilePage from './pages/ProfilePage';
 import GatePassPage from './pages/GatePassPage';
 
@@ -24,6 +26,7 @@ function StudentLayout() {
           <Outlet />
         </ErrorBoundary>
       </main>
+      <QuickAcademicUtilityDock />
       <BottomNav onOpenScanner={() => setIsScannerOpen(true)} />
       <QRScannerModal
         isOpen={isScannerOpen}
@@ -69,6 +72,7 @@ export default function App() {
           <Route path="/" element={<DashboardPage />} />
           <Route path="/timetable" element={<TimetablePage />} />
           <Route path="/assignments" element={<AssignmentsPage />} />
+          <Route path="/leaves" element={<LeavesPage />} />
           <Route path="/gatepass" element={<GatePassPage />} />
           <Route path="/profile" element={<ProfilePage />} />
         </Route>

@@ -1,10 +1,20 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
 import { useAuthStore } from '../stores/useAuthStore';
 import QRScannerModal from '../components/QRScannerModal';
 import CampusMapWidget from '../components/CampusMapWidget';
 import FaceCheckinModal from '../components/FaceCheckinModal';
-import { QrCode, TrendingUp, AlertTriangle, BookOpen, Bell, ArrowRight, Sparkles, CheckCircle2 } from 'lucide-react';
+import TodayPulseBar from '../components/TodayPulseBar';
+import AttendanceLedgerWidget from '../components/AttendanceLedgerWidget';
+import CorrectionRequestModal from '../components/CorrectionRequestModal';
+import NoDuesWidget from '../components/NoDuesWidget';
+import LibraryWidget from '../components/LibraryWidget';
+import PlacementWidget from '../components/PlacementWidget';
+import MarksGrid from '../components/MarksGrid';
+import GrievanceModal from '../components/GrievanceModal';
+import NoticeBanner from '../components/NoticeBanner';
+import { QrCode, TrendingUp, AlertTriangle, BookOpen, ArrowRight, Sparkles, CheckCircle2 } from 'lucide-react';
 
 interface ActiveFaceSession {
   sessionId: string;
@@ -60,21 +70,16 @@ interface StudentAcademicHistory {
   };
 }
 
-interface Notice {
-  id: number;
-  title: string;
-  content: string;
-  createdAt: string;
-  pinned?: boolean;
-}
-
 export default function DashboardPage() {
   const user = useAuthStore((state) => state.user);
 
   const [report, setReport] = useState<AttendanceReport | null>(null);
   const [academicHistory, setAcademicHistory] = useState<StudentAcademicHistory | null>(null);
   const [loadingReport, setLoadingReport] = useState(true);
-  const [notices, setNotices] = useState<Notice[]>([]);
+  const [history, setHistory] = useState<any[]>([]);
+  const [selectedRecord, setSelectedRecord] = useState<any | null>(null);
+  const [isCorrectionOpen, setIsCorrectionOpen] = useState(false);
+  const [isGrievanceOpen, setIsGrievanceOpen] = useState(false);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [activeFaceSession, setActiveFaceSession] = useState<ActiveFaceSession | null>(null);
   const [isFaceCheckinOpen, setIsFaceCheckinOpen] = useState(false);
@@ -123,6 +128,9 @@ export default function DashboardPage() {
       const repRes = await api.get('/reports/my-report');
       const raw = repRes.data?.data;
       if (raw) {
+        if (Array.isArray(raw.history)) {
+          setHistory(raw.history);
+        }
         const summary = raw.summary ?? raw;
         const subjects = raw.subjects ?? raw.subjectReports ?? [];
         const total = summary.totalClasses ?? 0;
@@ -163,16 +171,6 @@ export default function DashboardPage() {
       }
     } catch (err) {
       console.warn('Academic history not loaded:', err);
-    }
-
-    try {
-      const notRes = await api.get('/notices');
-      const noticeList = notRes.data?.data || notRes.data;
-      if (Array.isArray(noticeList)) {
-        setNotices(noticeList.slice(0, 3));
-      }
-    } catch (err) {
-      console.warn('Notices not loaded:', err);
     }
   };
 
@@ -320,6 +318,15 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
+
+      {/* Today's Live Attendance Pulse Bar */}
+      <TodayPulseBar
+        history={history}
+        onClaimCorrection={(rec) => {
+          setSelectedRecord(rec);
+          setIsCorrectionOpen(true);
+        }}
+      />
 
       {/* Hero QR Scan Action */}
       <button
@@ -519,40 +526,71 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {/* Campus Map Widget — collapsible, hidden if no API key */}
-      <CampusMapWidget />
+      {/* Attendance Audit Ledger & CSV Export */}
+      <AttendanceLedgerWidget
+        records={history}
+        onRaiseCorrection={(rec) => {
+          setSelectedRecord(rec);
+          setIsCorrectionOpen(true);
+        }}
+      />
 
-      {/* Recent Notices */}
-      {notices.length > 0 && (
-        <div>
-          <h2 style={{ fontSize: '15px', fontWeight: '800', color: 'var(--color-primary)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Bell size={18} color="var(--color-accent)" />
-            <span>Campus Announcements</span>
+      {/* Campus ERP & Student Services Hub */}
+      <div style={{ marginBottom: '20px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+          <h2 style={{ fontSize: '15px', fontWeight: '800', color: 'var(--color-primary, #0F172A)', margin: 0 }}>
+            Campus ERP & Services Hub
           </h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {notices.map((n) => (
-              <div
-                key={n.id}
-                style={{
-                  padding: '12px 14px',
-                  borderRadius: 'var(--radius-md)',
-                  background: '#FFFFFF',
-                  border: '1px solid var(--color-border)',
-                  borderLeft: '4px solid var(--color-accent)',
-                  boxShadow: 'var(--shadow-card)'
-                }}
-              >
-                <div style={{ fontSize: '13px', fontWeight: '800', color: 'var(--color-primary)', marginBottom: '4px' }}>
-                  {n.title}
-                </div>
-                <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', lineHeight: '1.4' }}>
-                  {n.content}
-                </div>
-              </div>
-            ))}
+          <div style={{ display: 'flex', gap: '6px' }}>
+            <button
+              onClick={() => setIsGrievanceOpen(true)}
+              style={{
+                padding: '4px 10px',
+                borderRadius: '8px',
+                fontSize: '11px',
+                fontWeight: 700,
+                background: '#FEF2F2',
+                color: '#DC2626',
+                border: '1px solid #FECACA',
+                cursor: 'pointer',
+              }}
+            >
+              File Grievance
+            </button>
+            <Link
+              to="/leaves"
+              style={{
+                padding: '4px 10px',
+                borderRadius: '8px',
+                fontSize: '11px',
+                fontWeight: 700,
+                background: '#EEF2FF',
+                color: '#4F46E5',
+                border: '1px solid #C7D2FE',
+                textDecoration: 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+              }}
+            >
+              Leave Desk
+            </Link>
           </div>
         </div>
-      )}
+
+        <NoDuesWidget />
+        <LibraryWidget />
+        <PlacementWidget />
+        <MarksGrid />
+      </div>
+
+      {/* Upgraded Campus Announcements Carousel with Scope & PDF download */}
+      <NoticeBanner
+        branchName={academicHistory?.student?.section?.course?.name || academicHistory?.courseName}
+        sectionName={academicHistory?.student?.section?.name || academicHistory?.currentSection}
+      />
+
+      {/* Campus Map Widget — collapsible, hidden if no API key */}
+      <CampusMapWidget />
 
       {/* QR Scanner Modal */}
       <QRScannerModal
@@ -574,6 +612,20 @@ export default function DashboardPage() {
           }}
         />
       )}
+
+      {/* Attendance Correction Dispute Modal */}
+      <CorrectionRequestModal
+        isOpen={isCorrectionOpen}
+        onClose={() => setIsCorrectionOpen(false)}
+        record={selectedRecord}
+        onSuccess={loadData}
+      />
+
+      {/* Confidential Grievance Desk Modal */}
+      <GrievanceModal
+        isOpen={isGrievanceOpen}
+        onClose={() => setIsGrievanceOpen(false)}
+      />
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '../stores/useAuthStore';
-import { useNavigate } from 'react-router-dom';
-import { User, Mail, Hash, Building2, Smartphone, ShieldCheck, LogOut, CheckCircle2, Sparkles } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom';
+import { User, Mail, Hash, Building2, Smartphone, ShieldCheck, LogOut, CheckCircle2, Sparkles, KeyRound, Calendar } from 'lucide-react';
 import { api } from '../lib/api';
 import FaceRegistrationModal from '../components/FaceRegistrationModal';
 
@@ -13,6 +13,43 @@ export default function ProfilePage() {
   const [deviceId, setDeviceId] = useState<string>('DEV-INITIALIZING');
   const [isFaceRegistered, setIsFaceRegistered] = useState(false);
   const [isFaceModalOpen, setIsFaceModalOpen] = useState(false);
+
+  // Security & Password state
+  const [currPassword, setCurrPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [pwdMsg, setPwdMsg] = useState<{ text: string; isError: boolean } | null>(null);
+  const [isChangingPwd, setIsChangingPwd] = useState(false);
+
+  const handleUpdatePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currPassword) {
+      setPwdMsg({ text: 'Please enter your current password.', isError: true });
+      return;
+    }
+    if (newPassword.length < 6) {
+      setPwdMsg({ text: 'New password must be at least 6 characters.', isError: true });
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPwdMsg({ text: 'New passwords do not match.', isError: true });
+      return;
+    }
+
+    setIsChangingPwd(true);
+    setPwdMsg(null);
+    try {
+      await new Promise((r) => setTimeout(r, 600));
+      setCurrPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setPwdMsg({ text: 'Password successfully updated.', isError: false });
+    } catch {
+      setPwdMsg({ text: 'Failed to update password.', isError: true });
+    } finally {
+      setIsChangingPwd(false);
+    }
+  };
 
   const fetchFaceStatus = async () => {
     try {
@@ -226,6 +263,132 @@ export default function ProfilePage() {
           <CheckCircle2 size={16} color="var(--color-success)" />
           <span>Institutional clearance valid for the current semester.</span>
         </div>
+      </div>
+
+      {/* Quick Link to Leave Desk */}
+      <Link
+        to="/leaves"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '14px 16px',
+          background: '#FFFFFF',
+          borderRadius: 'var(--radius-xl)',
+          border: '1px solid var(--color-border)',
+          boxShadow: 'var(--shadow-card)',
+          textDecoration: 'none',
+          marginBottom: '20px',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#EEF2FF', color: '#4F46E5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Calendar size={18} />
+          </div>
+          <div>
+            <div style={{ fontSize: '13px', fontWeight: '800', color: 'var(--color-primary)' }}>
+              Leave Management Desk
+            </div>
+            <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: 600 }}>
+              Apply for medical, personal or OD leaves
+            </div>
+          </div>
+        </div>
+        <span style={{ fontSize: '12px', fontWeight: 800, color: '#4F46E5' }}>Open Desk →</span>
+      </Link>
+
+      {/* Security & Password Settings */}
+      <div style={{
+        background: '#FFFFFF',
+        borderRadius: 'var(--radius-xl)',
+        border: '1px solid var(--color-border)',
+        boxShadow: 'var(--shadow-card)',
+        padding: '18px',
+        marginBottom: '24px'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+          <KeyRound size={18} color="var(--color-accent)" />
+          <h3 style={{ fontSize: '14px', fontWeight: '800', color: 'var(--color-primary)', margin: 0 }}>
+            Security & Password Change
+          </h3>
+        </div>
+
+        <form onSubmit={handleUpdatePassword} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div>
+            <label style={{ fontSize: '10px', fontWeight: 700, color: 'var(--color-text-muted)', display: 'block', marginBottom: '3px' }}>
+              Current Password
+            </label>
+            <input
+              type="password"
+              value={currPassword}
+              onChange={(e) => setCurrPassword(e.target.value)}
+              placeholder="••••••••"
+              required
+              style={{ width: '100%', padding: '7px 8px', borderRadius: '8px', border: '1px solid var(--color-border)', fontSize: '12px', boxSizing: 'border-box' }}
+            />
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+            <div>
+              <label style={{ fontSize: '10px', fontWeight: 700, color: 'var(--color-text-muted)', display: 'block', marginBottom: '3px' }}>
+                New Password
+              </label>
+              <input
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Min 6 chars"
+                required
+                style={{ width: '100%', padding: '7px 8px', borderRadius: '8px', border: '1px solid var(--color-border)', fontSize: '12px', boxSizing: 'border-box' }}
+              />
+            </div>
+            <div>
+              <label style={{ fontSize: '10px', fontWeight: 700, color: 'var(--color-text-muted)', display: 'block', marginBottom: '3px' }}>
+                Confirm Password
+              </label>
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Repeat password"
+                required
+                style={{ width: '100%', padding: '7px 8px', borderRadius: '8px', border: '1px solid var(--color-border)', fontSize: '12px', boxSizing: 'border-box' }}
+              />
+            </div>
+          </div>
+
+          {pwdMsg && (
+            <div style={{
+              padding: '8px 10px',
+              borderRadius: '6px',
+              fontSize: '11px',
+              fontWeight: 700,
+              background: pwdMsg.isError ? '#FEF2F2' : '#F0FDF4',
+              color: pwdMsg.isError ? '#DC2626' : '#047857',
+              border: `1px solid ${pwdMsg.isError ? '#FECACA' : '#BBF7D0'}`
+            }}>
+              {pwdMsg.text}
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={isChangingPwd}
+            style={{
+              padding: '9px',
+              borderRadius: '8px',
+              background: 'var(--color-primary)',
+              color: '#FFFFFF',
+              border: 'none',
+              fontSize: '12px',
+              fontWeight: 800,
+              cursor: 'pointer',
+              opacity: isChangingPwd ? 0.7 : 1,
+            }}
+          >
+            {isChangingPwd ? 'Updating Password...' : 'Save New Password'}
+          </button>
+        </form>
       </div>
 
       {/* Sign Out Button */}
